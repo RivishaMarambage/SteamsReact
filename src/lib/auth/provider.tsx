@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
-import { User, MenuItem } from '@/lib/types';
+import type { User, MenuItem } from '@/lib/types';
 import { MOCK_DATA, MENU_ITEMS } from '@/lib/mock-data';
 
 interface AuthContextType {
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       addMenuItem,
       updateMenuItem,
       deleteMenuItem,
-  }), [users, menuItems, isLoading]);
+  }), [users, menuItems, isLoading, user]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
