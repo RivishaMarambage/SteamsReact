@@ -13,6 +13,7 @@ import { MOCK_USER } from '@/lib/data';
 import { Award, BookMarked, LayoutDashboard, ShoppingCart, User, ScanSearch } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
+import Link from 'next/link';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,13 +47,14 @@ export default function AppSidebar() {
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                href={item.href}
                 isActive={isActive(item.href)}
                 asChild
                 tooltip={item.label}
               >
-                <item.icon />
-                <span>{item.label}</span>
+                <Link href={item.href}>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -64,13 +66,14 @@ export default function AppSidebar() {
               {adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    href={item.href}
                     isActive={isActive(item.href)}
                     asChild
                     tooltip={item.label}
                   >
-                    <item.icon />
-                    <span>{item.label}</span>
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
