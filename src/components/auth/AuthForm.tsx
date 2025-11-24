@@ -17,7 +17,7 @@ import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { Checkbox } from '../ui/checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -88,12 +88,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         onSuccess: (userCredential) => {
           const user = userCredential.user;
           const userDocRef = doc(firestore, "users", user.uid);
-          setDocumentNonBlocking(userDocRef, {
+          
+          let userData: any = {
             id: user.uid,
             email: user.email,
             role: role,
             name: data.fullName,
-          }, { merge: true });
+          };
 
           if (role === 'customer') {
             const profileDocRef = doc(firestore, "customer_profiles", user.uid);
@@ -107,8 +108,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyLevelId: 'None',
             }, { merge: true });
             
-            const userUpdateRef = doc(firestore, "users", user.uid);
-            setDocumentNonBlocking(userUpdateRef, { customerProfileId: user.uid }, { merge: true });
+            userData.customerProfileId = user.uid;
+          }
+          
+          setDocumentNonBlocking(userDocRef, userData, { merge: true });
+
+          if (role === 'admin' || role === 'staff') {
+            const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
+            const roleDocRef = doc(firestore, roleCollection, user.uid);
+            setDocumentNonBlocking(roleDocRef, {
+              id: user.uid,
+              email: user.email,
+              role: role
+            }, { merge: true });
           }
 
           toast({
@@ -188,32 +200,36 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="mobileNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mobile Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="555-123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="cafeNickname"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cafe Nickname (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Lex" {...field} />
-                        </FormControl>
-                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {role === 'customer' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="mobileNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Mobile Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="555-123-4567" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="cafeNickname"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cafe Nickname (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Lex" {...field} />
+                            </FormControl>
+                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                 </>
               )}
               <FormField
