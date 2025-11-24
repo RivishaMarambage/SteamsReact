@@ -2,12 +2,12 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  mobile: string;
-  nickname: string;
+  mobile?: string;
+  nickname?: string;
   role: 'customer' | 'admin' | 'staff';
-  points: number;
-  loyaltyLevel: LoyaltyLevel;
-  recentOrders: Order[];
+  points?: number;
+  loyaltyLevel?: LoyaltyLevel;
+  recentOrders?: Order[];
 };
 
 export type MenuItem = {

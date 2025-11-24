@@ -61,7 +61,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     } else if (error.code === 'auth/email-already-in-use') {
       title = 'Email In Use'
       description = 'This email address is already registered. Please log in instead.';
-    } else {
+    } else if (error.code !== 'auth/network-request-failed') {
       // Only log unexpected errors
       console.error(error);
     }
@@ -89,13 +89,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           const user = userCredential.user;
           const userDocRef = doc(firestore, "users", user.uid);
           
-          let userData: any = {
+          const userData = {
             id: user.uid,
             email: user.email,
             role: role,
             name: data.fullName,
           };
+          
+          // Create the main user document
+          setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
+          // If customer, also create their profile
           if (role === 'customer') {
             const profileDocRef = doc(firestore, "customer_profiles", user.uid);
             setDocumentNonBlocking(profileDocRef, {
@@ -107,12 +111,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyPoints: 0,
               loyaltyLevelId: 'None',
             }, { merge: true });
-            
-            userData.customerProfileId = user.uid;
           }
           
-          setDocumentNonBlocking(userDocRef, userData, { merge: true });
-
+          // If admin or staff, create their role document for security rules
           if (role === 'admin' || role === 'staff') {
             const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
             const roleDocRef = doc(firestore, roleCollection, user.uid);
@@ -170,11 +171,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 <Info className="h-4 w-4 text-blue-600"/>
                 <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
                 <AlertDescription className="text-blue-700">
-                  {role === 'customer' ? (
-                    <p>First, <Link href={`/signup/${role}`} className="font-bold underline">sign up</Link> with the email below. Then you can log in.</p>
-                  ) : (
-                    <p>Log in with the demo credentials below. An admin must create your account first.</p>
-                  )}
+                  <p>First, please sign up for the role you want to test. Then you can log in with those credentials.</p>
                   <p className="mt-2">
                     <strong>Email:</strong> {DEMO_CREDENTIALS[role].email}<br/>
                     <strong>Password:</strong> Use any password (min. 6 characters)
