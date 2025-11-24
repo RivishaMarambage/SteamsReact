@@ -17,11 +17,15 @@ import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   fullName: z.string().optional(),
+  mobileNumber: z.string().optional(),
+  cafeNickname: z.string().optional(),
+  privacyPolicy: z.boolean().default(false),
 });
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -45,7 +49,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', password: '', fullName: '' },
+    defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false },
   });
 
   const handleAuthError = (error: any) => {
@@ -75,6 +79,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
         return;
       }
+      if (role === 'customer' && !data.privacyPolicy) {
+        form.setError('privacyPolicy', { type: 'manual', message: 'You must accept the privacy policy.' });
+        return;
+      }
+
       initiateEmailSignUp(auth, data.email, data.password, {
         onSuccess: (userCredential) => {
           const user = userCredential.user;
@@ -92,20 +101,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               id: user.uid,
               email: user.email,
               name: data.fullName,
-              mobileNumber: '',
-              cafeNickname: '',
+              mobileNumber: data.mobileNumber || '',
+              cafeNickname: data.cafeNickname || '',
               loyaltyPoints: 0,
               loyaltyLevelId: 'None',
             }, { merge: true });
             
             const userUpdateRef = doc(firestore, "users", user.uid);
             setDocumentNonBlocking(userUpdateRef, { customerProfileId: user.uid }, { merge: true });
-          } else if (role === 'staff') {
-            const staffRoleRef = doc(firestore, "roles_staff", user.uid);
-            setDocumentNonBlocking(staffRoleRef, { id: user.uid, email: user.email, role: 'staff' }, {});
-          } else if (role === 'admin') {
-            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
-            setDocumentNonBlocking(adminRoleRef, { id: user.uid, email: user.email, role: 'admin' }, {});
           }
 
           toast({
@@ -134,6 +137,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       ? `Enter your credentials to access your ${role} account.`
       : `Create your ${role} account to get started.`;
   const buttonText = authType === 'login' ? 'Log In' : 'Sign Up';
+  
+  const showSignupLink = role === 'customer';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -153,7 +158,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 <Info className="h-4 w-4 text-blue-600"/>
                 <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
                 <AlertDescription className="text-blue-700">
-                  <p>First, <Link href={`/signup/${role}`} className="font-bold underline">sign up</Link> with the email below. Then you can log in.</p>
+                  {role === 'customer' ? (
+                    <p>First, <Link href={`/signup/${role}`} className="font-bold underline">sign up</Link> with the email below. Then you can log in.</p>
+                  ) : (
+                    <p>Log in with the demo credentials below. An admin must create your account first.</p>
+                  )}
                   <p className="mt-2">
                     <strong>Email:</strong> {DEMO_CREDENTIALS[role].email}<br/>
                     <strong>Password:</strong> Use any password (min. 6 characters)
@@ -165,19 +174,47 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               {authType === 'signup' && (
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Alex Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Alex Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mobileNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mobile Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="555-123-4567" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cafeNickname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cafe Nickname (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Lex" {...field} />
+                        </FormControl>
+                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
               )}
               <FormField
                 control={form.control}
@@ -205,6 +242,28 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   </FormItem>
                 )}
               />
+               {authType === 'signup' && role === 'customer' && (
+                <FormField
+                  control={form.control}
+                  name="privacyPolicy"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I agree to the <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
               <Button type="submit" className="w-full">
                 {buttonText}
               </Button>
@@ -216,10 +275,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           <div className="mt-4 text-center text-sm">
             {authType === 'login' ? (
               <>
-                Don&apos;t have an account?{' '}
-                <Link href={`/signup/${role}`} className="underline">
-                  Sign up
-                </Link>
+                {showSignupLink && (
+                  <>
+                    Don&apos;t have an account?{' '}
+                    <Link href={`/signup/${role}`} className="underline">
+                      Sign up
+                    </Link>
+                  </>
+                )}
               </>
             ) : (
               <>
