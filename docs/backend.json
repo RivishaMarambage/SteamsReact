@@ -1,0 +1,360 @@
+{
+  "entities": {
+    "CustomerProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomerProfile",
+      "type": "object",
+      "description": "Represents a customer's profile in the Cafe Latte Loyalty System.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the customer profile."
+        },
+        "email": {
+          "type": "string",
+          "description": "Customer's email address.",
+          "format": "email"
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Customer's mobile number."
+        },
+        "name": {
+          "type": "string",
+          "description": "Customer's full name."
+        },
+        "cafeNickname": {
+          "type": "string",
+          "description": "Customer's preferred nickname for the cafe."
+        },
+        "loyaltyPoints": {
+          "type": "number",
+          "description": "The number of loyalty points the customer has."
+        },
+        "loyaltyLevelId": {
+          "type": "string",
+          "description": "Reference to LoyaltyLevel. (Relationship: LoyaltyLevel 1:N CustomerProfile)"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "mobileNumber",
+        "name",
+        "loyaltyPoints",
+        "loyaltyLevelId"
+      ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents an item on the cafe's menu.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the menu item."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the menu item."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the menu item."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the menu item."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order placed by a customer for pickup.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to CustomerProfile. (Relationship: CustomerProfile 1:N Order)"
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "Date and time the order was placed.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount of the order."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the order (e.g., pending, processing, ready for pickup, completed)."
+        },
+        "orderItemIds": {
+          "type": "array",
+          "description": "References to OrderItem. (Relationship: Order 1:N OrderItem)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "orderDate",
+        "totalAmount",
+        "status"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Represents a single item within an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order item."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to MenuItem. (Relationship: MenuItem 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the menu item in the order."
+        },
+        "itemPrice": {
+          "type": "number",
+          "description": "Price of the item for this order.  Useful if prices change."
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "menuItemId",
+        "quantity",
+        "itemPrice"
+      ]
+    },
+    "LoyaltyLevel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LoyaltyLevel",
+      "type": "object",
+      "description": "Represents a loyalty level in the system (e.g., Bronze, Silver, Gold, Platinum).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the loyalty level."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the loyalty level (e.g., Bronze, Silver, Gold, Platinum)."
+        },
+        "minimumPoints": {
+          "type": "number",
+          "description": "Minimum number of points required to reach this loyalty level."
+        },
+        "discountPercentage": {
+          "type": "number",
+          "description": "The discount percentage that this loyalty level gives"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "minimumPoints",
+        "discountPercentage"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the system (customer, staff, admin). Authentication details are not stored here.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role (customer, staff, admin)."
+        },
+        "customerProfileId": {
+          "type": "string",
+          "description": "Reference to CustomerProfile. (Relationship: User 1:1 CustomerProfile). Nullable if the user is not a customer."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data, including role (customer, staff, admin) and customer profile ID. Enables role-based access control based on the 'role' field.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customer_profiles/{customerProfileId}",
+        "definition": {
+          "entityName": "CustomerProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CustomerProfile"
+          },
+          "description": "Stores customer profile information. Accessible by the customer and authorized staff/admins. Customer profile ID links to the user account for authorization.",
+          "params": [
+            {
+              "name": "customerProfileId",
+              "description": "The unique identifier for the customer profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/menu_items/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Stores menu item information. Globally accessible (read-only for customers).",
+          "params": [
+            {
+              "name": "menuItemId",
+              "description": "The unique identifier for the menu item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores orders placed by customers. Accessible by the customer who placed the order and authorized staff/admins. Path-based ownership for security.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user (customer)."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders_items/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores order items.  This is a flat collection to simplify querying and listing order items regardless of user. Includes denormalized customer ID for rule simplicity.",
+          "params": [
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier for the order item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/loyalty_levels/{loyaltyLevelId}",
+        "definition": {
+          "entityName": "LoyaltyLevel",
+          "schema": {
+            "$ref": "#/backend/entities/LoyaltyLevel"
+          },
+          "description": "Stores loyalty level definitions. Globally accessible (read-only).",
+          "params": [
+            {
+              "name": "loyaltyLevelId",
+              "description": "The unique identifier for the loyalty level."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "RoleAdmin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates admin role.  Existence of document grants admin privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user with admin role."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_staff/{userId}",
+        "definition": {
+          "entityName": "RoleStaff",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates staff role. Existence of document grants staff privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user with staff role."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Cafe Latte Loyalty System, emphasizing security, scalability, and role-based access control. Separate collections are used for different roles (admin, staff, customer) to maintain clarity and enforce distinct security rules. User data and related entities are structured to minimize dependencies and avoid complex `get()` calls in security rules. \n\n**Authorization Independence:** User roles are stored directly within the `users` collection and denormalized where required to enable role-based access control without needing to fetch additional documents. For example, customer profiles are stored under `/customer_profiles/{customerProfileId}` and are linked to user accounts via the `customerProfileId` field in the `users` collection. This direct link allows security rules to easily verify a user's access to their profile based on their `uid` and the `customerProfileId`.\n\n**QAPs Support:** The structure is designed to support secure `list` operations by segregating data based on access requirements. Customer profiles are stored in the `customer_profiles` collection and are only accessible to the respective customer or authorized staff/admins. Menu items are globally accessible (read-only for customers), enabling efficient retrieval for the application.\n\n**Role-Based Access Control:** Dedicated collections are used to manage admin and staff roles (`/roles_admin/{uid}`, `/roles_staff/{uid}`). The existence of a document in these collections grants the corresponding role to the user, enabling secure access to administrative functions like menu management and loyalty point redemption.\n\n**Data Integrity:** Hierarchical paths are used to define ownership and relationships between entities, such as users and their orders (`/users/{userId}/orders/{orderId}`). This structure ensures that orders are associated with the correct customer, supporting the integrity of ownership and data consistency."
+  }
+}
