@@ -35,12 +35,6 @@ interface AuthFormProps {
   role: 'customer' | 'staff' | 'admin';
 }
 
-const DEMO_CREDENTIALS = {
-  customer: { email: 'customer@example.com' },
-  staff: { email: 'staff@example.com' },
-  admin: { email: 'admin@example.com' },
-};
-
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -62,7 +56,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       title = 'Email In Use'
       description = 'This email address is already registered. Please log in instead.';
     } else if (error.code !== 'auth/network-request-failed') {
-      // Only log unexpected errors
       console.error(error);
     }
     
@@ -89,19 +82,18 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           const user = userCredential.user;
           const userDocRef = doc(firestore, "users", user.uid);
           
-          const userData = {
+          const userData: any = {
             id: user.uid,
             email: user.email,
             role: role,
             name: data.fullName,
           };
           
-          // Create the main user document
-          setDocumentNonBlocking(userDocRef, userData, { merge: true });
-
-          // If customer, also create their profile
+          // If customer, also create their profile and link it in the user doc
           if (role === 'customer') {
             const profileDocRef = doc(firestore, "customer_profiles", user.uid);
+            userData.customerProfileId = user.uid; // Link user to profile
+
             setDocumentNonBlocking(profileDocRef, {
               id: user.uid,
               email: user.email,
@@ -112,6 +104,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyLevelId: 'None',
             }, { merge: true });
           }
+
+          // Create the main user document
+          setDocumentNonBlocking(userDocRef, userData, { merge: true });
           
           // If admin or staff, create their role document for security rules
           if (role === 'admin' || role === 'staff') {
@@ -173,7 +168,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 <AlertDescription className="text-blue-700">
                   <p>First, please sign up for the role you want to test. Then you can log in with those credentials.</p>
                   <p className="mt-2">
-                    <strong>Email:</strong> {DEMO_CREDENTIALS[role].email}<br/>
                     <strong>Password:</strong> Use any password (min. 6 characters)
                   </p>
                 </AlertDescription>

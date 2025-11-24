@@ -1,10 +1,9 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const getDashboardPathForRole = (role?: string) => {
   switch (role) {
@@ -15,9 +14,11 @@ const getDashboardPathForRole = (role?: string) => {
     case 'customer':
       return '/dashboard';
     default:
-      return '/'; // Fallback to landing page if no role or unknown role
+      return '/'; // Fallback to landing page
   }
 };
+
+const PUBLIC_PATHS = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
 
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -27,53 +28,60 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // If Firebase is still checking auth state, do nothing.
+    // Wait until Firebase has determined the initial auth state
     if (isUserLoading) {
       return;
     }
 
-    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
-    const isPublicPath = publicPaths.includes(pathname);
+    const isPublic = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
     if (user) {
-      // User is logged in. Fetch their role from Firestore.
+      // User is logged in
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then((userDoc) => {
-        const userRole = userDoc.exists() ? userDoc.data()?.role : undefined;
-        const targetDashboard = getDashboardPathForRole(userRole);
+        if (userDoc.exists()) {
+          const userRole = userDoc.data()?.role;
+          const targetDashboard = getDashboardPathForRole(userRole);
 
-        if (isPublicPath) {
-          // If on a public page, redirect to their dashboard.
-          router.replace(targetDashboard);
-        } else if (pathname.startsWith(targetDashboard) && targetDashboard !== '/') {
-          // They are on the correct dashboard page, allow render.
-          setIsReady(true);
+          // If user is on a public page, redirect them to their dashboard
+          if (isPublic) {
+            router.replace(targetDashboard);
+            // Don't set isReady, as a redirect is happening
+            return;
+          }
+
+          // If user is on a protected page, check if it's the correct one
+          if (pathname.startsWith(getDashboardPathForRole(userRole))) {
+            setIsReady(true); // Correct page, allow render
+          } else {
+            router.replace(targetDashboard); // Wrong page, redirect
+          }
         } else {
-          // They are logged in but on the wrong page (or role is missing), redirect.
-          router.replace(targetDashboard);
+          // This can happen briefly after signup.
+          // Or if the user doc was deleted. For safety, send to home.
+          // The next navigation or a reload will likely resolve if it was a race condition.
+          router.replace('/');
         }
-      }).catch(error => {
-        console.error("Error fetching user document for redirection:", error);
-        // If we can't get the user doc, log them out to be safe.
+      }).catch(() => {
+        // If fetching the doc fails, log out and go home
         router.replace('/');
       });
 
     } else {
-      // User is not logged in.
-      if (isPublicPath) {
-        // Allow access to public pages.
-        setIsReady(true);
-      } else {
-        // On a protected page without being logged in, redirect to home.
+      // User is not logged in
+      if (!isPublic) {
+        // If on a protected page, redirect to home
         router.replace('/');
+      } else {
+        // On a public page, allow render
+        setIsReady(true);
       }
     }
   }, [user, isUserLoading, pathname, firestore, router]);
 
-  // Render a loading state or nothing until checks are complete.
-  // This prevents content flashing.
+  // Only render children when all checks are complete and no redirect is pending
   if (!isReady) {
-    return null;
+    return null; // Render nothing (or a loader) to prevent content flashing
   }
 
   return <>{children}</>;
