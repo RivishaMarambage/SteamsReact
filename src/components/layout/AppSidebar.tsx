@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Award, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
+import { BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ const customerMenuItems = [
 
 const staffMenuItems = [
     { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
+    { href: '/dashboard/admin/redeem', label: 'Redeem Points', icon: ScanSearch },
 ];
 
 const adminMenuItems = [
@@ -34,32 +35,28 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { userDoc } = useUser(); // Use the global user document
+  const { userDoc } = useUser();
   const userRole = userDoc?.role;
 
   const isActive = (href: string) => {
-    // Exact match for the main dashboard page
-    if (href === '/dashboard' && pathname === href) {
-        return true;
-    }
-    // Starts-with match for all other dashboard sub-pages
-    return href !== '/dashboard' && pathname.startsWith(href);
+    if (href === '/dashboard') return pathname === href;
+    return pathname.startsWith(href);
   };
 
-  let menuItemsToShow = customerMenuItems;
-  let sectionTitle = '';
-  let sectionItems: typeof adminMenuItems = [];
+  let menuItemsToShow: typeof customerMenuItems = [];
+  const adminSectionItems: typeof adminMenuItems = [];
+  const staffSectionItems: typeof staffMenuItems = [];
 
-  if (userRole === 'staff') {
+  if (userRole === 'customer') {
+    menuItemsToShow = customerMenuItems;
+  } else if (userRole === 'staff') {
     menuItemsToShow = staffMenuItems;
+  } else if (userRole === 'admin') {
+    // Admin sees all staff items plus their own admin items.
+    menuItemsToShow = staffMenuItems;
+    adminSectionItems.push(...adminMenuItems);
   }
-  
-  if (userRole === 'admin') {
-    // Admins see their own menu, not the customer or staff menu
-    menuItemsToShow = [];
-    sectionTitle = 'Admin';
-    sectionItems = adminMenuItems;
-  }
+
 
   return (
     <Sidebar>
@@ -82,12 +79,12 @@ export default function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          {sectionItems.length > 0 && (
+          {userRole === 'admin' && (
             <>
               <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-                {sectionTitle}
+                Admin
               </div>
-              {sectionItems.map((item) => (
+              {adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={isActive(item.href)}

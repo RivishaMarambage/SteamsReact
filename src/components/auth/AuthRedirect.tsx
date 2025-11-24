@@ -49,7 +49,11 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
       if (targetDashboard) {
         // If the user is on a public page or not on a path for their role, redirect them.
         const isAlreadyOnCorrectPath = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
-        if (!isAlreadyOnCorrectPath) {
+        
+        // Special case for customer dashboard
+        if (userRole === 'customer' && pathname === '/dashboard') {
+            // Already at the right place
+        } else if (!isAlreadyOnCorrectPath) {
           router.replace(targetDashboard);
         }
       } else {
@@ -68,18 +72,19 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   }, [user, userDoc, isLoading, pathname, router]);
 
 
+  // While authentication is loading, show a spinner on all pages.
   if (isLoading) {
     return <FullPageSpinner />;
   }
 
   const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
-  // If we are logged in, but on a public path, we are about to redirect. Show a spinner.
+  // If we are logged in, but on a public path, a redirect is imminent. Show a spinner.
   if (user && userDoc && isPublicPath) {
     return <FullPageSpinner />;
   }
 
-  // If we are not logged in and on a protected path, we are about to redirect. Show a spinner.
+  // If we are not logged in and on a protected path, a redirect is imminent. Show a spinner.
   if (!user && !isPublicPath) {
     return <FullPageSpinner />;
   }

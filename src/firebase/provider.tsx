@@ -62,8 +62,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const [userState, setUserState] = useState<UserState>({
     user: null,
     userDoc: null,
-    isLoading: true, // Start loading until initial auth check and data fetch is complete
-    error: null,
+    isLoading: true,
   });
 
   useEffect(() => {
@@ -74,22 +73,37 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in, fetch their document from Firestore
-        const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+        setUserState(prevState => ({ ...prevState, isLoading: true }));
         try {
-          const docSnap = await getDoc(userDocRef);
-          if (docSnap.exists()) {
-            setUserState({ user: firebaseUser, userDoc: docSnap.data(), isLoading: false, error: null });
-          } else {
-            // This can happen briefly during signup. Instead of erroring, we can treat it as a loading state
-            // or a state where the user is authenticated but not yet fully provisioned.
-            // For now, we will wait briefly and re-fetch, but a more robust solution might involve
-            // a state machine or checking again after a short delay.
-            // For the purpose of fixing the redirect, we will consider the user not fully logged in until userDoc is present.
-            setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: null });
+          // Determine role based on security rules logic
+          const adminRoleRef = doc(firestore, 'roles_admin', firebaseUser.uid);
+          const staffRoleRef = doc(firestore, 'roles_staff', firebaseUser.uid);
+          const userRef = doc(firestore, 'users', firebaseUser.uid);
+
+          const [adminDoc, staffDoc, userDocSnap] = await Promise.all([
+            getDoc(adminRoleRef),
+            getDoc(staffRoleRef),
+            getDoc(userRef)
+          ]);
+          
+          let role = 'customer'; // Default role
+          if (adminDoc.exists()) {
+            role = 'admin';
+          } else if (staffDoc.exists()) {
+            role = 'staff';
           }
+          
+          if (userDocSnap.exists()) {
+             const userDocData = { ...userDocSnap.data(), role };
+             setUserState({ user: firebaseUser, userDoc: userDocData, isLoading: false, error: null });
+          } else {
+            // This can happen briefly during signup.
+            // Create a temporary userDoc with the determined role.
+            setUserState({ user: firebaseUser, userDoc: { id: firebaseUser.uid, email: firebaseUser.email, role }, isLoading: false, error: null });
+          }
+
         } catch (e) {
-          console.error("FirebaseProvider: Error fetching user document:", e);
+          console.error("FirebaseProvider: Error fetching user role/document:", e);
           setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: e as Error });
         }
       } else {

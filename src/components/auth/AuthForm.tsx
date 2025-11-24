@@ -84,8 +84,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       initiateEmailSignUp(auth, data.email, data.password, {
         onSuccess: (userCredential) => {
           const user = userCredential.user;
-          const userDocRef = doc(firestore, "users", user.uid);
           
+          // 1. Create the /users/{userId} document
+          const userDocRef = doc(firestore, "users", user.uid);
           const userData: any = {
             id: user.uid,
             email: user.email,
@@ -93,9 +94,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             name: data.fullName,
           };
           
+          // 2. Create role-specific documents
           if (role === 'customer') {
             const profileDocRef = doc(firestore, "customer_profiles", user.uid);
-            userData.customerProfileId = user.uid;
+            userData.customerProfileId = user.uid; // Link user to profile
 
             setDocumentNonBlocking(profileDocRef, {
               id: user.uid,
@@ -106,19 +108,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyPoints: 0,
               loyaltyLevelId: 'None',
             }, { merge: true });
-          }
-          
-          setDocumentNonBlocking(userDocRef, userData, { merge: true });
-          
-          if (role === 'admin' || role === 'staff') {
+          } else { // admin or staff
             const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
             const roleDocRef = doc(firestore, roleCollection, user.uid);
+            // This document's existence grants the role. Content can be minimal.
             setDocumentNonBlocking(roleDocRef, {
               id: user.uid,
               email: user.email,
-              role: role
+              createdAt: new Date().toISOString()
             }, { merge: true });
           }
+          
+          // Finally, set the main user document
+          setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
           toast({
             title: 'Account Created!',
@@ -134,6 +136,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         onSuccess: () => {
           // onAuthStateChanged in the FirebaseProvider and the AuthRedirect component
           // will handle the redirection after a successful login.
+          // No immediate redirect here.
         },
         onError: handleAuthError,
       });
