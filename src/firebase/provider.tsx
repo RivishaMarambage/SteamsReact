@@ -73,6 +73,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUserState(prevState => ({ ...prevState, isLoading: true, error: null })); // Start loading on any auth change
       if (firebaseUser) {
         // User is signed in, fetch their document from Firestore
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
@@ -81,9 +82,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           if (docSnap.exists()) {
             setUserState({ user: firebaseUser, userDoc: docSnap.data(), isLoading: false, error: null });
           } else {
-            // This could happen right after signup, before the user doc is created.
-            // Consider this a loading state until the doc is available. Or an error.
-            setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: new Error("User document not found.") });
+            // This is a critical state. The user is authenticated but has no data record.
+            // This can happen briefly during signup. Treat it as an error/unauthorized state for login.
+             console.error("User document not found for authenticated user:", firebaseUser.uid);
+             setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: new Error("User data not found. Please try again.") });
           }
         } catch (e) {
           console.error("FirebaseProvider: Error fetching user document:", e);
@@ -183,3 +185,14 @@ export const useUser = (): UserHookResult => {
   const { user, userDoc, isLoading, error } = useFirebase();
   return { user, userDoc, isLoading, error };
 };
+
+interface FirebaseProviderProps {
+    children: ReactNode;
+    firebaseApp: FirebaseApp;
+    firestore: Firestore;
+    auth: Auth;
+  }
+  
+  type UserProviderProps = {
+    children: ReactNode;
+  };
