@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A cozy, warm interior of a modern coffee shop.",
+      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjb2ZmZWUlMjBzaG9wfGVufDB8fHx8MTc2Mzg4OTE3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee shop"
+    },
+    {
+      "id": "espresso",
+      "description": "A close-up of a rich, dark espresso shot in a white cup.",
+      "imageUrl": "https://images.unsplash.com/photo-1610889556528-9a770e32642f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlc3ByZXNzb3xlbnwwfHx8fDE3NjM5MTEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "espresso"
+    },
+    {
+      "id": "latte",
+      "description": "A latte with intricate art on top, in a ceramic mug.",
+      "imageUrl": "https://images.unsplash.com/photo-1563311977-d285756282dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsYXR0ZSUyMGFydHxlbnwwfHx8fDE3NjM5MTEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "latte art"
+    },
+    {
+      "id": "cappuccino",
+      "description": "A cappuccino with a thick layer of foam, dusted with cocoa.",
+      "imageUrl": "https://images.unsplash.com/photo-1534687941688-651ccaafbff8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYXBwdWNjaW5vfGVufDB8fHx8MTc2MzkzMDY0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cappuccino"
+    },
+    {
+      "id": "iced-coffee",
+      "description": "A tall glass of iced coffee with milk swirling in.",
+      "imageUrl": "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpY2VkJTIwY29mZmVlfGVufDB8fHx8MTc2MzkwODQ5OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iced coffee"
+    },
+    {
+      "id": "croissant",
+      "description": "A golden, flaky croissant on a wooden board.",
+      "imageUrl": "https://images.unsplash.com/photo-1612366747681-e4ca6992b1e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjcm9pc3NhbnR8ZW58MHx8fHwxNzYzOTMwNjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "croissant"
+    },
+    {
+      "id": "muffin",
+      "description": "A freshly baked blueberry muffin with a crumbly top.",
+      "imageUrl": "https://images.unsplash.com/photo-1606188074044-fcd750f6996a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtdWZmaW58ZW58MHx8fHwxNzYzOTMwNjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "muffin"
+    }
+  ]
 }
