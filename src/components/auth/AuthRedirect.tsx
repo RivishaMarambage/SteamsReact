@@ -26,46 +26,45 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
       return; // Wait until auth state is resolved
     }
 
-    const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
+    const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
 
     if (user) {
       // User is logged in.
-      const targetDashboard = getDashboardPathForRole(user.role);
-      
-      // If user is on a public path (like /login), redirect them to their dashboard.
+      // If they are on a public path, redirect them to their dashboard.
       if (isPublicPath) {
+        const targetDashboard = getDashboardPathForRole(user.role);
         router.replace(targetDashboard);
-        return;
       }
-
-      // This logic is primarily for users who land on a protected page directly.
+      
+      // Additional check for role-based dashboard access
       const isCorrectAdminPath = user.role === 'admin' && pathname.startsWith('/dashboard/admin');
       const isCorrectStaffPath = user.role === 'staff' && pathname.startsWith('/dashboard/staff');
+      // A customer can be on the base dashboard, but not admin or staff pages
       const isCorrectCustomerPath = user.role === 'customer' && !pathname.startsWith('/dashboard/admin') && !pathname.startsWith('/dashboard/staff');
 
+      const isOnDashboard = pathname.startsWith('/dashboard');
       const isOnCorrectPath = isCorrectAdminPath || isCorrectStaffPath || isCorrectCustomerPath;
       
-      if (!isOnCorrectPath && pathname.startsWith('/dashboard')) {
-        // If on the wrong dashboard (e.g. staff on admin page), redirect to correct one.
+      if (isOnDashboard && !isOnCorrectPath) {
+        const targetDashboard = getDashboardPathForRole(user.role);
         router.replace(targetDashboard);
       }
-      
+
     } else {
       // User is not logged in.
+      // If they are on a protected path, redirect to home.
       if (!isPublicPath) {
-        // If on a protected path without a user, redirect to home.
         router.replace('/');
       }
     }
   }, [user, isLoading, pathname, router]);
 
-
-  // Show a spinner if authentication is loading or if a redirect is imminent.
-  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
-  if (isLoading || (user && isPublicPath) || (!user && !isPublicPath)) {
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
+  
+  // Show a spinner if we are still loading, or if a redirect is imminent.
+  if (isLoading || (!user && !isPublicPath) || (user && isPublicPath)) {
     return <FullPageSpinner />;
   }
-  
-  // Otherwise, we are in the correct state (e.g., logged out on public page, or logged in on correct protected page)
+
   return <>{children}</>;
 }
