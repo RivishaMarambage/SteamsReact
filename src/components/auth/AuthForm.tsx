@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/lib/auth/provider';
+import { getDashboardPathForRole } from '@/lib/auth/paths';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -77,14 +78,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       
     } else { // Login
       const user = login(data.email, data.password);
-      if (!user) {
+      if (user) {
+        // On successful login, redirect to the correct dashboard.
+        const targetPath = getDashboardPathForRole(user.role);
+        router.push(targetPath);
+      } else {
         toast({
           variant: 'destructive',
           title: 'Login Failed',
           description: 'Invalid email or password. Please try again.',
         });
       }
-      // The AuthRedirect component will handle redirection on successful login
     }
   };
 

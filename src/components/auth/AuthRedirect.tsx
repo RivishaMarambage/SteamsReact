@@ -4,21 +4,8 @@ import { useUser } from '@/lib/auth/provider';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Logo } from '../Logo';
+import { getDashboardPathForRole, PUBLIC_PATHS } from '@/lib/auth/paths';
 
-const getDashboardPathForRole = (role?: string) => {
-  switch (role) {
-    case 'admin':
-      return '/dashboard/admin/menu';
-    case 'staff':
-      return '/dashboard/staff/orders';
-    case 'customer':
-      return '/dashboard';
-    default:
-      return null;
-  }
-};
-
-const PUBLIC_PATHS = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
 
 function FullPageSpinner() {
   return (
@@ -46,22 +33,21 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
       // User is logged in
       const targetDashboard = getDashboardPathForRole(userRole);
 
+      // This logic is primarily for users who land on a protected page directly.
+      // The AuthForm now handles the initial redirect after login.
       if (targetDashboard) {
         const isAlreadyOnCorrectPath = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
         
         if (userRole === 'customer' && pathname === '/dashboard') {
             // Already at the right place
-        } else if (!isAlreadyOnCorrectPath) {
+        } else if (!isAlreadyOnCorrectPath && pathname.startsWith('/dashboard')) {
           router.replace(targetDashboard);
-        }
-      } else {
-        if (pathname !== '/') {
-            router.replace('/');
         }
       }
     } else {
       // User is not logged in.
       if (!isPublicPath) {
+        // If on a protected path without a user, redirect to home.
         router.replace('/');
       }
     }
@@ -75,8 +61,12 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
 
   const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
-  // If we are logged in, but on a public path, a redirect is imminent. Show a spinner.
+  // If we are logged in, but on a public path (like the login page after a refresh),
+  // a redirect is imminent. Show a spinner to prevent flashing the public page.
   if (user && isPublicPath) {
+    // We also need to redirect from here if the user lands on a public page while logged in.
+    const targetDashboard = getDashboardPathForRole(user.role);
+    router.replace(targetDashboard);
     return <FullPageSpinner />;
   }
 
@@ -85,6 +75,6 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     return <FullPageSpinner />;
   }
   
-  // Otherwise, we are in the correct state
+  // Otherwise, we are in the correct state (e.g., logged out on public page, or logged in on protected page)
   return <>{children}</>;
 }
