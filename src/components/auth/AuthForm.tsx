@@ -40,37 +40,70 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     defaultValues: { email: '', password: '', fullName: '' },
   });
 
+  const handleAuthError = (error: any) => {
+    console.error(error);
+    let description = 'An unexpected error occurred.';
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      description = 'Invalid email or password. Please try again.';
+    } else if (error.code === 'auth/email-already-in-use') {
+      description = 'This email address is already in use.';
+    }
+    toast({
+      variant: 'destructive',
+      title: 'Authentication Error',
+      description,
+    });
+  }
+
   const onSubmit = async (data: AuthFormValues) => {
-    try {
-      if (authType === 'signup') {
-        if (!data.fullName) {
-          form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
-          return;
-        }
-        // This will create the user and trigger onAuthStateChanged
-        initiateEmailSignUp(auth, data.email, data.password);
-        
-        // We can't get the user immediately, so we can't create the user document here.
-        // This should be handled in a listener or after login. For now, we show a toast
-        // and redirect. A more robust solution would use a 'user' collection listener
-        // to create the profile document once the user is created.
-        
-        toast({
-          title: 'Account Created!',
-          description: "Welcome! Please log in to continue.",
-        });
-        router.push(`/login/${role}`);
-        
-      } else {
-        initiateEmailSignIn(auth, data.email, data.password);
-        // onAuthStateChanged will handle redirect
+    if (authType === 'signup') {
+      if (!data.fullName) {
+        form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
+        return;
       }
-    } catch (error: any) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: error.message || 'An unexpected error occurred.',
+      initiateEmailSignUp(auth, data.email, data.password, {
+        onSuccess: (userCredential) => {
+          const user = userCredential.user;
+          const userDocRef = doc(firestore, "users", user.uid);
+          setDocumentNonBlocking(userDocRef, {
+            id: user.uid,
+            email: user.email,
+            role: role,
+            name: data.fullName,
+          }, { merge: true });
+
+          if (role === 'customer') {
+            const profileDocRef = doc(firestore, "customer_profiles", user.uid);
+            setDocumentNonBlocking(profileDocRef, {
+              id: user.uid,
+              email: user.email,
+              name: data.fullName,
+              mobileNumber: '',
+              cafeNickname: '',
+              loyaltyPoints: 0,
+              loyaltyLevelId: 'None',
+            }, { merge: true });
+            
+            const userUpdateRef = doc(firestore, "users", user.uid);
+            setDocumentNonBlocking(userUpdateRef, { customerProfileId: user.uid }, { merge: true });
+          }
+
+          toast({
+            title: 'Account Created!',
+            description: "Welcome! Please log in to continue.",
+          });
+          router.push(`/login/${role}`);
+        },
+        onError: handleAuthError
+      });
+      
+    } else { // Login
+      initiateEmailSignIn(auth, data.email, data.password, {
+        onSuccess: () => {
+          // onAuthStateChanged in AuthRedirect will handle the redirection.
+          // No need to do anything here.
+        },
+        onError: handleAuthError,
       });
     }
   };
