@@ -9,33 +9,71 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { MOCK_USER } from '@/lib/data';
-import { Award, BookMarked, LayoutDashboard, ShoppingCart, User, ScanSearch } from 'lucide-react';
+import { Award, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
+import { useUser } from '@/firebase';
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
-const menuItems = [
+const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Order Online', icon: ShoppingCart },
-  { href: '/dashboard/profile', label: 'My Profile', icon: User },
+  { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
+];
+
+const staffMenuItems = [
+    { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
 ];
 
 const adminMenuItems = [
   { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
   { href: '/dashboard/admin/redeem', label: 'Redeem Points', icon: ScanSearch },
+  { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
+  { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const user = MOCK_USER;
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [userRole, setUserRole] = useState<'customer' | 'staff' | 'admin' | null>(null);
+
+  useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserRole(docSnap.data().role);
+        }
+      });
+    } else {
+        setUserRole(null);
+    }
+  }, [user, firestore]);
+
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === href;
+    if (href === '/dashboard' && pathname === href) {
+        return true;
     }
-    return pathname.startsWith(href);
+    return href !== '/dashboard' && pathname.startsWith(href);
   };
+
+  let menuItemsToShow = customerMenuItems;
+  let sectionTitle = '';
+  let sectionItems: typeof adminMenuItems = [];
+
+  if (userRole === 'staff') {
+    menuItemsToShow = staffMenuItems;
+  }
+  if (userRole === 'admin') {
+    sectionTitle = 'Admin';
+    sectionItems = adminMenuItems;
+  }
+
 
   return (
     <Sidebar>
@@ -44,7 +82,7 @@ export default function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {menuItems.map((item) => (
+          {menuItemsToShow.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 isActive={isActive(item.href)}
@@ -58,12 +96,12 @@ export default function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          {user.role === 'admin' && (
+          {sectionItems.length > 0 && (
             <>
               <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-                Admin
+                {sectionTitle}
               </div>
-              {adminMenuItems.map((item) => (
+              {sectionItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={isActive(item.href)}

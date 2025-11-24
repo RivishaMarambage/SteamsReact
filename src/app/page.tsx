@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/Logo";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -12,11 +13,18 @@ export default function LandingPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-20">
         <Logo />
         <nav className="ml-auto flex gap-2 sm:gap-4">
-          <Button asChild variant="ghost">
-            <Link href="/login">Log In</Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost">Log In</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild><Link href="/login/customer">Customer Login</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/login/staff">Staff Login</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/login/admin">Admin Login</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/signup">Sign Up</Link>
+            <Link href="/signup/customer">Sign Up</Link>
           </Button>
         </nav>
       </header>
@@ -42,7 +50,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/signup">Become a Member</Link>
+                <Link href="/signup/customer">Become a Member</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
                 <Link href="/dashboard/order">View Menu</Link>

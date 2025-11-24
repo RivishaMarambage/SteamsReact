@@ -4,7 +4,7 @@ export type User = {
   email: string;
   mobile: string;
   nickname: string;
-  role: 'customer' | 'admin';
+  role: 'customer' | 'admin' | 'staff';
   points: number;
   loyaltyLevel: LoyaltyLevel;
   recentOrders: Order[];
