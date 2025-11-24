@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -5,6 +6,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, getDoc, DocumentData } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirestorePermissionError, errorEmitter } from '@/firebase';
 
 // Internal state for user authentication and data
 interface UserState {
@@ -63,6 +65,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     userDoc: null,
     isLoading: true,
+    error: null,
   });
 
   useEffect(() => {
@@ -73,17 +76,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setUserState(prevState => ({ ...prevState, isLoading: true }));
+        setUserState(prevState => ({ ...prevState, isLoading: true, error: null }));
         try {
-          // Determine role based on security rules logic
           const adminRoleRef = doc(firestore, 'roles_admin', firebaseUser.uid);
           const staffRoleRef = doc(firestore, 'roles_staff', firebaseUser.uid);
           const userRef = doc(firestore, 'users', firebaseUser.uid);
-
+          
           const [adminDoc, staffDoc, userDocSnap] = await Promise.all([
-            getDoc(adminRoleRef),
-            getDoc(staffRoleRef),
-            getDoc(userRef)
+            getDoc(adminRoleRef).catch(e => {
+                const contextualError = new FirestorePermissionError({ operation: 'get', path: adminRoleRef.path });
+                errorEmitter.emit('permission-error', contextualError);
+                throw contextualError;
+            }),
+            getDoc(staffRoleRef).catch(e => {
+                const contextualError = new FirestorePermissionError({ operation: 'get', path: staffRoleRef.path });
+                errorEmitter.emit('permission-error', contextualError);
+                throw contextualError;
+            }),
+            getDoc(userRef).catch(e => {
+                const contextualError = new FirestorePermissionError({ operation: 'get', path: userRef.path });
+                errorEmitter.emit('permission-error', contextualError);
+                throw contextualError;
+            })
           ]);
           
           let role = 'customer'; // Default role
@@ -97,11 +111,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
              const userDocData = { ...userDocSnap.data(), role };
              setUserState({ user: firebaseUser, userDoc: userDocData, isLoading: false, error: null });
           } else {
-            // This can happen briefly during signup.
-            // Create a temporary userDoc with the determined role.
-            setUserState({ user: firebaseUser, userDoc: { id: firebaseUser.uid, email: firebaseUser.email, role }, isLoading: false, error: null });
+             // This can happen briefly during signup.
+             // Create a temporary userDoc with the determined role.
+             setUserState({ user: firebaseUser, userDoc: { id: firebaseUser.uid, email: firebaseUser.email, role }, isLoading: false, error: null });
           }
-
         } catch (e) {
           console.error("FirebaseProvider: Error fetching user role/document:", e);
           setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: e as Error });
