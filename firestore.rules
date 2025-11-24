@@ -95,7 +95,7 @@ service cloud.firestore {
     match /customer_profiles/{customerProfileId} {
       allow get: if isOwnerOfProfile(customerProfileId) || isStaffOrAdmin();
       allow list: if false;
-      allow create: if isStaffOrAdmin();
+      allow create: if isOwner(customerProfileId) || isStaffOrAdmin();
       allow update: if (isOwnerOfProfile(customerProfileId) || isStaffOrAdmin()) && isExistingDoc();
       allow delete: if (isOwnerOfProfile(customerProfileId) || isStaffOrAdmin()) && isExistingDoc();
     }
