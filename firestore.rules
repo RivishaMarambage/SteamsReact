@@ -183,7 +183,7 @@ service cloud.firestore {
      * @principle Secures the staff role by restricting management of this collection to admins only.
      */
     match /roles_staff/{userId} {
-      allow get: if isAdmin() || isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isAdmin();
       allow update: if isAdmin() && isExistingDoc();
