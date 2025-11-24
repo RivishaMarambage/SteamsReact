@@ -1,6 +1,6 @@
 export type User = {
   id: string;
-  name: string;
+  name?: string;
   email: string;
   mobile?: string;
   nickname?: string;
@@ -37,3 +37,13 @@ export type LoyaltyTier = {
   icon: React.ComponentType<{ className?: string }>;
   progressColor: string;
 };
+
+export type CustomerProfile = {
+  id: string;
+  email: string;
+  mobileNumber: string;
+  name: string;
+  cafeNickname?: string;
+  loyaltyPoints: number;
+  loyaltyLevelId: string;
+}

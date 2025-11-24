@@ -1,9 +1,60 @@
+
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/ProfileForm";
-import { MOCK_USER } from "@/lib/data";
+import { useDoc, useUser, useMemoFirebase } from "@/firebase";
+import { doc, DocumentData } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { CustomerProfile } from "@/lib/types";
 
 export default function ProfilePage() {
-  const user = MOCK_USER;
+  const { user, userDoc: authUserDoc, isLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
+
+  const profileRef = useMemoFirebase(() => {
+    if (user?.uid) {
+      return doc(firestore, "customer_profiles", user.uid);
+    }
+    return null;
+  }, [user, firestore]);
+
+  const { data: profile, isLoading: isProfileLoading } = useDoc<CustomerProfile>(profileRef);
+
+  const isLoading = isAuthLoading || isProfileLoading;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <Skeleton className="h-10 w-1/4" />
+          <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <Card className="shadow-lg">
+          <CardHeader>
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-2/5" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return <p>Could not load user profile. Please try again.</p>;
+  }
 
   return (
     <div className="space-y-8">
@@ -18,7 +69,7 @@ export default function ProfilePage() {
           <CardDescription>Keep your details up to date.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm user={user} />
+          <ProfileForm userProfile={profile} />
         </CardContent>
       </Card>
     </div>

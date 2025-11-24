@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -9,16 +10,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { MENU_ITEMS } from '@/lib/data';
 import { MenuItem } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, doc, updateDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { collection } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
 
 export default function MenuTable() {
-  const [menu, setMenu] = useState<MenuItem[]>(MENU_ITEMS);
+  const firestore = useFirestore();
+  const menuItemsRef = useMemoFirebase(() => collection(firestore, 'menu_items'), [firestore]);
+  const { data: menu, isLoading, error } = useCollection<MenuItem>(menuItemsRef);
+  
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -41,7 +48,9 @@ export default function MenuTable() {
   
   const confirmDelete = () => {
     if(!selectedItem) return;
-    setMenu(menu.filter(m => m.id !== selectedItem.id));
+    const itemRef = doc(firestore, 'menu_items', selectedItem.id);
+    deleteDocumentNonBlocking(itemRef);
+
     toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
     setAlertOpen(false);
     setSelectedItem(null);
@@ -50,26 +59,53 @@ export default function MenuTable() {
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newItem = {
-      id: selectedItem ? selectedItem.id : `item_${Date.now()}`,
+    
+    const itemData = {
       name: formData.get('name') as string,
       price: parseFloat(formData.get('price') as string),
       category: formData.get('category') as MenuItem['category'],
       description: formData.get('description') as string,
-      imageId: 'latte', // Default image
+      imageId: 'latte', // Default image for now
     };
 
     if (selectedItem) {
-      setMenu(menu.map(m => m.id === newItem.id ? newItem : m));
-      toast({ title: "Item Updated", description: `${newItem.name} has been updated.`});
+      // Update existing item
+      const itemRef = doc(firestore, 'menu_items', selectedItem.id);
+      updateDocumentNonBlocking(itemRef, itemData);
+      toast({ title: "Item Updated", description: `${itemData.name} has been updated.`});
     } else {
-      setMenu([...menu, newItem]);
-      toast({ title: "Item Added", description: `${newItem.name} has been added to the menu.`});
+      // Add new item
+      const collectionRef = collection(firestore, 'menu_items');
+      addDocumentNonBlocking(collectionRef, itemData);
+      toast({ title: "Item Added", description: `${itemData.name} has been added to the menu.`});
     }
 
     setFormOpen(false);
     setSelectedItem(null);
   };
+  
+  if (isLoading) {
+    return (
+        <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-10 w-32" />
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  if (error) {
+    return <p className="text-destructive-foreground bg-destructive p-4 rounded-md">Error loading menu: {error.message}</p>
+  }
 
   return (
     <Card className="shadow-lg">
@@ -94,7 +130,7 @@ export default function MenuTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {menu.map(item => {
+            {menu?.map(item => {
               const image = PlaceHolderImages.find(p => p.id === item.imageId);
               return (
                 <TableRow key={item.id}>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,32 +17,38 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@/lib/types";
+import { CustomerProfile } from "@/lib/types";
+import { doc } from "firebase/firestore";
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  nickname: z.string().optional(),
+  cafeNickname: z.string().optional(),
   email: z.string().email(),
-  mobile: z.string().min(10, { message: "Please enter a valid mobile number." }),
+  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function ProfileForm({ user }: { user: User }) {
+export function ProfileForm({ userProfile }: { userProfile: CustomerProfile }) {
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user.name,
-      nickname: user.nickname,
-      email: user.email,
-      mobile: user.mobile,
+      name: userProfile.name,
+      cafeNickname: userProfile.cafeNickname,
+      email: userProfile.email,
+      mobileNumber: userProfile.mobileNumber,
     },
     mode: "onChange",
   });
 
   function onSubmit(data: ProfileFormValues) {
+    const profileRef = doc(firestore, "customer_profiles", userProfile.id);
+    updateDocumentNonBlocking(profileRef, data);
+    
     toast({
       title: "Profile Updated",
       description: "Your information has been saved successfully.",
@@ -67,7 +74,7 @@ export function ProfileForm({ user }: { user: User }) {
             />
             <FormField
             control={form.control}
-            name="nickname"
+            name="cafeNickname"
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Cafe Nickname</FormLabel>
@@ -86,16 +93,16 @@ export function ProfileForm({ user }: { user: User }) {
                 <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                    <Input placeholder="Your email address" {...field} />
+                    <Input placeholder="Your email address" {...field} readOnly disabled />
                 </FormControl>
-                <FormDescription>Used for login and receipts.</FormDescription>
+                <FormDescription>Used for login and receipts. Cannot be changed.</FormDescription>
                 <FormMessage />
                 </FormItem>
             )}
             />
             <FormField
             control={form.control}
-            name="mobile"
+            name="mobileNumber"
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Mobile Number</FormLabel>
