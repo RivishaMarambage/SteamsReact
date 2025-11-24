@@ -1,8 +1,7 @@
-
 export const getDashboardPathForRole = (role?: string) => {
   switch (role) {
     case 'admin':
-      return '/dashboard/admin/menu';
+      return '/dashboard/admin/analytics';
     case 'staff':
       return '/dashboard/staff/orders';
     case 'customer':

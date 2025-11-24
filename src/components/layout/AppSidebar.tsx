@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -23,12 +23,12 @@ const customerMenuItems = [
 
 const staffMenuItems = [
     { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
-    { href: '/dashboard/admin/redeem', label: 'Redeem Points', icon: ScanSearch },
+    { href: '/dashboard/staff/redeem', label: 'Redeem Points', icon: ScanSearch },
 ];
 
 const adminMenuItems = [
+  { href: '/dashboard/admin/analytics', label: 'Analytics', icon: AreaChart },
   { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
-  { href: '/dashboard/admin/redeem', label: 'Redeem Points', icon: ScanSearch },
   { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
 ];
@@ -45,7 +45,6 @@ export default function AppSidebar() {
 
   let menuItemsToShow: typeof customerMenuItems = [];
   const adminSectionItems: typeof adminMenuItems = [];
-  const staffSectionItems: typeof staffMenuItems = [];
 
   if (userRole === 'customer') {
     menuItemsToShow = customerMenuItems;
@@ -65,6 +64,14 @@ export default function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          {userRole === 'admin' && (
+            <>
+                <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+                    Staff View
+                </div>
+            </>
+          )}
+
           {menuItemsToShow.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton

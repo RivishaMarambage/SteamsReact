@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useMockData } from '@/lib/auth/provider';
+import { Badge } from '../ui/badge';
 
 export default function MenuTable() {
   const { menuItems: menu, isLoading, updateMenuItem, addMenuItem, deleteMenuItem } = useMockData();
@@ -54,13 +55,14 @@ export default function MenuTable() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const itemData = {
+    const itemData: MenuItem = {
       id: selectedItem?.id || `item_${Date.now()}`,
       name: formData.get('name') as string,
       price: parseFloat(formData.get('price') as string),
       category: formData.get('category') as MenuItem['category'],
       description: formData.get('description') as string,
-      imageId: 'latte', // Default image for now
+      stock: parseInt(formData.get('stock') as string, 10),
+      imageId: selectedItem?.imageId || 'latte', // Default image for now
     };
 
     if (selectedItem) {
@@ -96,6 +98,12 @@ export default function MenuTable() {
     )
   }
 
+  const getStockVariant = (stock: number): "default" | "secondary" | "destructive" => {
+    if (stock > 20) return "default";
+    if (stock > 0) return "secondary";
+    return "destructive";
+  }
+
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -112,6 +120,7 @@ export default function MenuTable() {
               <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -128,6 +137,11 @@ export default function MenuTable() {
                   </TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.category}</TableCell>
+                   <TableCell>
+                    <Badge variant={getStockVariant(item.stock)}>
+                      {item.stock > 0 ? `${item.stock} in stock` : 'Out of Stock'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -168,7 +182,12 @@ export default function MenuTable() {
                   <Label htmlFor="price">Price</Label>
                   <Input id="price" name="price" type="number" step="0.01" defaultValue={selectedItem?.price} required />
                 </div>
-                <div className="grid gap-2">
+                 <div className="grid gap-2">
+                  <Label htmlFor="stock">Stock</Label>
+                  <Input id="stock" name="stock" type="number" defaultValue={selectedItem?.stock ?? 0} required />
+                </div>
+              </div>
+               <div className="grid gap-2">
                   <Label htmlFor="category">Category</Label>
                   <select id="category" name="category" defaultValue={selectedItem?.category} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                     <option>Hot Coffee</option>
@@ -176,7 +195,6 @@ export default function MenuTable() {
                     <option>Pastries</option>
                   </select>
                 </div>
-              </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" defaultValue={selectedItem?.description} />

@@ -21,13 +21,13 @@ export default function RedeemPoints() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const user = findUser(searchQuery);
-    if (user) {
+    if (user && user.role === 'customer') {
       setFoundUser(user);
     } else {
       setFoundUser(null);
       toast({
         variant: "destructive",
-        title: "User Not Found",
+        title: "Customer Not Found",
         description: "No customer found with that email or mobile number.",
       });
     }
@@ -35,7 +35,6 @@ export default function RedeemPoints() {
 
   const handleRedeem = () => {
     if (foundUser && redeemAmount > 0 && foundUser.points && redeemAmount <= foundUser.points) {
-      // Simulate point redemption
       const updatedUser = { ...foundUser, points: foundUser.points - redeemAmount };
       updateUser(updatedUser);
       setFoundUser(updatedUser);

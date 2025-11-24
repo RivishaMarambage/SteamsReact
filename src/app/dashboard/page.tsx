@@ -4,6 +4,10 @@ import LoyaltyStatus from "@/components/dashboard/LoyaltyStatus";
 import RecentOrders from "@/components/dashboard/RecentOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/lib/auth/provider";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart, User as UserIcon } from "lucide-react";
 
 export default function DashboardPage() {
   const { user, isLoading } = useUser();
@@ -27,7 +31,6 @@ export default function DashboardPage() {
     return <p>Please log in to view your dashboard.</p>;
   }
 
-
   return (
     <div className="space-y-8">
       <div>
@@ -36,6 +39,30 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-8">
+        <div className="grid md:grid-cols-2 gap-8">
+            <Card className="shadow-lg flex flex-col justify-between">
+                <CardHeader>
+                    <CardTitle className="font-headline">Order Again</CardTitle>
+                    <CardDescription>Ready for another coffee? Your usual is just a click away.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild className="w-full sm:w-auto">
+                        <Link href="/dashboard/order"><ShoppingCart /> Start New Order</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <Card className="shadow-lg flex flex-col justify-between">
+                <CardHeader>
+                    <CardTitle className="font-headline">Your Profile</CardTitle>
+                    <CardDescription>Keep your details and preferences up to date.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild variant="secondary" className="w-full sm:w-auto">
+                        <Link href="/dashboard/profile"><UserIcon /> View Profile</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
         <LoyaltyStatus user={user} />
         <RecentOrders user={user} />
       </div>
