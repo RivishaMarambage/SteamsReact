@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,8 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { MOCK_USER } from '@/lib/data';
-import { cn } from '@/lib/utils';
 import { LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -61,6 +60,7 @@ export default function AppHeader() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                 <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.uid}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
