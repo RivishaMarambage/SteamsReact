@@ -60,7 +60,7 @@ service cloud.firestore {
     
     // Checks if no admin users exist in the system.
     function noAdminsExist() {
-      return !exists(/databases/$(database)/documents/roles_admin);
+      return !exists(/databases/$(database)/documents/roles_admin/);
     }
 
     // Checks if the requesting user owns the specified customer profile.
@@ -165,12 +165,12 @@ service cloud.firestore {
      * @path /roles_admin/{userId}
      * @allow An existing admin can (create) a document to grant another user admin rights.
      * @deny A staff member or regular customer cannot (list) the admins.
-     * @principle Secures the admin role by restricting management of this collection to other admins.
+     * @principle Secures the admin role by restricting management of this collection to other admins. The first admin can be created if no other admins exist.
      */
     match /roles_admin/{userId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
-      allow create: if isAdmin() || (isOwner(userId) && noAdminsExist());
+      allow create: if isAdmin() || (isOwner(userId) && get(/databases/$(database)/documents/roles_admin/nonexistent-doc-for-size-check).size == 0);
       allow update: if isAdmin() && isExistingDoc();
       allow delete: if isAdmin() && isExistingDoc();
     }
