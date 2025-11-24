@@ -39,10 +39,13 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
       }
 
       // This logic is primarily for users who land on a protected page directly.
-      const isAlreadyOnCorrectPath = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
-      if (user.role === 'customer' && pathname === '/dashboard') {
-          // Already at the right place for customer
-      } else if (!isAlreadyOnCorrectPath && pathname.startsWith('/dashboard')) {
+      const isCorrectAdminPath = user.role === 'admin' && pathname.startsWith('/dashboard/admin');
+      const isCorrectStaffPath = user.role === 'staff' && pathname.startsWith('/dashboard/staff');
+      const isCorrectCustomerPath = user.role === 'customer' && !pathname.startsWith('/dashboard/admin') && !pathname.startsWith('/dashboard/staff');
+
+      const isOnCorrectPath = isCorrectAdminPath || isCorrectStaffPath || isCorrectCustomerPath;
+      
+      if (!isOnCorrectPath && pathname.startsWith('/dashboard')) {
         // If on the wrong dashboard (e.g. staff on admin page), redirect to correct one.
         router.replace(targetDashboard);
       }
