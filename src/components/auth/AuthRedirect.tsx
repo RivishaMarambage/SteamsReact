@@ -2,50 +2,64 @@
 
 import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+
+// Helper function to get the base dashboard path for a given role.
+const getDashboardPathForRole = (role: string | undefined) => {
+  if (!role) return '/dashboard';
+  if (role === 'customer') return '/dashboard';
+  return `/dashboard/${role}`;
+};
 
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const firestore = useFirestore();
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
 
   useEffect(() => {
-    if (isUserLoading) return; // Wait until user auth state is resolved
-
-    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer'];
-    const isPublicPath = publicPaths.includes(pathname);
+    // Wait until both Firebase auth state and the user's role have been checked.
+    if (isUserLoading) {
+      return;
+    }
+    
+    // Define paths that are publicly accessible.
+    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/privacy'];
 
     if (user) {
-        getDoc(doc(firestore, 'users', user.uid)).then(userDoc => {
-            if (userDoc.exists()) {
-                const userRole = userDoc.data().role;
-                const targetDashboard = `/dashboard/${userRole === 'customer' ? '' : userRole}`;
-
-                if(isPublicPath || !pathname.startsWith('/dashboard')) {
-                   router.replace(targetDashboard.replace(/\/$/, ''));
-                } else if (!pathname.startsWith(targetDashboard)) {
-                    // Logged in user trying to access wrong dashboard
-                    router.replace(targetDashboard.replace(/\/$/, ''));
-                }
-
-            } else {
-                // User document not found, maybe new user. Stay put or redirect to profile creation.
-                // For now, if on a public page, let's redirect to dashboard as a default.
-                if(isPublicPath) {
-                    router.replace('/dashboard');
-                }
-            }
-        });
-
-    } else if (!isPublicPath) {
-        // Not logged in and not on a public path, redirect to landing
+      // User is authenticated, check their role from Firestore.
+      const userDocRef = doc(firestore, 'users', user.uid);
+      getDoc(userDocRef).then(userDoc => {
+        const userRole = userDoc.exists() ? userDoc.data().role : undefined;
+        const targetDashboard = getDashboardPathForRole(userRole);
+        
+        // Redirect from a public page to the correct dashboard.
+        if (publicPaths.includes(pathname)) {
+          router.replace(targetDashboard);
+        }
+        // If on a dashboard page that doesn't match the user's role, redirect them.
+        else if (pathname.startsWith('/dashboard') && !pathname.startsWith(targetDashboard)) {
+          router.replace(targetDashboard);
+        }
+        setIsCheckingRole(false);
+      });
+    } else {
+      // User is not authenticated.
+      // If they are on a protected page, redirect them to the landing page.
+      if (!publicPaths.includes(pathname)) {
         router.replace('/');
+      }
+      setIsCheckingRole(false);
     }
-
   }, [user, isUserLoading, router, pathname, firestore]);
+  
+  // While checking auth state or role, don't render the children to avoid flashes of incorrect content.
+  if (isUserLoading || isCheckingRole) {
+    return null; 
+  }
 
   return <>{children}</>;
 }
