@@ -1,17 +1,12 @@
-
 'use client';
 
 import MenuDisplay from "@/components/order/MenuDisplay";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { useFirestore } from "@/firebase/provider";
-import { MenuItem } from "@/lib/types";
-import { collection } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMockData } from "@/lib/auth/provider";
+
 
 export default function OrderPage() {
-  const firestore = useFirestore();
-  const menuItemsRef = useMemoFirebase(() => collection(firestore, 'menu_items'), [firestore]);
-  const { data: menuItems, isLoading, error } = useCollection<MenuItem>(menuItemsRef);
+  const { menuItems, isLoading } = useMockData();
 
   if (isLoading) {
     return (
@@ -31,10 +26,6 @@ export default function OrderPage() {
         </div>
       </div>
     )
-  }
-
-  if (error) {
-    return <p className="text-destructive-foreground bg-destructive p-4 rounded-md">Error loading menu: {error.message}</p>
   }
   
   return (

@@ -5,23 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MOCK_USER } from '@/lib/data';
 import { User } from '@/lib/types';
 import { Search, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LoyaltyStatus from '../dashboard/LoyaltyStatus';
+import { useMockData } from '@/lib/auth/provider';
 
 export default function RedeemPoints() {
   const [searchQuery, setSearchQuery] = useState('');
   const [foundUser, setFoundUser] = useState<User | null>(null);
   const [redeemAmount, setRedeemAmount] = useState(0);
   const { toast } = useToast();
+  const { findUser, updateUser } = useMockData();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would be an API call.
-    if (searchQuery === MOCK_USER.email || searchQuery === MOCK_USER.mobile) {
-      setFoundUser(MOCK_USER);
+    const user = findUser(searchQuery);
+    if (user) {
+      setFoundUser(user);
     } else {
       setFoundUser(null);
       toast({
@@ -33,9 +34,10 @@ export default function RedeemPoints() {
   };
 
   const handleRedeem = () => {
-    if (foundUser && redeemAmount > 0 && redeemAmount <= foundUser.points) {
+    if (foundUser && redeemAmount > 0 && foundUser.points && redeemAmount <= foundUser.points) {
       // Simulate point redemption
       const updatedUser = { ...foundUser, points: foundUser.points - redeemAmount };
+      updateUser(updatedUser);
       setFoundUser(updatedUser);
       toast({
         title: "Points Redeemed",
@@ -89,10 +91,11 @@ export default function RedeemPoints() {
                             type="number"
                             value={redeemAmount > 0 ? redeemAmount : ''}
                             onChange={(e) => setRedeemAmount(Number(e.target.value))}
-                            placeholder={`Max ${foundUser.points} points`}
+                            placeholder={`Max ${foundUser.points}`}
+                            max={foundUser.points}
                         />
                     </div>
-                    <Button onClick={handleRedeem} disabled={redeemAmount <= 0 || redeemAmount > foundUser.points}>
+                    <Button onClick={handleRedeem} disabled={redeemAmount <= 0 || (foundUser.points && redeemAmount > foundUser.points)}>
                         <Sparkles className="mr-2 h-4 w-4" /> Redeem
                     </Button>
                 </CardContent>

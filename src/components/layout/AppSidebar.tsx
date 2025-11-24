@@ -13,7 +13,7 @@ import { BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { useUser } from '@/lib/auth/provider';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -35,8 +35,8 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { userDoc } = useUser();
-  const userRole = userDoc?.role;
+  const { user } = useUser();
+  const userRole = user?.role;
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === href;

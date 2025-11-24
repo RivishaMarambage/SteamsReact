@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,8 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@/lib/types";
-import { doc } from "firebase/firestore";
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useMockData } from "@/lib/auth/provider";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -32,7 +30,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export function ProfileForm({ userProfile }: { userProfile: User }) {
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const { updateUser } = useMockData();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -46,8 +44,10 @@ export function ProfileForm({ userProfile }: { userProfile: User }) {
   });
 
   function onSubmit(data: ProfileFormValues) {
-    const profileRef = doc(firestore, "users", userProfile.id);
-    updateDocumentNonBlocking(profileRef, data);
+    updateUser({
+      ...userProfile,
+      ...data,
+    });
     
     toast({
       title: "Profile Updated",
@@ -140,5 +140,3 @@ export function ProfileForm({ userProfile }: { userProfile: User }) {
     </Form>
   );
 }
-
-    

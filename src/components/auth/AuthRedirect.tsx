@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser } from '@/lib/auth/provider';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Logo } from '../Logo';
@@ -30,49 +30,45 @@ function FullPageSpinner() {
 }
 
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
-  const { user, userDoc, isLoading } = useUser();
+  const { user, isLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait until Firebase auth state and userDoc are resolved
+      return; // Wait until auth state is resolved
     }
 
     const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
-    const userRole = userDoc?.role;
+    const userRole = user?.role;
 
-    if (user && userDoc) {
-      // User is logged in and their data (including role) is available
+    if (user) {
+      // User is logged in
       const targetDashboard = getDashboardPathForRole(userRole);
 
       if (targetDashboard) {
-        // If the user is on a public page or not on a path for their role, redirect them.
         const isAlreadyOnCorrectPath = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
         
-        // Special case for customer dashboard
         if (userRole === 'customer' && pathname === '/dashboard') {
             // Already at the right place
         } else if (!isAlreadyOnCorrectPath) {
           router.replace(targetDashboard);
         }
       } else {
-        // Logged-in user has an invalid role or no dashboard mapping. Send to home.
         if (pathname !== '/') {
             router.replace('/');
         }
       }
     } else {
       // User is not logged in.
-      // If they are on a protected page, redirect them to the homepage.
       if (!isPublicPath) {
         router.replace('/');
       }
     }
-  }, [user, userDoc, isLoading, pathname, router]);
+  }, [user, isLoading, pathname, router]);
 
 
-  // While authentication is loading, show a spinner on all pages.
+  // While authentication is loading, show a spinner.
   if (isLoading) {
     return <FullPageSpinner />;
   }
@@ -80,7 +76,7 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
   // If we are logged in, but on a public path, a redirect is imminent. Show a spinner.
-  if (user && userDoc && isPublicPath) {
+  if (user && isPublicPath) {
     return <FullPageSpinner />;
   }
 
@@ -89,6 +85,6 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     return <FullPageSpinner />;
   }
   
-  // Otherwise, we are in the correct state (e.g., logged in on a protected page, or logged out on a public one).
+  // Otherwise, we are in the correct state
   return <>{children}</>;
 }

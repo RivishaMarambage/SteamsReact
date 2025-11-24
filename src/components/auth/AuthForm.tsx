@@ -11,14 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { User } from '@/lib/types';
+import { useAuth } from '@/lib/auth/provider';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -39,39 +35,14 @@ interface AuthFormProps {
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
-  const firestore = useFirestore();
+  const { login, signup } = useAuth();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false },
   });
 
-  const handleAuthError = (error: any) => {
-    let description = 'An unexpected error occurred.';
-    let title = 'Authentication Error';
-
-    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-      title = 'Login Failed';
-      description = 'Invalid email or password. Please try again.';
-    } else if (error.code === 'auth/email-already-in-use') {
-      title = 'Email In Use'
-      description = 'This email address is already registered. Please log in instead.';
-    } else if (error.code === 'auth/network-request-failed') {
-      title = 'Network Error';
-      description = 'Could not connect to Firebase. Please check your network connection.';
-    } else {
-       console.error("Authentication Error:", error);
-    }
-    
-    toast({
-      variant: 'destructive',
-      title: title,
-      description,
-    });
-  }
-
-  const onSubmit = async (data: AuthFormValues) => {
+  const onSubmit = (data: AuthFormValues) => {
     if (authType === 'signup') {
       if (!data.fullName) {
         form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
@@ -81,61 +52,39 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         form.setError('privacyPolicy', { type: 'manual', message: 'You must accept the privacy policy.' });
         return;
       }
-
-      initiateEmailSignUp(auth, data.email, data.password, {
-        onSuccess: (userCredential) => {
-          const authUser = userCredential.user;
-          
-          // Create the unified /users/{userId} document
-          const userDocRef = doc(firestore, "users", authUser.uid);
-          
-          const userData: User = {
-            id: authUser.uid,
-            email: authUser.email!,
-            role: role,
-            name: data.fullName!,
-          };
-          
-          // Add customer-specific fields
-          if (role === 'customer') {
-            userData.mobileNumber = data.mobileNumber || '';
-            userData.cafeNickname = data.cafeNickname || '';
-            userData.points = 0;
-            userData.loyaltyLevel = 'None';
-          }
-          
-          setDocumentNonBlocking(userDocRef, userData, { merge: true });
-
-          // Create role-specific documents in /roles_* collections for admin/staff
-          if (role === 'admin' || role === 'staff') {
-            const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
-            const roleDocRef = doc(firestore, roleCollection, authUser.uid);
-            // This document's existence grants the role. Content can be minimal.
-            setDocumentNonBlocking(roleDocRef, {
-              id: authUser.uid,
-              email: authUser.email,
-              createdAt: new Date().toISOString()
-            }, { merge: true });
-          }
-
-          toast({
-            title: 'Account Created!',
-            description: "Welcome! Please log in to continue.",
-          });
-          router.push(`/login/${role}`);
-        },
-        onError: handleAuthError
+      
+      const success = signup({
+        email: data.email,
+        name: data.fullName,
+        mobileNumber: data.mobileNumber,
+        cafeNickname: data.cafeNickname,
+        role,
       });
+
+      if (success) {
+        toast({
+          title: 'Account Created!',
+          description: "Welcome! Please log in to continue.",
+        });
+        router.push(`/login/${role}`);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Email In Use',
+          description: 'This email address is already registered. Please log in instead.',
+        });
+      }
       
     } else { // Login
-      initiateEmailSignIn(auth, data.email, data.password, {
-        onSuccess: () => {
-          // onAuthStateChanged in the FirebaseProvider and the AuthRedirect component
-          // will handle the redirection after a successful login.
-          // No immediate redirect here.
-        },
-        onError: handleAuthError,
-      });
+      const user = login(data.email, data.password);
+      if (!user) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Invalid email or password. Please try again.',
+        });
+      }
+      // The AuthRedirect component will handle redirection on successful login
     }
   };
 
@@ -164,11 +113,15 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           {authType === 'login' && (
              <Alert className="mb-4 bg-blue-50 border-blue-200">
                 <Info className="h-4 w-4 text-blue-600"/>
-                <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
+                <AlertTitle className="text-blue-800">Demo Accounts</AlertTitle>
                 <AlertDescription className="text-blue-700">
-                  <p>First, please sign up for the role you want to test. Then you can log in with those credentials.</p>
+                  <ul className="list-disc pl-5 text-sm">
+                    <li><strong className="font-semibold">Admin:</strong> admin@example.com</li>
+                    <li><strong className="font-semibold">Staff:</strong> staff@example.com</li>
+                    <li><strong className="font-semibold">Customer:</strong> customer@example.com</li>
+                  </ul>
                   <p className="mt-2">
-                    <strong>Password:</strong> Use any password (min. 6 characters)
+                    <strong>Password (for all):</strong> password123
                   </p>
                 </AlertDescription>
             </Alert>
@@ -305,4 +258,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-    

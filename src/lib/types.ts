@@ -37,16 +37,4 @@ export type LoyaltyTier = {
   icon: React.ComponentType<{ className?: string }>;
   progressColor: string;
 };
-
-// This type is no longer needed as its properties are merged into User
-// export type CustomerProfile = {
-//   id: string;
-//   email: string;
-//   mobileNumber: string;
-//   name: string;
-//   cafeNickname?: string;
-//   loyaltyPoints: number;
-//   loyaltyLevelId: string;
-// }
-
     

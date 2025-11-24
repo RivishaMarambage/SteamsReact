@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -16,15 +15,11 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, doc, updateDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { useFirestore } from '@/firebase/provider';
-import { collection } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
+import { useMockData } from '@/lib/auth/provider';
 
 export default function MenuTable() {
-  const firestore = useFirestore();
-  const menuItemsRef = useMemoFirebase(() => collection(firestore, 'menu_items'), [firestore]);
-  const { data: menu, isLoading, error } = useCollection<MenuItem>(menuItemsRef);
+  const { menuItems: menu, isLoading, updateMenuItem, addMenuItem, deleteMenuItem } = useMockData();
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -48,8 +43,7 @@ export default function MenuTable() {
   
   const confirmDelete = () => {
     if(!selectedItem) return;
-    const itemRef = doc(firestore, 'menu_items', selectedItem.id);
-    deleteDocumentNonBlocking(itemRef);
+    deleteMenuItem(selectedItem.id);
 
     toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
     setAlertOpen(false);
@@ -61,6 +55,7 @@ export default function MenuTable() {
     const formData = new FormData(e.currentTarget);
     
     const itemData = {
+      id: selectedItem?.id || `item_${Date.now()}`,
       name: formData.get('name') as string,
       price: parseFloat(formData.get('price') as string),
       category: formData.get('category') as MenuItem['category'],
@@ -70,13 +65,11 @@ export default function MenuTable() {
 
     if (selectedItem) {
       // Update existing item
-      const itemRef = doc(firestore, 'menu_items', selectedItem.id);
-      updateDocumentNonBlocking(itemRef, itemData);
+      updateMenuItem(itemData);
       toast({ title: "Item Updated", description: `${itemData.name} has been updated.`});
     } else {
       // Add new item
-      const collectionRef = collection(firestore, 'menu_items');
-      addDocumentNonBlocking(collectionRef, itemData);
+      addMenuItem(itemData);
       toast({ title: "Item Added", description: `${itemData.name} has been added to the menu.`});
     }
 
@@ -101,10 +94,6 @@ export default function MenuTable() {
             </CardContent>
         </Card>
     )
-  }
-
-  if (error) {
-    return <p className="text-destructive-foreground bg-destructive p-4 rounded-md">Error loading menu: {error.message}</p>
   }
 
   return (
