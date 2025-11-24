@@ -55,8 +55,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     } else if (error.code === 'auth/email-already-in-use') {
       title = 'Email In Use'
       description = 'This email address is already registered. Please log in instead.';
-    } else if (error.code !== 'auth/network-request-failed') {
-      console.error(error);
+    } else if (error.code === 'auth/network-request-failed') {
+      title = 'Network Error';
+      description = 'Could not connect to Firebase. Please check your network connection.';
+    } else {
+       console.error("Authentication Error:", error);
     }
     
     toast({
@@ -86,12 +89,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             id: user.uid,
             email: user.email,
             role: role,
+            name: data.fullName,
           };
           
-          // If customer, also create their profile and link it in the user doc
           if (role === 'customer') {
             const profileDocRef = doc(firestore, "customer_profiles", user.uid);
-            userData.customerProfileId = user.uid; // Link user to profile
+            userData.customerProfileId = user.uid;
 
             setDocumentNonBlocking(profileDocRef, {
               id: user.uid,
@@ -103,11 +106,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyLevelId: 'None',
             }, { merge: true });
           }
-
-          // Create the main user document
+          
           setDocumentNonBlocking(userDocRef, userData, { merge: true });
           
-          // If admin or staff, create their role document for security rules
           if (role === 'admin' || role === 'staff') {
             const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
             const roleDocRef = doc(firestore, roleCollection, user.uid);
@@ -130,8 +131,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     } else { // Login
       initiateEmailSignIn(auth, data.email, data.password, {
         onSuccess: () => {
-          // onAuthStateChanged in AuthRedirect will handle the redirection.
-          // No need to do anything here.
+          // onAuthStateChanged in the FirebaseProvider and the AuthRedirect component
+          // will handle the redirection after a successful login.
         },
         onError: handleAuthError,
       });

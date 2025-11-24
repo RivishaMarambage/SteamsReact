@@ -5,8 +5,8 @@ export type User = {
   mobile?: string;
   nickname?: string;
   role: 'customer' | 'admin' | 'staff';
-  points?: number;
-  loyaltyLevel?: LoyaltyLevel;
+  points: number;
+  loyaltyLevel: LoyaltyLevel;
   recentOrders?: Order[];
 };
 

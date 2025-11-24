@@ -2,7 +2,8 @@
 
 import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Logo } from '../Logo';
 
 const getDashboardPathForRole = (role?: string) => {
   switch (role) {
@@ -19,16 +20,25 @@ const getDashboardPathForRole = (role?: string) => {
 
 const PUBLIC_PATHS = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
 
+// A simple loading spinner component
+function FullPageSpinner() {
+  return (
+    <div className="flex h-screen w-screen flex-col items-center justify-center bg-background">
+      <Logo className="mb-4" />
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  );
+}
+
+
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user, userDoc, isLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const [isRenderable, setIsRenderable] = useState(false);
 
   useEffect(() => {
-    // Wait until the initial loading of user and userDoc is complete.
+    // If we are still loading authentication state, don't do anything yet.
     if (isLoading) {
-      setIsRenderable(false); // Show nothing while loading
       return;
     }
 
@@ -36,41 +46,57 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     const userRole = userDoc?.role;
 
     if (user && userDoc) {
-      // USER IS LOGGED IN AND HAS A DATA DOCUMENT
+      // === USER IS LOGGED IN AND HAS DATA ===
       const targetDashboard = getDashboardPathForRole(userRole);
-
+      
       if (!targetDashboard) {
-        // Logged in user has an invalid role or doc, send to home
-        router.replace('/');
-        setIsRenderable(false);
+        // This case should not happen if data is consistent, but as a fallback,
+        // send them home if their role doesn't have a defined dashboard.
+        if (pathname !== '/') router.replace('/');
         return;
       }
+      
+      // If the user is on a public page (like /login) or on the wrong dashboard path,
+      // redirect them to their correct dashboard.
+      const isonCorrectDashboard = pathname.startsWith(targetDashboard.split('/').slice(0,3).join('/'));
 
-      // If user is on a public page (like login) or the wrong dashboard, redirect them.
-      if (isPublicPath || !pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'))) {
+      if(isPublicPath || !isonCorrectDashboard) {
         router.replace(targetDashboard);
-        setIsRenderable(false);
-      } else {
-        // User is on a correct, protected page. Allow rendering.
-        setIsRenderable(true);
       }
+
+    } else if (user && !userDoc) {
+        // === USER IS LOGGED IN BUT DATA IS MISSING (e.g., during signup process) ===
+        // This is a transient state. We wait for the userDoc to be created.
+        // We do nothing and let the loading screen show. If it persists, it's an error state.
+        // The useUser hook should eventually provide the userDoc.
+        return;
+
     } else {
-      // USER IS NOT LOGGED IN (or userDoc doesn't exist)
+      // === USER IS LOGGED OUT ===
+      // If they are on a protected page, redirect them to the homepage.
       if (!isPublicPath) {
-        // If on a protected page, redirect to home.
         router.replace('/');
-        setIsRenderable(false);
-      } else {
-        // User is on a public page. Allow rendering.
-        setIsRenderable(true);
       }
     }
   }, [user, userDoc, isLoading, pathname, router]);
 
-  // Render children only when checks are complete and no redirect is pending.
-  if (!isRenderable) {
-    return null; // Or a global loading spinner
+  // Determine if we should show the children or the loading screen
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
+
+  if (isLoading) {
+    return <FullPageSpinner />;
   }
 
+  if (!user && !isPublicPath) {
+    // Logged out and on a private page, show spinner while redirecting
+    return <FullPageSpinner />;
+  }
+
+  if (user && userDoc && isPublicPath) {
+     // Logged in and on a public page, show spinner while redirecting
+     return <FullPageSpinner />;
+  }
+  
+  // In all other valid states (e.g., logged out on public page, logged in on correct private page), render the children.
   return <>{children}</>;
 }
