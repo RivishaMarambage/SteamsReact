@@ -10,7 +10,7 @@ const getDashboardPathForRole = (role: string | undefined) => {
   if (role === 'customer') return '/dashboard';
   if (role === 'staff') return '/dashboard/staff/orders';
   if (role === 'admin') return '/dashboard/admin/menu';
-  return '/dashboard'; // Default fallback
+  return '/'; // Fallback to home if role is unknown or user is logged out
 };
 
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
@@ -22,43 +22,51 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Define paths that are publicly accessible and don't require auth.
-    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/privacy'];
-    const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith('/login');
+    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/privacy', '/signup/admin'];
+    const isPublicPath = publicPaths.includes(pathname);
 
-
-    // If initial auth check is happening, wait.
+    // If Firebase is still checking the user's auth state, wait.
     if (isUserLoading) {
       return;
     }
 
+    // If the user is logged in
     if (user) {
-      // User is logged in. Fetch their role.
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then(userDoc => {
         const userRole = userDoc.exists() ? userDoc.data().role : undefined;
         const targetDashboard = getDashboardPathForRole(userRole);
 
-        // If user is on their correct dashboard, we're done.
-        if (pathname.startsWith(targetDashboard)) {
-          setIsReady(true);
+        // If user is on a public page (like login), redirect them to their dashboard.
+        if (isPublicPath) {
+          router.replace(targetDashboard);
+          // Don't set isReady yet, the redirect will trigger a re-render.
           return;
         }
 
-        // If user is on any other page (public or wrong dashboard), redirect them.
-        router.replace(targetDashboard);
-        // We don't set isReady here because the navigation will trigger a re-render.
-      }).catch(() => {
-        // Error fetching role, redirect to a safe default and allow render.
-         router.replace('/');
-      });
+        // If user is on a protected page, but it's not the correct one for their role, redirect them.
+        // Example: a customer trying to access /dashboard/admin/menu
+        if (!pathname.startsWith(targetDashboard) && targetDashboard !== '/') {
+           router.replace(targetDashboard);
+           return;
+        }
 
-    } else {
-      // User is not logged in.
+        // If user is on the correct page, we can show the content.
+        setIsReady(true);
+      }).catch((error) => {
+        console.error("Error fetching user role, logging out.", error);
+        // If we can't get the user doc, something is wrong. Log them out.
+        // (This assumes you have a signOut function available)
+        // For now, redirect to home and allow render.
+        router.replace('/');
+        setIsReady(true);
+      });
+    } else { // User is not logged in
+      // If they are on a public page, it's fine. Show the content.
       if (isPublicPath) {
-        // If on a public page, allow render.
         setIsReady(true);
       } else {
-        // If on a protected page, redirect to home.
+        // If they are on a protected page, redirect to home.
         router.replace('/');
       }
     }
