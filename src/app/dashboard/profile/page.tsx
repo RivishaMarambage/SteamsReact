@@ -3,26 +3,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/ProfileForm";
-import { useDoc, useUser, useMemoFirebase } from "@/firebase";
-import { doc, DocumentData } from "firebase/firestore";
-import { useFirestore } from "@/firebase/provider";
+import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CustomerProfile } from "@/lib/types";
+import type { User } from "@/lib/types";
 
 export default function ProfilePage() {
-  const { user, userDoc: authUserDoc, isLoading: isAuthLoading } = useUser();
-  const firestore = useFirestore();
-
-  const profileRef = useMemoFirebase(() => {
-    if (user?.uid) {
-      return doc(firestore, "customer_profiles", user.uid);
-    }
-    return null;
-  }, [user, firestore]);
-
-  const { data: profile, isLoading: isProfileLoading } = useDoc<CustomerProfile>(profileRef);
-
-  const isLoading = isAuthLoading || isProfileLoading;
+  const { userDoc, isLoading } = useUser();
 
   if (isLoading) {
     return (
@@ -52,7 +38,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user || !profile) {
+  if (!userDoc) {
     return <p>Could not load user profile. Please try again.</p>;
   }
 
@@ -69,9 +55,11 @@ export default function ProfilePage() {
           <CardDescription>Keep your details up to date.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm userProfile={profile} />
+          <ProfileForm userProfile={userDoc as User} />
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

@@ -78,45 +78,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       if (firebaseUser) {
         setUserState(prevState => ({ ...prevState, isLoading: true, error: null }));
         try {
-          const adminRoleRef = doc(firestore, 'roles_admin', firebaseUser.uid);
-          const staffRoleRef = doc(firestore, 'roles_staff', firebaseUser.uid);
           const userRef = doc(firestore, 'users', firebaseUser.uid);
-          
-          const [adminDoc, staffDoc, userDocSnap] = await Promise.all([
-            getDoc(adminRoleRef).catch(e => {
-                const contextualError = new FirestorePermissionError({ operation: 'get', path: adminRoleRef.path });
-                errorEmitter.emit('permission-error', contextualError);
-                throw contextualError;
-            }),
-            getDoc(staffRoleRef).catch(e => {
-                const contextualError = new FirestorePermissionError({ operation: 'get', path: staffRoleRef.path });
-                errorEmitter.emit('permission-error', contextualError);
-                throw contextualError;
-            }),
-            getDoc(userRef).catch(e => {
-                const contextualError = new FirestorePermissionError({ operation: 'get', path: userRef.path });
-                errorEmitter.emit('permission-error', contextualError);
-                throw contextualError;
-            })
-          ]);
-          
-          let role = 'customer'; // Default role
-          if (adminDoc.exists()) {
-            role = 'admin';
-          } else if (staffDoc.exists()) {
-            role = 'staff';
-          }
-          
+          const userDocSnap = await getDoc(userRef).catch(e => {
+            const contextualError = new FirestorePermissionError({ operation: 'get', path: userRef.path });
+            errorEmitter.emit('permission-error', contextualError);
+            throw contextualError;
+          });
+
           if (userDocSnap.exists()) {
-             const userDocData = { ...userDocSnap.data(), role };
+             const userDocData = userDocSnap.data();
              setUserState({ user: firebaseUser, userDoc: userDocData, isLoading: false, error: null });
           } else {
-             // This can happen briefly during signup.
-             // Create a temporary userDoc with the determined role.
-             setUserState({ user: firebaseUser, userDoc: { id: firebaseUser.uid, email: firebaseUser.email, role }, isLoading: false, error: null });
+             // This can happen briefly during signup before the user doc is created.
+             // Or if a user exists in Auth but not in Firestore.
+             console.warn(`User document not found for UID: ${firebaseUser.uid}`);
+             setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: new Error("User profile not found in database.") });
           }
         } catch (e) {
-          console.error("FirebaseProvider: Error fetching user role/document:", e);
+          console.error("FirebaseProvider: Error fetching user document:", e);
           setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: e as Error });
         }
       } else {
@@ -224,3 +203,5 @@ interface FirebaseProviderProps {
   type UserProviderProps = {
     children: ReactNode;
   };
+
+    

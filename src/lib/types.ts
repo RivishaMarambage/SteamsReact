@@ -1,14 +1,14 @@
 export type User = {
   id: string;
-  name?: string;
+  name: string;
   email: string;
-  mobile?: string;
-  nickname?: string;
   role: 'customer' | 'admin' | 'staff';
+  // Optional fields, primarily for customers
+  mobileNumber?: string;
+  cafeNickname?: string;
   points?: number;
   loyaltyLevel?: LoyaltyLevel;
   recentOrders?: Order[];
-  customerProfileId?: string;
 };
 
 export type MenuItem = {
@@ -38,12 +38,15 @@ export type LoyaltyTier = {
   progressColor: string;
 };
 
-export type CustomerProfile = {
-  id: string;
-  email: string;
-  mobileNumber: string;
-  name: string;
-  cafeNickname?: string;
-  loyaltyPoints: number;
-  loyaltyLevelId: string;
-}
+// This type is no longer needed as its properties are merged into User
+// export type CustomerProfile = {
+//   id: string;
+//   email: string;
+//   mobileNumber: string;
+//   name: string;
+//   cafeNickname?: string;
+//   loyaltyPoints: number;
+//   loyaltyLevelId: string;
+// }
+
+    

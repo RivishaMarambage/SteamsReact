@@ -18,6 +18,7 @@ import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { User } from '@/lib/types';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -83,44 +84,39 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
       initiateEmailSignUp(auth, data.email, data.password, {
         onSuccess: (userCredential) => {
-          const user = userCredential.user;
+          const authUser = userCredential.user;
           
-          // 1. Create the /users/{userId} document
-          const userDocRef = doc(firestore, "users", user.uid);
-          const userData: any = {
-            id: user.uid,
-            email: user.email,
+          // Create the unified /users/{userId} document
+          const userDocRef = doc(firestore, "users", authUser.uid);
+          
+          const userData: User = {
+            id: authUser.uid,
+            email: authUser.email!,
             role: role,
-            name: data.fullName,
+            name: data.fullName!,
           };
           
-          // 2. Create role-specific documents
+          // Add customer-specific fields
           if (role === 'customer') {
-            const profileDocRef = doc(firestore, "customer_profiles", user.uid);
-            userData.customerProfileId = user.uid; // Link user to profile
+            userData.mobileNumber = data.mobileNumber || '';
+            userData.cafeNickname = data.cafeNickname || '';
+            userData.points = 0;
+            userData.loyaltyLevel = 'None';
+          }
+          
+          setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
-            setDocumentNonBlocking(profileDocRef, {
-              id: user.uid,
-              email: user.email,
-              name: data.fullName,
-              mobileNumber: data.mobileNumber || '',
-              cafeNickname: data.cafeNickname || '',
-              loyaltyPoints: 0,
-              loyaltyLevelId: 'None',
-            }, { merge: true });
-          } else { // admin or staff
+          // Create role-specific documents in /roles_* collections for admin/staff
+          if (role === 'admin' || role === 'staff') {
             const roleCollection = role === 'admin' ? 'roles_admin' : 'roles_staff';
-            const roleDocRef = doc(firestore, roleCollection, user.uid);
+            const roleDocRef = doc(firestore, roleCollection, authUser.uid);
             // This document's existence grants the role. Content can be minimal.
             setDocumentNonBlocking(roleDocRef, {
-              id: user.uid,
-              email: user.email,
+              id: authUser.uid,
+              email: authUser.email,
               createdAt: new Date().toISOString()
             }, { merge: true });
           }
-          
-          // Finally, set the main user document
-          setDocumentNonBlocking(userDocRef, userData, { merge: true });
 
           toast({
             title: 'Account Created!',
@@ -309,3 +305,4 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+    

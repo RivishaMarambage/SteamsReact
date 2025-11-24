@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CustomerProfile } from "@/lib/types";
+import { User } from "@/lib/types";
 import { doc } from "firebase/firestore";
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 
@@ -25,12 +25,12 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   cafeNickname: z.string().optional(),
   email: z.string().email(),
-  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
+  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function ProfileForm({ userProfile }: { userProfile: CustomerProfile }) {
+export function ProfileForm({ userProfile }: { userProfile: User }) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -38,15 +38,15 @@ export function ProfileForm({ userProfile }: { userProfile: CustomerProfile }) {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: userProfile.name,
-      cafeNickname: userProfile.cafeNickname,
+      cafeNickname: userProfile.cafeNickname || '',
       email: userProfile.email,
-      mobileNumber: userProfile.mobileNumber,
+      mobileNumber: userProfile.mobileNumber || '',
     },
     mode: "onChange",
   });
 
   function onSubmit(data: ProfileFormValues) {
-    const profileRef = doc(firestore, "customer_profiles", userProfile.id);
+    const profileRef = doc(firestore, "users", userProfile.id);
     updateDocumentNonBlocking(profileRef, data);
     
     toast({
@@ -72,51 +72,73 @@ export function ProfileForm({ userProfile }: { userProfile: CustomerProfile }) {
                 </FormItem>
             )}
             />
-            <FormField
-            control={form.control}
-            name="cafeNickname"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Cafe Nickname</FormLabel>
-                <FormControl>
-                    <Input placeholder="Your cafe nickname" {...field} />
-                </FormControl>
-                <FormDescription>This is how we'll call out your order.</FormDescription>
-                <FormMessage />
-                </FormItem>
+            {userProfile.role === 'customer' && (
+              <>
+                <FormField
+                control={form.control}
+                name="cafeNickname"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Cafe Nickname</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Your cafe nickname" {...field} />
+                    </FormControl>
+                    <FormDescription>This is how we'll call out your order.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                          <Input placeholder="Your email address" {...field} readOnly disabled />
+                      </FormControl>
+                      <FormDescription>Used for login and receipts. Cannot be changed.</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+                  <FormField
+                  control={form.control}
+                  name="mobileNumber"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Mobile Number</FormLabel>
+                      <FormControl>
+                          <Input placeholder="Your mobile number" {...field} />
+                      </FormControl>
+                      <FormDescription>Used for order notifications.</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+              </>
             )}
-            />
-            <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                    <Input placeholder="Your email address" {...field} readOnly disabled />
-                </FormControl>
-                <FormDescription>Used for login and receipts. Cannot be changed.</FormDescription>
-                <FormMessage />
-                </FormItem>
+            {userProfile.role !== 'customer' && (
+                <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Your email address" {...field} readOnly disabled />
+                    </FormControl>
+                     <FormDescription>Used for login. Cannot be changed.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
             )}
-            />
-            <FormField
-            control={form.control}
-            name="mobileNumber"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Mobile Number</FormLabel>
-                <FormControl>
-                    <Input placeholder="Your mobile number" {...field} />
-                </FormControl>
-                 <FormDescription>Used for order notifications.</FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
         </div>
         <Button type="submit">Update Profile</Button>
       </form>
     </Form>
   );
 }
+
+    
