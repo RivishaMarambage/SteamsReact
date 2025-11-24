@@ -4,6 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { User } from "@/lib/types";
 
 export default function RecentOrders({ user }: { user: User }) {
+  if (!user.recentOrders || user.recentOrders.length === 0) {
+    return (
+       <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
+            <CardDescription>Your latest pickups from Cafe Latte.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">You haven't placed any orders yet.</p>
+          </CardContent>
+        </Card>
+    )
+  }
+
   return (
     <Card className="shadow-lg">
       <CardHeader>

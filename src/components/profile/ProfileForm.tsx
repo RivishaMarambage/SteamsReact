@@ -23,7 +23,7 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   cafeNickname: z.string().optional(),
   email: z.string().email(),
-  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }).optional(),
+  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
