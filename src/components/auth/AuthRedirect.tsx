@@ -35,32 +35,31 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Wait until the authentication status and user data are fully resolved.
     if (isLoading) {
-      return;
+      return; // Wait until Firebase auth state and userDoc are resolved
     }
 
     const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
     const userRole = userDoc?.role;
 
     if (user && userDoc) {
-      // User is logged in and their data (including role) is available.
+      // User is logged in and their data (including role) is available
       const targetDashboard = getDashboardPathForRole(userRole);
 
       if (targetDashboard) {
-        // If the user is on a public page or not on their correct dashboard path, redirect them.
-        const isOnCorrectDashboard = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
-        if (isPublicPath || !isOnCorrectDashboard) {
+        // If the user is on a public page or not on a path for their role, redirect them.
+        const isAlreadyOnCorrectPath = pathname.startsWith(targetDashboard.split('/').slice(0, 3).join('/'));
+        if (!isAlreadyOnCorrectPath) {
           router.replace(targetDashboard);
         }
       } else {
-        // Fallback for an unknown role. This should not happen with correct data.
+        // Logged-in user has an invalid role or no dashboard mapping. Send to home.
         if (pathname !== '/') {
             router.replace('/');
         }
       }
     } else {
-      // User is not logged in, or their data is missing (which is treated as not logged in).
+      // User is not logged in.
       // If they are on a protected page, redirect them to the homepage.
       if (!isPublicPath) {
         router.replace('/');
@@ -68,30 +67,23 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     }
   }, [user, userDoc, isLoading, pathname, router]);
 
-  // --- Render Logic ---
 
   if (isLoading) {
-    // Always show a spinner while authentication state is being determined.
     return <FullPageSpinner />;
   }
 
   const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
-  if (user && userDoc) {
-    // Logged in user: if they are on a public path, they are about to be redirected.
-    // Show a spinner to prevent the public page from flashing.
-    if (isPublicPath) {
-      return <FullPageSpinner />;
-    }
-    // Otherwise, they are on a valid, protected page. Render the content.
-    return <>{children}</>;
-  } else {
-    // Logged out user: if they are on a protected path, they are about to be redirected.
-    // Show a spinner.
-    if (!isPublicPath) {
-      return <FullPageSpinner />;
-    }
-    // Otherwise, they are on a public page. Render the content.
-    return <>{children}</>;
+  // If we are logged in, but on a public path, we are about to redirect. Show a spinner.
+  if (user && userDoc && isPublicPath) {
+    return <FullPageSpinner />;
   }
+
+  // If we are not logged in and on a protected path, we are about to redirect. Show a spinner.
+  if (!user && !isPublicPath) {
+    return <FullPageSpinner />;
+  }
+  
+  // Otherwise, we are in the correct state (e.g., logged in on a protected page, or logged out on a public one).
+  return <>{children}</>;
 }
