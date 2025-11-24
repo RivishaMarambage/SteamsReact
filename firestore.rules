@@ -57,6 +57,11 @@ service cloud.firestore {
     function isStaffOrAdmin() {
       return isAdmin() || isStaff();
     }
+    
+    // Checks if no admin users exist in the system.
+    function noAdminsExist() {
+      return !exists(/databases/$(database)/documents/roles_admin);
+    }
 
     // Checks if the requesting user owns the specified customer profile.
     // This requires a 'get' call to the user's own document.
@@ -165,7 +170,7 @@ service cloud.firestore {
     match /roles_admin/{userId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
-      allow create: if isAdmin();
+      allow create: if isAdmin() || (isOwner(userId) && noAdminsExist());
       allow update: if isAdmin() && isExistingDoc();
       allow delete: if isAdmin() && isExistingDoc();
     }
