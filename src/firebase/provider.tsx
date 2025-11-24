@@ -83,9 +83,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             setUserState({ user: firebaseUser, userDoc: docSnap.data(), isLoading: false, error: null });
           } else {
             // This is a critical state. The user is authenticated but has no data record.
-            // This can happen briefly during signup. Treat it as an error/unauthorized state for login.
-             console.error("User document not found for authenticated user:", firebaseUser.uid);
-             setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: new Error("User data not found. Please try again.") });
+            // This can happen briefly during signup. For a stable app, we treat this as a temporary
+            // state and wait for the userDoc to be created, but for login it's an error.
+            console.error("User document not found for authenticated user:", firebaseUser.uid);
+            setUserState({ user: firebaseUser, userDoc: null, isLoading: false, error: new Error("User data not found. This can happen during signup. If you just signed up, please wait a moment. Otherwise, please try logging in again.") });
           }
         } catch (e) {
           console.error("FirebaseProvider: Error fetching user document:", e);
