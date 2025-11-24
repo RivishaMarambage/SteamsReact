@@ -15,6 +15,8 @@ import { useAuth, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -28,6 +30,12 @@ interface AuthFormProps {
   authType: 'login' | 'signup';
   role: 'customer' | 'staff' | 'admin';
 }
+
+const DEMO_CREDENTIALS = {
+  customer: { email: 'customer@example.com' },
+  staff: { email: 'staff@example.com' },
+  admin: { email: 'admin@example.com' },
+};
 
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
@@ -86,6 +94,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             
             const userUpdateRef = doc(firestore, "users", user.uid);
             setDocumentNonBlocking(userUpdateRef, { customerProfileId: user.uid }, { merge: true });
+          } else if (role === 'staff') {
+            const staffRoleRef = doc(firestore, "roles_staff", user.uid);
+            setDocumentNonBlocking(staffRoleRef, { id: user.uid, email: user.email, role: 'staff' }, {});
+          } else if (role === 'admin') {
+            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
+            setDocumentNonBlocking(adminRoleRef, { id: user.uid, email: user.email, role: 'admin' }, {});
           }
 
           toast({
@@ -128,6 +142,20 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           </div>
         </CardHeader>
         <CardContent>
+          {authType === 'login' && (
+             <Alert className="mb-4 bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600"/>
+                <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
+                <AlertDescription className="text-blue-700">
+                  <p>First, <Link href={`/signup/${role}`} className="font-bold underline">sign up</Link> with the email below. Then you can log in.</p>
+                  <p className="mt-2">
+                    <strong>Email:</strong> {DEMO_CREDENTIALS[role].email}<br/>
+                    <strong>Password:</strong> Use any password (min. 6 characters)
+                  </p>
+                </AlertDescription>
+            </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               {authType === 'signup' && (
