@@ -1,4 +1,3 @@
-'use server';
 
 export const getDashboardPathForRole = (role?: string) => {
   switch (role) {
