@@ -21,12 +21,12 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
+
   useEffect(() => {
     if (isLoading) {
       return; // Wait until auth state is resolved
     }
-
-    const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
 
     if (user) {
       // User is logged in.
@@ -35,21 +35,6 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
         const targetDashboard = getDashboardPathForRole(user.role);
         router.replace(targetDashboard);
       }
-      
-      // Additional check for role-based dashboard access
-      const isCorrectAdminPath = user.role === 'admin' && pathname.startsWith('/dashboard/admin');
-      const isCorrectStaffPath = user.role === 'staff' && pathname.startsWith('/dashboard/staff');
-      // A customer can be on the base dashboard, but not admin or staff pages
-      const isCorrectCustomerPath = user.role === 'customer' && !pathname.startsWith('/dashboard/admin') && !pathname.startsWith('/dashboard/staff');
-
-      const isOnDashboard = pathname.startsWith('/dashboard');
-      const isOnCorrectPath = isCorrectAdminPath || isCorrectStaffPath || isCorrectCustomerPath;
-      
-      if (isOnDashboard && !isOnCorrectPath) {
-        const targetDashboard = getDashboardPathForRole(user.role);
-        router.replace(targetDashboard);
-      }
-
     } else {
       // User is not logged in.
       // If they are on a protected path, redirect to home.
@@ -57,9 +42,7 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
         router.replace('/');
       }
     }
-  }, [user, isLoading, pathname, router]);
-
-  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
+  }, [user, isLoading, pathname, router, isPublicPath]);
   
   // Show a spinner if we are still loading, or if a redirect is imminent.
   if (isLoading || (!user && !isPublicPath) || (user && isPublicPath)) {
