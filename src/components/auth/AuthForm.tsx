@@ -86,7 +86,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             id: user.uid,
             email: user.email,
             role: role,
-            name: data.fullName,
           };
           
           // If customer, also create their profile and link it in the user doc
@@ -198,7 +197,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                         name="mobileNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mobile Number</FormLabel>
+                            <FormLabel>Mobile Number (Optional)</FormLabel>
                             <FormControl>
                               <Input placeholder="555-123-4567" {...field} />
                             </FormControl>
