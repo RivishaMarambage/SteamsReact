@@ -49,16 +49,22 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   });
 
   const handleAuthError = (error: any) => {
-    console.error(error);
     let description = 'An unexpected error occurred.';
+    let title = 'Authentication Error';
+
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
       description = 'Invalid email or password. Please try again.';
     } else if (error.code === 'auth/email-already-in-use') {
-      description = 'This email address is already in use.';
+      title = 'Email In Use'
+      description = 'This email address is already registered. Please log in instead.';
+    } else {
+      // Only log unexpected errors
+      console.error(error);
     }
+    
     toast({
       variant: 'destructive',
-      title: 'Authentication Error',
+      title: title,
       description,
     });
   }
