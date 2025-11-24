@@ -14,7 +14,7 @@ const getDashboardPathForRole = (role?: string) => {
     case 'customer':
       return '/dashboard';
     default:
-      return '/'; // Fallback to landing page
+      return null; 
   }
 };
 
@@ -28,60 +28,61 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Wait until Firebase has determined the initial auth state
+    // Wait until Firebase has determined the initial auth state.
     if (isUserLoading) {
       return;
     }
 
-    const isPublic = PUBLIC_PATHS.some(path => pathname.startsWith(path));
+    const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path));
 
     if (user) {
-      // User is logged in
+      // User is logged in. Fetch their role.
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then((userDoc) => {
         if (userDoc.exists()) {
           const userRole = userDoc.data()?.role;
           const targetDashboard = getDashboardPathForRole(userRole);
 
-          // If user is on a public page, redirect them to their dashboard
-          if (isPublic) {
-            router.replace(targetDashboard);
-            // Don't set isReady, as a redirect is happening
+          if (!targetDashboard) {
+            // Role is invalid or not found, treat as logged out.
+            router.replace('/');
             return;
           }
-
-          // If user is on a protected page, check if it's the correct one
-          if (pathname.startsWith(getDashboardPathForRole(userRole))) {
-            setIsReady(true); // Correct page, allow render
+          
+          // If user is on a public page or the wrong dashboard, redirect them.
+          if (isPublicPath || !pathname.startsWith(targetDashboard)) {
+            router.replace(targetDashboard);
           } else {
-            router.replace(targetDashboard); // Wrong page, redirect
+            // User is on the correct dashboard page.
+            setIsReady(true);
           }
         } else {
-          // This can happen briefly after signup.
-          // Or if the user doc was deleted. For safety, send to home.
-          // The next navigation or a reload will likely resolve if it was a race condition.
-          router.replace('/');
+          // This can happen briefly after signup before the user doc is created.
+          // In this case, we don't do anything and wait for the doc to be created.
+          // A more robust solution might involve a loading state here.
+          // For now, if the doc is missing for a logged-in user, we log them out.
+           router.replace('/');
         }
       }).catch(() => {
-        // If fetching the doc fails, log out and go home
+        // If fetching the user doc fails, send to home page.
         router.replace('/');
       });
 
     } else {
-      // User is not logged in
-      if (!isPublic) {
-        // If on a protected page, redirect to home
+      // User is not logged in.
+      if (!isPublicPath) {
+        // If on a protected page, redirect to home.
         router.replace('/');
       } else {
-        // On a public page, allow render
+        // On a public page, allow render.
         setIsReady(true);
       }
     }
   }, [user, isUserLoading, pathname, firestore, router]);
 
-  // Only render children when all checks are complete and no redirect is pending
+  // Render children only when checks are complete and no redirect is pending.
   if (!isReady) {
-    return null; // Render nothing (or a loader) to prevent content flashing
+    return null; // Or a loading spinner to prevent content flashing
   }
 
   return <>{children}</>;
