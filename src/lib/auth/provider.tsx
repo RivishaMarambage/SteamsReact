@@ -9,7 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password?: string) => User | null;
   logout: () => void;
-  signup: (details: Omit<User, 'id'|'points'|'loyaltyLevel'|'recentOrders'>) => boolean;
+  signup: (details: Omit<User, 'id'|'points'|'loyaltyLevel'|'recentOrders'|'analytics'>) => boolean;
 }
 
 interface MockDataContextType {
@@ -18,6 +18,7 @@ interface MockDataContextType {
     isLoading: boolean;
     findUser: (query: string) => User | null;
     updateUser: (user: User) => void;
+    deleteUser: (userId: string) => void;
     addMenuItem: (item: MenuItem) => void;
     updateMenuItem: (item: MenuItem) => void;
     deleteMenuItem: (itemId: string) => void;
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('currentUser');
   };
 
-  const signup = (details: Omit<User, 'id'|'points'|'loyaltyLevel'|'recentOrders'>) => {
+  const signup = (details: Omit<User, 'id'|'points'|'loyaltyLevel'|'recentOrders'|'analytics'>) => {
     if (users.some(u => u.email === details.email)) {
       return false; // User already exists
     }
@@ -91,6 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
+  const deleteUser = (userId: string) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+  };
+  
   const addMenuItem = (item: MenuItem) => {
     setMenuItems(prev => [...prev, item]);
   };
@@ -109,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     signup,
-  }), [user, isLoading]);
+  }), [user, isLoading, users]);
 
   const mockDataContextValue = useMemo(() => ({
       users,
@@ -117,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       findUser,
       updateUser,
+      deleteUser,
       addMenuItem,
       updateMenuItem,
       deleteMenuItem,
