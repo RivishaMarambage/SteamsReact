@@ -168,9 +168,9 @@ service cloud.firestore {
      * @principle Secures the admin role by restricting management of this collection to other admins. The first admin can be created if no other admins exist.
      */
     match /roles_admin/{userId} {
-      allow get: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isAdmin() || (isOwner(userId) && get(/databases/$(database)/documents/roles_admin/nonexistent-doc-for-size-check).size == 0);
+      allow create: if isAdmin() || (isOwner(userId) && getAfter(/databases/$(database)/documents/roles_admin/nonexistent-doc-for-size-check).size == 0);
       allow update: if isAdmin() && isExistingDoc();
       allow delete: if isAdmin() && isExistingDoc();
     }
@@ -183,7 +183,7 @@ service cloud.firestore {
      * @principle Secures the staff role by restricting management of this collection to admins only.
      */
     match /roles_staff/{userId} {
-      allow get: if isAdmin();
+      allow get: if isAdmin() || isOwner(userId);
       allow list: if isAdmin();
       allow create: if isAdmin();
       allow update: if isAdmin() && isExistingDoc();
