@@ -14,9 +14,6 @@ import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
 import { useUser } from '@/firebase';
-import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,28 +34,15 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [userRole, setUserRole] = useState<'customer' | 'staff' | 'admin' | null>(null);
-
-  useEffect(() => {
-    if (user && firestore) {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      getDoc(userDocRef).then(docSnap => {
-        if (docSnap.exists()) {
-          setUserRole(docSnap.data().role);
-        }
-      });
-    } else {
-        setUserRole(null);
-    }
-  }, [user, firestore]);
-
+  const { userDoc } = useUser(); // Use the global user document
+  const userRole = userDoc?.role;
 
   const isActive = (href: string) => {
+    // Exact match for the main dashboard page
     if (href === '/dashboard' && pathname === href) {
         return true;
     }
+    // Starts-with match for all other dashboard sub-pages
     return href !== '/dashboard' && pathname.startsWith(href);
   };
 
@@ -69,11 +53,13 @@ export default function AppSidebar() {
   if (userRole === 'staff') {
     menuItemsToShow = staffMenuItems;
   }
+  
   if (userRole === 'admin') {
+    // Admins see their own menu, not the customer or staff menu
+    menuItemsToShow = [];
     sectionTitle = 'Admin';
     sectionItems = adminMenuItems;
   }
-
 
   return (
     <Sidebar>
