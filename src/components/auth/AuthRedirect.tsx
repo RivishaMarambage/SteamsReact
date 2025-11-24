@@ -21,58 +21,56 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Define paths that are publicly accessible and don't require auth.
-    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/privacy', '/signup/admin'];
+    const publicPaths = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
     const isPublicPath = publicPaths.includes(pathname);
 
-    // If Firebase is still checking the user's auth state, wait.
     if (isUserLoading) {
+      // Still waiting for Firebase to determine if a user is logged in.
       return;
     }
 
-    // If the user is logged in
     if (user) {
+      // User is logged in, now we need their role.
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then(userDoc => {
         const userRole = userDoc.exists() ? userDoc.data().role : undefined;
         const targetDashboard = getDashboardPathForRole(userRole);
 
-        // If user is on a public page (like login), redirect them to their dashboard.
+        // If the user is on a login/signup/home page, redirect them to their dashboard.
         if (isPublicPath) {
           router.replace(targetDashboard);
-          // Don't set isReady yet, the redirect will trigger a re-render.
-          return;
+          return; // Redirect is happening, don't render children yet.
         }
 
-        // If user is on a protected page, but it's not the correct one for their role, redirect them.
-        // Example: a customer trying to access /dashboard/admin/menu
-        if (!pathname.startsWith(targetDashboard) && targetDashboard !== '/') {
-           router.replace(targetDashboard);
-           return;
+        // User is on a protected page. Check if it's the right one.
+        // A simple `startsWith` is sufficient here.
+        if (pathname.startsWith(targetDashboard)) {
+          // Correct page for their role, show the content.
+          setIsReady(true);
+        } else {
+          // Wrong page for their role, redirect them.
+          router.replace(targetDashboard);
         }
-
-        // If user is on the correct page, we can show the content.
-        setIsReady(true);
-      }).catch((error) => {
-        console.error("Error fetching user role, logging out.", error);
-        // If we can't get the user doc, something is wrong. Log them out.
-        // (This assumes you have a signOut function available)
-        // For now, redirect to home and allow render.
+      }).catch(error => {
+        console.error("Error fetching user document:", error);
+        // If we can't get the user doc, something is very wrong. Log them out.
+        // For now, redirect to home to prevent getting stuck.
         router.replace('/');
-        setIsReady(true);
       });
-    } else { // User is not logged in
-      // If they are on a public page, it's fine. Show the content.
+    } else {
+      // User is not logged in.
       if (isPublicPath) {
+        // They are on a public page, which is fine.
         setIsReady(true);
       } else {
-        // If they are on a protected page, redirect to home.
+        // They are on a protected page without being logged in. Redirect to home.
         router.replace('/');
       }
     }
   }, [user, isUserLoading, router, pathname, firestore]);
 
-  // Only render children when all checks are complete and we are on the correct page.
+  // Only render children when all checks are complete.
+  // This prevents flashing of content or rendering the wrong page.
   if (!isReady) {
     // You can return a loading spinner here for better UX
     return null;
