@@ -21,7 +21,7 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path) || pathname === '/');
+  const isPublicPath = PUBLIC_PATHS.some(path => path === pathname);
 
   useEffect(() => {
     if (isLoading) {
@@ -30,7 +30,7 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
 
     if (user) {
       // User is logged in.
-      // If they are on a public path, redirect them to their dashboard.
+      // If they are on a public path (like login), redirect them to their dashboard.
       if (isPublicPath) {
         const targetDashboard = getDashboardPathForRole(user.role);
         router.replace(targetDashboard);
@@ -44,10 +44,11 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router, isPublicPath]);
   
-  // Show a spinner if we are still loading, or if a redirect is imminent.
-  if (isLoading || (!user && !isPublicPath) || (user && isPublicPath)) {
+  // While authentication is loading, or if a redirect is imminent, show the spinner.
+  if (isLoading || (user && isPublicPath) || (!user && !isPublicPath)) {
     return <FullPageSpinner />;
   }
 
+  // Otherwise, render the children (the requested page)
   return <>{children}</>;
 }
