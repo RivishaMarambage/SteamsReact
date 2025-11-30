@@ -44,8 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
         console.error("Could not parse user from session storage", error)
         sessionStorage.removeItem('currentUser');
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = (email: string, password?: string) => {
