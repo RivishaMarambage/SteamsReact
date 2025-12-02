@@ -90,7 +90,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                       <CardDescription>{item.description}</CardDescription>
                     </CardContent>
                     <CardFooter className="p-4 flex justify-between items-center">
-                      <div className="font-bold text-lg text-primary">${item.price.toFixed(2)}</div>
+                      <div className="font-bold text-lg text-primary">Rs. {item.price.toFixed(2)}</div>
                       <Button size="sm" onClick={() => addToCart(item)}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add
                       </Button>
@@ -128,7 +128,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                   <div key={item.menuItem.id} className="flex items-center gap-4">
                     <div className="flex-grow">
                       <p className="font-semibold">{item.menuItem.name}</p>
-                      <p className="text-sm text-muted-foreground">${item.menuItem.price.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">Rs. {item.menuItem.price.toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.menuItem.id, -1)}>
@@ -148,7 +148,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             <div className="w-full space-y-4">
                 <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>
-                    <span>${cartTotal.toFixed(2)}</span>
+                    <span>Rs. {cartTotal.toFixed(2)}</span>
                 </div>
                 <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={placeOrder}>Place Pickup Order</Button>
             </div>

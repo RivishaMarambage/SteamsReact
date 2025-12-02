@@ -47,7 +47,7 @@ export default function AnalyticsDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalSales.toFixed(2)}</div>
+            <div className="text-2xl font-bold">Rs. {stats.totalSales.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">from {stats.totalOrders} orders</p>
           </CardContent>
         </Card>
@@ -128,7 +128,7 @@ export default function AnalyticsDashboard() {
                                 <div className="font-medium">{user.name}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
                             </TableCell>
-                            <TableCell className="text-right">${(user.analytics?.totalSpent || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-right">Rs. {(user.analytics?.totalSpent || 0).toFixed(2)}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>

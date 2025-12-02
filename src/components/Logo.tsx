@@ -7,7 +7,7 @@ export function Logo({ className, link = "/" }: { className?: string; link?: str
     <Link href={link} className={cn("flex items-center gap-2 text-foreground", className)} prefetch={false}>
       <Coffee className="h-6 w-6 text-primary" />
       <span className="text-lg font-semibold font-headline">
-        Cafe Latte
+      Steamsburry
       </span>
     </Link>
   );

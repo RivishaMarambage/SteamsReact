@@ -77,7 +77,7 @@ export default function OrderManagement() {
                 <TableCell>
                   {order.items.map(item => `${item.quantity}x ${item.menuItem.name}`).join(', ')}
                 </TableCell>
-                <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">Rs. {order.total.toFixed(2)}</TableCell>
                 <TableCell className="text-center">
                    <Select value={order.status} onValueChange={(value: OrderStatus) => handleStatusChange(order.id, value)}>
                     <SelectTrigger className="w-40">

@@ -9,7 +9,7 @@ export default function RecentOrders({ user }: { user: User }) {
        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-            <CardDescription>Your latest pickups from Cafe Latte.</CardDescription>
+            <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">You haven't placed any orders yet.</p>
@@ -22,7 +22,7 @@ export default function RecentOrders({ user }: { user: User }) {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-        <CardDescription>Your latest pickups from Cafe Latte.</CardDescription>
+        <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -44,7 +44,7 @@ export default function RecentOrders({ user }: { user: User }) {
                 <TableCell className="hidden sm:table-cell">
                     {order.items.map(item => item.menuItem.name).join(', ')}
                 </TableCell>
-                <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">Rs. {order.total.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   <Badge variant="secondary">+{order.pointsEarned}</Badge>
                 </TableCell>

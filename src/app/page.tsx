@@ -52,9 +52,7 @@ export default function LandingPage() {
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/dashboard/order">View Menu</Link>
-              </Button>
+             
             </div>
           </div>
         </section>

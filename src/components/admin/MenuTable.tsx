@@ -142,7 +142,7 @@ export default function MenuTable() {
                       {item.stock > 0 ? `${item.stock} in stock` : 'Out of Stock'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">Rs. {item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
