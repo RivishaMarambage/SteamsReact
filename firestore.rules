@@ -46,6 +46,7 @@ service cloud.firestore {
     
     match /users/{userId}/orders/{orderId} {
       allow read, create, update, delete: if isOwner(userId) || isStaff();
+      allow list: if isOwner(userId) || isStaff();
     }
     
     // A root collection of all orders for admin and staff analytics/management
