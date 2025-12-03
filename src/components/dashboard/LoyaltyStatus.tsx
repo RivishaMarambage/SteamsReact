@@ -3,8 +3,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
 import { Medal, Shield, Gem, Crown, Minus } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
@@ -20,14 +20,14 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
   
-  const currentTierRef = useMemoFirebase(() => {
-    if (firestore && user.loyaltyLevelId) {
-        return doc(firestore, "loyalty_levels", user.loyaltyLevelId);
+  const loyaltyLevelsQuery = useMemoFirebase(() => {
+    if (firestore) {
+        return query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints"));
     }
     return null;
-  }, [firestore, user.loyaltyLevelId]);
+  }, [firestore]);
 
-  const { data: currentTier, isLoading } = useDoc<LoyaltyLevel>(currentTierRef);
+  const { data: loyaltyTiers, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
   if (isLoading) {
     return (
@@ -47,8 +47,8 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     )
   }
 
-  // Handle case where user has no tier yet or tier data is not found
-  if (!user || !currentTier) {
+  // Handle case where tiers are not loaded
+  if (!user || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -57,18 +57,36 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold text-primary">{user?.loyaltyPoints ?? 0} Points</div>
-                <p className="text-sm text-muted-foreground mt-2">You are not yet in a loyalty tier.</p>
+                <p className="text-sm text-muted-foreground mt-2">Loyalty program information is currently unavailable.</p>
             </CardContent>
         </Card>
     );
   }
   
+  const userPoints = user.loyaltyPoints ?? 0;
+
+  // Find the current tier
+  const currentTier = [...loyaltyTiers].reverse().find(tier => userPoints >= tier.minimumPoints) || loyaltyTiers[0];
+  const currentTierIndex = loyaltyTiers.findIndex(tier => tier.id === currentTier.id);
+
+  // Find the next tier
+  const nextTier = currentTierIndex < loyaltyTiers.length - 1 ? loyaltyTiers[currentTierIndex + 1] : null;
+
   const Icon = ICONS[currentTier.id.toLowerCase()] || Minus;
 
-  // Since we don't fetch all tiers, we can't show progress to the next one.
-  // This is a simplification to ensure the current status always shows.
-  // We can show a full progress bar if they are in a tier.
-  const progress = currentTier.minimumPoints > 0 ? ((user.loyaltyPoints ?? 0) / currentTier.minimumPoints) * 100 : 0;
+  let progress = 0;
+  let pointsToNext = 0;
+
+  if (nextTier) {
+      const pointsInCurrentTier = userPoints - currentTier.minimumPoints;
+      const pointsForNextTier = nextTier.minimumPoints - currentTier.minimumPoints;
+      progress = (pointsInCurrentTier / pointsForNextTier) * 100;
+      pointsToNext = nextTier.minimumPoints - userPoints;
+  } else {
+      // User is at the highest tier
+      progress = 100;
+  }
+
 
   return (
     <Card className="shadow-lg">
@@ -85,11 +103,21 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="text-3xl font-bold text-primary">{user.loyaltyPoints ?? 0} Points</div>
-           <p className="text-sm text-muted-foreground">
-              You are currently in the <strong>{currentTier.name}</strong> tier.
-            </p>
+          
+          <div>
+            <Progress value={progress} className="h-3" />
+            {nextTier ? (
+                <p className="text-sm text-muted-foreground mt-2">
+                    You're <strong>{pointsToNext}</strong> points away from the <strong>{nextTier.name}</strong> tier!
+                </p>
+            ) : (
+                <p className="text-sm text-muted-foreground mt-2">
+                    You've reached the highest loyalty tier! Congratulations!
+                </p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
