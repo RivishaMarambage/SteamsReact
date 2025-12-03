@@ -1,11 +1,10 @@
 'use client';
 
-import { useUser, useDoc, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Logo } from '../Logo';
 import { getDashboardPathForRole, PUBLIC_PATHS } from '@/lib/auth/paths';
-import { doc } from 'firebase/firestore';
 
 
 function FullPageSpinner() {
@@ -19,51 +18,39 @@ function FullPageSpinner() {
 
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user: authUser, isUserLoading } = useUser();
-  const { firestore } = useFirebase();
-  const userDocRef = authUser ? doc(firestore, 'users', authUser.uid) : null;
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
-
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicPath = PUBLIC_PATHS.some(p => p === pathname);
-  const isLoading = isUserLoading || (authUser && isProfileLoading);
+  const isPublicPath = PUBLIC_PATHS.some(p => pathname.startsWith(p));
 
   useEffect(() => {
-    if (isLoading) {
+    if (isUserLoading) {
       return; // Wait until loading is complete
     }
 
-    if (authUser && userProfile) {
-      // User is logged in and has a profile
-      const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+
+    if (authUser) {
+      // User is logged in.
+      // If they are on a public-only page (like landing or login), redirect them to their dashboard.
       if (isAuthPage || pathname === '/') {
-        const targetDashboard = getDashboardPathForRole(userProfile.role);
-        router.replace(targetDashboard);
+        // We don't know the role here, so we redirect to the base dashboard.
+        // The dashboard or sidebar can then handle role-specific views.
+        router.replace('/dashboard');
       }
-    } else if (!authUser) {
-      // User is not logged in
+    } else {
+      // User is not logged in.
+      // If they are on a protected page, redirect to the landing page.
       if (!isPublicPath) {
-        router.replace('/'); // Redirect to home if on a protected page
+        router.replace('/'); 
       }
     }
-  }, [authUser, userProfile, isLoading, pathname, router, isPublicPath]);
+  }, [authUser, isUserLoading, pathname, router, isPublicPath]);
   
-  // While loading, show a spinner.
-  if (isLoading) {
+  // While loading, or if a redirect is pending, show a spinner.
+  if (isUserLoading || (!authUser && !isPublicPath) || (authUser && (pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname === '/'))) {
       return <FullPageSpinner />;
   }
-
-  // If user is logged in, but trying to access a public path like login, show spinner until redirect happens.
-  if(authUser && userProfile && (isPublicPath || pathname.startsWith('/login') || pathname.startsWith('/signup'))) {
-    return <FullPageSpinner />;
-  }
-  
-  // If user is not logged in and not on a public path, show spinner until redirect happens.
-  if (!authUser && !isPublicPath) {
-     return <FullPageSpinner />;
-  }
-
 
   // Otherwise, render the children (the requested page)
   return <>{children}</>;
