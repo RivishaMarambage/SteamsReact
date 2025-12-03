@@ -101,9 +101,18 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         const userOrderRef = doc(firestore, `users/${user.uid}/orders`, rootOrderRef.id);
         batch.set(userOrderRef, userOrderData);
 
-        // 5. Update the user's loyalty points
+        // 5. Update the user's loyalty points based on the new logic
         const userDocRef = doc(firestore, "users", user.uid);
-        const pointsToEarn = Math.floor(cartTotal);
+        
+        let pointsToEarn = 0;
+        if (cartTotal > 5000) {
+          pointsToEarn = 5;
+        } else if (cartTotal > 1000) {
+          pointsToEarn = 2;
+        } else if (cartTotal > 100) {
+          pointsToEarn = 1;
+        }
+
         if (pointsToEarn > 0) {
             batch.update(userDocRef, {
                 loyaltyPoints: increment(pointsToEarn)
@@ -115,7 +124,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
 
         toast({
             title: "Order Placed!",
-            description: "Your pickup order has been confirmed. You've earned points!",
+            description: `Your pickup order has been confirmed. You've earned ${pointsToEarn} points!`,
         });
         setCart([]);
 
