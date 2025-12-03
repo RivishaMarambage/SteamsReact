@@ -54,11 +54,12 @@ const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
 ];
 
 const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
-    { name: 'None', minimumPoints: 0 },
-    { name: 'Bronze', minimumPoints: 50 },
-    { name: 'Silver', minimumPoints: 150 },
-    { name: 'Gold', minimumPoints: 300 },
-    { name: 'Platinum', minimumPoints: 500 },
+    { name: 'Member', minimumPoints: 0 },
+    { name: 'Standard', minimumPoints: 100 },
+    { name: 'Bronze', minimumPoints: 300 },
+    { name: 'Silver', minimumPoints: 500 },
+    { name: 'Gold', minimumPoints: 1000 },
+    { name: 'Platinum', minimumPoints: 2000 },
 ]
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -94,7 +95,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               name: demoAccount.name,
               role,
               loyaltyPoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: role === 'customer' ? "silver" : "none",
+              loyaltyLevelId: role === 'customer' ? "standard" : "member",
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
@@ -138,9 +139,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
         // Seed Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
-        const loyaltySnapshot = await getDocs(query(loyaltyLevelsRef, limit(1)));
-        if (loyaltySnapshot.empty) {
-            console.log("Loyalty levels collection is empty. Seeding...");
+        // To ensure we re-seed if the levels change, we can check the count or a version number.
+        // For simplicity here, we'll just overwrite them if the count is off.
+        const loyaltySnapshot = await getDocs(loyaltyLevelsRef);
+        if (loyaltySnapshot.size !== SEED_LOYALTY_LEVELS.length) {
+            console.log("Loyalty levels collection is missing or outdated. Seeding...");
             const loyaltyBatch = writeBatch(firestore);
             SEED_LOYALTY_LEVELS.forEach(level => {
                 const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
@@ -151,7 +154,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         }
     };
 
-    seedDatabase().catch(console.error);
+    if (firestore) {
+      seedDatabase().catch(console.error);
+    }
   }, [firestore]);
 
 
@@ -183,7 +188,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           mobileNumber: data.mobileNumber || '',
           cafeNickname: data.cafeNickname || '',
           loyaltyPoints: 0,
-          loyaltyLevelId: "none", // Default loyalty level
+          loyaltyLevelId: "member", // Default loyalty level
         };
 
         await setDoc(doc(firestore, "users", user.uid), userProfile);
@@ -381,5 +386,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-
-    
