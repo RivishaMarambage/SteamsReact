@@ -1,7 +1,7 @@
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, updateDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -25,28 +25,37 @@ export default function OrderManagement() {
 
   const handleStatusChange = async (order: Order, status: Order['status']) => {
     if (!firestore) return;
+    
+    const batch = writeBatch(firestore);
+
     // Reference to the order in the root /orders collection
     const rootOrderRef = doc(firestore, 'orders', order.id);
+    batch.update(rootOrderRef, { status });
+
     // Reference to the order in the user's subcollection
     const userOrderRef = doc(firestore, `users/${order.customerId}/orders`, order.id);
+    batch.update(userOrderRef, { status });
     
-    try {
-      // Update both documents for consistency
-      await updateDoc(rootOrderRef, { status });
-      await updateDoc(userOrderRef, { status });
-
-      toast({
-        title: 'Order Status Updated',
-        description: `Order ${order.id.substring(0, 7)} is now ${status}.`,
+    batch.commit()
+      .then(() => {
+        toast({
+          title: 'Order Status Updated',
+          description: `Order ${order.id.substring(0, 7)} is now ${status}.`,
+        });
+      })
+      .catch((error) => {
+        const contextualError = new FirestorePermissionError({
+            path: userOrderRef.path,
+            operation: 'update',
+            requestResourceData: { status },
+        });
+        errorEmitter.emit('permission-error', contextualError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'Could not update the order status. Check permissions.',
+        });
       });
-    } catch (error) {
-      console.error("Error updating status: ", error);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the order status.',
-      });
-    }
   };
 
   const getStatusVariant = (status: Order['status']) => {
