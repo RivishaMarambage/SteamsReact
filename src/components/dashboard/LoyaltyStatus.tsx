@@ -1,9 +1,10 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc, collection } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
 import { Medal, Shield, Gem, Crown, Minus } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
@@ -19,11 +20,15 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
   
-  // Fetch all loyalty levels to determine the next tier.
-  const { data: loyaltyLevels, isLoading: levelsLoading } = useCollection("loyalty_levels");
+  const { data: loyaltyLevels, isLoading: levelsLoading } = useCollection<LoyaltyLevel>("loyalty_levels");
   
-  // Fetch the user's current loyalty tier document using the ID from their profile.
-  const currentTierRef = useMemoFirebase(() => (firestore && user.loyaltyLevelId) ? doc(firestore, "loyalty_levels", user.loyaltyLevelId) : null, [firestore, user.loyaltyLevelId]);
+  const currentTierRef = useMemoFirebase(() => {
+    if (firestore && user.loyaltyLevelId) {
+        return doc(firestore, "loyalty_levels", user.loyaltyLevelId);
+    }
+    return null;
+  }, [firestore, user.loyaltyLevelId]);
+
   const { data: currentTier, isLoading: tierLoading } = useDoc<LoyaltyLevel>(currentTierRef);
 
   const isLoading = levelsLoading || tierLoading;
@@ -46,10 +51,9 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     )
   }
 
-  if (!user || !currentTier) return null;
+  if (!user || !currentTier || !loyaltyLevels) return null;
 
-  // Find the next tier based on minimum points
-  const sortedLevels = loyaltyLevels?.sort((a, b) => a.minimumPoints - b.minimumPoints) || [];
+  const sortedLevels = loyaltyLevels.sort((a, b) => a.minimumPoints - b.minimumPoints);
   const nextTier = sortedLevels.find(l => l.minimumPoints > currentTier.minimumPoints);
 
   const Icon = ICONS[currentTier.name.toLowerCase()] || Minus;
@@ -90,3 +94,5 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     </Card>
   );
 }
+
+    

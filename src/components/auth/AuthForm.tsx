@@ -94,7 +94,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               name: demoAccount.name,
               role,
               loyaltyPoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: role === 'customer' ? "gold" : "none",
+              loyaltyLevelId: role === 'customer' ? "silver" : "none",
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
@@ -156,6 +156,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
 
   const onSubmit = async (data: AuthFormValues) => {
+    if (!auth || !firestore) {
+      toast({ variant: 'destructive', title: 'Firebase not initialized.' });
+      return;
+    }
+
     if (authType === 'signup') {
       if (!data.fullName) {
         form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
@@ -175,8 +180,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           email: data.email,
           name: data.fullName,
           role,
-          mobileNumber: data.mobileNumber,
-          cafeNickname: data.cafeNickname,
+          mobileNumber: data.mobileNumber || '',
+          cafeNickname: data.cafeNickname || '',
           loyaltyPoints: 0,
           loyaltyLevelId: "none", // Default loyalty level
         };
@@ -377,5 +382,4 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   );
 }
 
-    
     
