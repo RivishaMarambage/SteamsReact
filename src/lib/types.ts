@@ -28,12 +28,17 @@ export type MenuItem = {
   };
 };
 
+export type CartItem = {
+  menuItem: MenuItem;
+  quantity: number;
+};
+
 export type OrderStatus = 'Pending' | 'Processing' | 'Ready for Pickup' | 'Completed';
 
 export type Order = {
   id: string;
   date: string;
-  items: { menuItem: MenuItem; quantity: number }[];
+  items: CartItem[];
   total: number;
   pointsEarned: number;
   status: OrderStatus;

@@ -7,18 +7,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { MenuItem } from '@/lib/types';
+import { MenuItem, CartItem } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-type CartItem = {
-  menuItem: MenuItem;
-  quantity: number;
-};
+import { useMockData, useUser } from '@/lib/auth/provider';
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const { user } = useUser();
+  const { placeOrder: placeMockOrder } = useMockData();
 
   const categories = Array.from(new Set(menuItems.map(item => item.category)));
 
@@ -55,7 +53,12 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const cartTotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
-  const placeOrder = () => {
+  const handlePlaceOrder = () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
+        return;
+    }
+    placeMockOrder(cart, cartTotal, user.id);
     toast({
       title: "Order Placed!",
       description: "Your pickup order has been confirmed. You've earned points!",
@@ -150,7 +153,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                     <span>Total:</span>
                     <span>Rs. {cartTotal.toFixed(2)}</span>
                 </div>
-                <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={placeOrder}>Place Pickup Order</Button>
+                <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={handlePlaceOrder}>Place Pickup Order</Button>
             </div>
           </SheetFooter>
         </SheetContent>

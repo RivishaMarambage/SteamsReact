@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
-import type { User, MenuItem } from '@/lib/types';
+import type { User, MenuItem, Order, CartItem } from '@/lib/types';
 import { MOCK_DATA, MENU_ITEMS } from '@/lib/mock-data';
 
 interface AuthContextType {
@@ -22,6 +22,7 @@ interface MockDataContextType {
     addMenuItem: (item: MenuItem) => void;
     updateMenuItem: (item: MenuItem) => void;
     deleteMenuItem: (itemId: string) => void;
+    placeOrder: (cart: CartItem[], total: number, customerId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedUser = sessionStorage.getItem('currentUser');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        // We need to find the user from our "DB" to ensure data is fresh
+        const freshUser = MOCK_DATA.find(u => u.id === parsedUser.id);
+        setUser(freshUser || parsedUser);
       }
     } catch (error) {
         console.error("Could not parse user from session storage", error)
@@ -85,12 +89,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateUser = (updatedUser: User) => {
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-    // If the updated user is the currently logged-in user, update session storage
-    if (user && user.id === updatedUser.id) {
-        setUser(updatedUser);
-        sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    }
+    setUsers(prevUsers => {
+      const newUsers = prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
+      // Also update the MOCK_DATA reference if needed for other sessions, though this is a client-side mock
+      const mockIndex = MOCK_DATA.findIndex(u => u.id === updatedUser.id);
+      if (mockIndex !== -1) MOCK_DATA[mockIndex] = updatedUser;
+      
+      // If the updated user is the currently logged-in user, update session storage
+      if (user && user.id === updatedUser.id) {
+          setUser(updatedUser);
+          sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      }
+      return newUsers;
+    });
   };
   
   const deleteUser = (userId: string) => {
@@ -108,6 +119,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteMenuItem = (itemId: string) => {
     setMenuItems(prev => prev.filter(item => item.id !== itemId));
   }
+
+  const placeOrder = (cart: CartItem[], total: number, customerId: string) => {
+    const customer = users.find(u => u.id === customerId);
+    if (!customer) return;
+
+    const pointsEarned = Math.floor(total);
+    const newOrder: Order = {
+      id: `ord_${Date.now()}`,
+      date: new Date().toISOString(),
+      items: cart,
+      total,
+      pointsEarned,
+      status: 'Pending',
+    };
+
+    const updatedUser: User = {
+      ...customer,
+      points: (customer.points || 0) + pointsEarned,
+      recentOrders: [newOrder, ...(customer.recentOrders || [])],
+    };
+
+    updateUser(updatedUser);
+  };
 
   const authContextValue = useMemo(() => ({
     user,
@@ -127,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       addMenuItem,
       updateMenuItem,
       deleteMenuItem,
+      placeOrder,
   }), [users, menuItems, isLoading, user]);
 
   return (
