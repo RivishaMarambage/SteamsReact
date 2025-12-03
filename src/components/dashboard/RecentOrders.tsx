@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCollection } from "@/firebase";
-import { collection, query, where, orderBy, limit, useFirestore } from "firebase/firestore";
+import { useCollection, useFirestore } from "@/firebase";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import type { Order } from "@/lib/types";
 
 export default function RecentOrders({ userId }: { userId: string }) {
