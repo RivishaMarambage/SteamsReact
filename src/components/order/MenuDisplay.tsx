@@ -91,9 +91,12 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
 
     // 3. Update the user's loyalty points
     const userDocRef = doc(firestore, "users", user.uid);
-    batch.update(userDocRef, {
-      loyaltyPoints: increment(Math.floor(cartTotal))
-    });
+    const pointsToEarn = Math.floor(cartTotal);
+    if (pointsToEarn > 0) {
+      batch.update(userDocRef, {
+        loyaltyPoints: increment(pointsToEarn)
+      });
+    }
 
     await batch.commit();
 

@@ -21,9 +21,10 @@ export default function OrderManagement() {
     return query(collection(firestore, 'orders'), orderBy('orderDate', 'desc'));
   }, [firestore]);
   
-  const { data: orders, isLoading } = useCollection(ordersQuery);
+  const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
   const handleStatusChange = async (order: Order, status: Order['status']) => {
+    if (!firestore) return;
     // Reference to the order in the root /orders collection
     const rootOrderRef = doc(firestore, 'orders', order.id);
     // Reference to the order in the user's subcollection
@@ -102,7 +103,7 @@ export default function OrderManagement() {
             {orders?.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id.substring(0, 7).toUpperCase()}</TableCell>
-                <TableCell>{new Date(order.orderDate.toDate()).toLocaleString()}</TableCell>
+                <TableCell>{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleString() : 'N/A'}</TableCell>
                 <TableCell>Rs. {order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
