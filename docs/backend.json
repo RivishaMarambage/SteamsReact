@@ -1,184 +1,77 @@
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "User Profile",
       "type": "object",
-      "description": "Represents a user profile in the Cafe Latte Loyalty System.",
+      "description": "Represents a user's profile, including their role and loyalty information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "User's mobile phone number."
-        },
-        "name": {
-          "type": "string",
-          "description": "User's full name."
-        },
-        "cafeNickname": {
-          "type": "string",
-          "description": "User's preferred nickname for the cafe."
-        },
-        "loyaltyPoints": {
-          "type": "number",
-          "description": "The number of loyalty points the user has accumulated."
-        },
-        "loyaltyLevelId": {
-          "type": "string",
-          "description": "Reference to LoyaltyLevel. (Relationship: LoyaltyLevel 1:N UserProfile)"
-        }
+        "id": { "type": "string", "description": "User's unique ID (matches Auth UID)." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "name": { "type": "string", "description": "User's full name." },
+        "mobileNumber": { "type": "string", "description": "User's mobile phone number." },
+        "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
+        "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
+        "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
+        "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." }
       },
-      "required": [
-        "id",
-        "email",
-        "mobileNumber",
-        "name",
-        "loyaltyPoints",
-        "loyaltyLevelId"
-      ]
+      "required": ["id", "email", "name", "role"]
     },
     "MenuItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MenuItem",
+      "title": "Menu Item",
       "type": "object",
-      "description": "Represents a menu item offered by the Cafe Latte.",
+      "description": "A single item available on the cafe's menu.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MenuItem entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the menu item."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the menu item."
-        },
-        "price": {
-          "type": "number",
-          "description": "Price of the menu item."
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N MenuItem)"
-        }
+        "id": { "type": "string", "description": "Unique ID for the menu item." },
+        "name": { "type": "string", "description": "Name of the menu item." },
+        "description": { "type": "string", "description": "A brief description of the item." },
+        "price": { "type": "number", "description": "Price of the item." },
+        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "price",
-        "categoryId"
-      ]
+      "required": ["id", "name", "price", "categoryId"]
     },
     "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a category for menu items (e.g., Breakfast, Lunch, Beverage).",
+      "description": "A category for organizing menu items.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the category (e.g., Breakfast, Lunch, Beverage)."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of the category (e.g., breakfast, lunch, snacks, dinner, beverage, main food, deserts, match, coffee)."
-        }
+        "id": { "type": "string", "description": "Unique ID for the category." },
+        "name": { "type": "string", "description": "Name of the category (e.g., 'Coffee Classics')." },
+        "type": { "type": "string", "description": "A broader type for grouping categories (e.g., 'coffee')." }
       },
-      "required": [
-        "id",
-        "name",
-        "type"
-      ]
+      "required": ["id", "name", "type"]
     },
     "LoyaltyLevel": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LoyaltyLevel",
+      "title": "Loyalty Level",
       "type": "object",
-      "description": "Represents a loyalty level (e.g., Bronze, Silver, Gold).",
+      "description": "Defines a tier in the loyalty program.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the LoyaltyLevel entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the loyalty level (e.g., None, Bronze, Silver, Gold, Platinum)."
-        },
-        "minimumPoints": {
-          "type": "number",
-          "description": "Minimum points required to reach this loyalty level."
-        }
+        "id": { "type": "string", "description": "Unique ID for the loyalty level (e.g., 'gold')." },
+        "name": { "type": "string", "description": "Display name of the level (e.g., 'Gold')." },
+        "minimumPoints": { "type": "number", "description": "Points required to reach this level." }
       },
-      "required": [
-        "id",
-        "name",
-        "minimumPoints"
-      ]
+      "required": ["id", "name", "minimumPoints"]
     },
     "Order": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents an order placed by a customer.",
+      "description": "Represents a customer's order for pickup.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
-        },
-        "customerId": {
-          "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Order)"
-        },
-        "orderDate": {
-          "type": "string",
-          "description": "Date and time when the order was placed.",
-          "format": "date-time"
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "Total amount of the order."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the order (e.g., Placed, Processing, Ready for Pickup, Completed)."
-        },
+        "id": { "type": "string", "description": "Unique ID for the order." },
+        "customerId": { "type": "string", "description": "The UID of the user who placed the order." },
+        "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
+        "totalAmount": { "type": "number", "description": "Total cost of the order." },
+        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed"], "description": "Current status of the order." },
         "menuItemIds": {
           "type": "array",
-          "description": "References to MenuItems. (Relationship: MenuItem N:N Order)",
-          "items": {
-            "type": "string"
-          }
+          "items": { "type": "string" },
+          "description": "List of IDs of the menu items in the order."
         }
       },
-      "required": [
-        "id",
-        "customerId",
-        "orderDate",
-        "totalAmount",
-        "status"
-      ]
+      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -186,87 +79,59 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profiles. Path-based ownership: only the user (or an admin) can access their own profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "schema": { "$ref": "#/entities/UserProfile" },
+          "description": "Stores user profile data. Secured by user ID.",
+          "params": [{ "name": "userId", "description": "The user's unique auth ID." }]
         }
       },
       {
         "path": "/menu_items/{menuItemId}",
         "definition": {
           "entityName": "MenuItem",
-          "schema": {
-            "$ref": "#/backend/entities/MenuItem"
-          },
-          "description": "Stores menu items.",
-          "params": [
-            {
-              "name": "menuItemId",
-              "description": "The unique identifier of the menu item."
-            }
-          ]
+          "schema": { "$ref": "#/entities/MenuItem" },
+          "description": "Publicly readable list of all menu items.",
+          "params": [{ "name": "menuItemId", "description": "Unique ID for the menu item." }]
         }
       },
       {
         "path": "/categories/{categoryId}",
         "definition": {
           "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores menu categories.",
-          "params": [
-            {
-              "name": "categoryId",
-              "description": "The unique identifier of the category."
-            }
-          ]
+          "schema": { "$ref": "#/entities/Category" },
+          "description": "Publicly readable list of all menu categories.",
+          "params": [{ "name": "categoryId", "description": "Unique ID for the category." }]
         }
       },
       {
         "path": "/loyalty_levels/{loyaltyLevelId}",
         "definition": {
           "entityName": "LoyaltyLevel",
-          "schema": {
-            "$ref": "#/backend/entities/LoyaltyLevel"
-          },
-          "description": "Stores loyalty levels.",
-          "params": [
-            {
-              "name": "loyaltyLevelId",
-              "description": "The unique identifier of the loyalty level."
-            }
-          ]
+          "schema": { "$ref": "#/entities/LoyaltyLevel" },
+          "description": "Publicly readable list of all loyalty levels.",
+          "params": [{ "name": "loyaltyLevelId", "description": "Unique ID for the loyalty level." }]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": { "$ref": "#/entities/Order" },
+          "description": "Root collection for all orders. Used by staff and admins for management.",
+          "params": [{ "name": "orderId", "description": "Unique ID for the order." }]
         }
       },
       {
         "path": "/users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores orders placed by users. Path-based ownership: only the user (or an admin) can access their own orders.",
+          "schema": { "$ref": "#/entities/Order" },
+          "description": "A customer's private copy of their order history. Path-based ownership.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier of the order."
-            }
+            { "name": "userId", "description": "The user's unique auth ID." },
+            { "name": "orderId", "description": "Unique ID for the order, matches the ID in the root /orders collection." }
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support the Cafe Latte Loyalty System. It emphasizes authorization independence and easy querying while adhering to DBAC principles. User profiles, menu items, categories, loyalty levels, and orders are structured to facilitate the core features of the app, including user authentication, menu management, loyalty point redemption, customer profiles, online ordering, and staff redemption.\n\n*   **UserProfile:** Stored under `/users/{userId}`. This path-based ownership makes user data private and easily secured using rules based on `request.auth.uid == userId`. No denormalization is needed as access is directly tied to the authenticated user.\n*   **MenuItems and Categories:**  MenuItems are associated with Categories, which are further categorized by `type` for easy filtering. The menu items are kept in a flat `menu_items` collection with a `categoryId` referencing the `categories` collection. Categories reside in the root-level `categories` collection.  This allows listing menu items by category or type without complex queries.\n*   **Loyalty Levels:**  Loyalty levels are stored in a root-level `loyalty_levels` collection. The `UserProfile` includes a `loyaltyLevelId` to link to the current loyalty level.\n*   **Orders:** Orders are created under `/users/{userId}/orders/{orderId}`. This hierarchical path ensures only the user can access their order history. Each order contains `menuItemIds` for easy retrieval of menu items associated with the order.  No authorization context needs to be denormalized, since orders are owned by the user.\n\n**Authorization Independence and QAPs:**\n\n*   Authorization independence is achieved because rules primarily rely on path-based ownership (`/users/{userId}`) and existence checks (for admin roles). This avoids complex `get()` calls and ensures atomic operations.\n*   QAPs are supported by segregating data based on access requirements (private user data under `/users/{userId}`, public menu data under `menu_items`). The structure allows listing operations that are naturally secure.  For example, listing menu items by category type involves querying the `menu_items` collection with a `where` clause on the `categoryId` field, which references the `categories` collection to obtain the category's `type`.\n\nThis design avoids hierarchical authorization dependencies and simplifies security rules, making the system more robust, scalable, and debuggable."
+    ]
   }
 }
