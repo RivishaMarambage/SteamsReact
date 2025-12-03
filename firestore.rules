@@ -55,9 +55,9 @@ service cloud.firestore {
 
     // This is the customer's private view of their own orders
     match /users/{userId}/orders/{orderId} {
-      allow read, list: if isOwner(userId); // A user can only see their own orders
-      allow create: if isOwner(userId); // A user can create an order in their own history
-      allow update, delete: if false; // Users should not be able to modify their past orders
+      allow read, list, create: if isOwner(userId); // A user can only see their own orders
+      allow update: if isOwner(userId) || isStaff(); // A user can update their order, and so can staff to update status.
+      allow delete: if false; // Users should not be able to modify their past orders
     }
   }
 }
