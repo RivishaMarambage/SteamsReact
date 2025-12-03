@@ -10,11 +10,11 @@ import { Medal, Shield, Gem, Crown, Minus, Star } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-    "member": Minus,
-    "standard": Star,
-    "bronze": Medal,
-    "silver": Shield,
-    "gold": Gem,
+    "member": Star,
+    "standard": Medal,
+    "bronze": Shield,
+    "silver": Gem,
+    "gold": Crown,
     "platinum": Crown,
 };
 
@@ -30,7 +30,7 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
 
   const { data: loyaltyTiers, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
-  if (isLoading || !loyaltyTiers) {
+  if (isLoading || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -46,22 +46,6 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
             </CardContent>
         </Card>
     )
-  }
-
-  // Handle case where tiers are not loaded but we have a user
-  if (!user || loyaltyTiers.length === 0) {
-    return (
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="font-headline text-2xl">Your Loyalty Status</CardTitle>
-                <CardDescription>Start earning points with every purchase.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold text-primary">{user?.loyaltyPoints ?? 0} Points</div>
-                <p className="text-sm text-muted-foreground mt-2">Loyalty program information is currently unavailable.</p>
-            </CardContent>
-        </Card>
-    );
   }
   
   const userPoints = user.loyaltyPoints ?? 0;
@@ -125,3 +109,4 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   );
 }
 
+    

@@ -145,6 +145,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         if (loyaltySnapshot.size !== SEED_LOYALTY_LEVELS.length) {
             console.log("Loyalty levels collection is missing or outdated. Seeding...");
             const loyaltyBatch = writeBatch(firestore);
+            // Delete existing documents to prevent conflicts
+            loyaltySnapshot.docs.forEach(d => loyaltyBatch.delete(d.ref));
             SEED_LOYALTY_LEVELS.forEach(level => {
                 const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
                 loyaltyBatch.set(docRef, level);
@@ -386,3 +388,5 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
