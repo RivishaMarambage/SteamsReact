@@ -1,24 +1,58 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { MenuItem, CartItem } from '@/lib/types';
+import type { MenuItem, CartItem, Category } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, getDocs, query, limit, writeBatch } from 'firebase/firestore';
+
+const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
+    { name: 'Coffee Classics', type: 'coffee' },
+    { name: 'Specialty Lattes', type: 'coffee' },
+    { name: 'Matcha & Tea', type: 'match' },
+    { name: 'Pastries & Bakes', type: 'breakfast' },
+    { name: 'Savory Snacks', type: 'snacks' },
+    { name: 'Lunch Specials', type: 'lunch' },
+];
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-  const { data: categories } = useCollection("categories");
+  
+  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+
+  useEffect(() => {
+    const seedDatabase = async () => {
+        if (!firestore) return;
+
+        // Seed Categories
+        const categoriesRef = collection(firestore, 'categories');
+        const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
+        if (categorySnapshot.empty) {
+            console.log("Categories collection is empty. Seeding...");
+            const categoryBatch = writeBatch(firestore);
+            SEED_CATEGORIES.forEach(category => {
+                const docRef = doc(categoriesRef); // Create a new doc with a generated ID
+                categoryBatch.set(docRef, category);
+            });
+            await categoryBatch.commit();
+            console.log("Seeded categories.");
+        }
+    };
+
+    seedDatabase().catch(console.error);
+  }, [firestore]);
+
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
@@ -28,7 +62,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     return categories?.find(c => c.id === categoryId)?.type;
   }
   
-  const mainCategories = Array.from(new Set(categories?.map(c => c.type)));
+  const mainCategories = Array.from(new Set(categories?.map(c => c.type).filter(Boolean) as string[]));
 
   const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
@@ -64,7 +98,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handlePlaceOrder = async () => {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
         return;
     }
@@ -184,7 +218,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                     <span>Total:</span>
                     <span>Rs. {cartTotal.toFixed(2)}</span>
                 </div>
-                <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={handlePlaceOrder}>Place Pickup Order</Button>
+                <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place Pickup Order</Button>
             </div>
           </SheetFooter>
         </SheetContent>
