@@ -13,14 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, getDocs, query, limit, writeBatch } from 'firebase/firestore';
 
-const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
-    { name: 'Coffee Classics', type: 'coffee' },
-    { name: 'Specialty Lattes', type: 'coffee' },
-    { name: 'Matcha & Tea', type: 'match' },
-    { name: 'Pastries & Bakes', type: 'breakfast' },
-    { name: 'Savory Snacks', type: 'snacks' },
-    { name: 'Lunch Specials', type: 'lunch' },
-];
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -30,28 +22,6 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
-
-  useEffect(() => {
-    const seedDatabase = async () => {
-        if (!firestore) return;
-
-        // Seed Categories
-        const categoriesRef = collection(firestore, 'categories');
-        const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
-        if (categorySnapshot.empty) {
-            console.log("Categories collection is empty. Seeding...");
-            const categoryBatch = writeBatch(firestore);
-            SEED_CATEGORIES.forEach(category => {
-                const docRef = doc(categoriesRef); // Create a new doc with a generated ID
-                categoryBatch.set(docRef, category);
-            });
-            await categoryBatch.commit();
-            console.log("Seeded categories.");
-        }
-    };
-
-    seedDatabase().catch(console.error);
-  }, [firestore]);
 
 
   const getCategoryName = (categoryId: string) => {

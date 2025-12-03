@@ -122,6 +122,20 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     const seedDatabase = async () => {
         if (!firestore) return;
 
+        // Seed Categories
+        const categoriesRef = collection(firestore, 'categories');
+        const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
+        if (categorySnapshot.empty) {
+            console.log("Categories collection is empty. Seeding...");
+            const categoryBatch = writeBatch(firestore);
+            SEED_CATEGORIES.forEach(category => {
+                const docRef = doc(categoriesRef); // Create a new doc with a generated ID
+                categoryBatch.set(docRef, category);
+            });
+            await categoryBatch.commit();
+            console.log("Seeded categories.");
+        }
+
         // Seed Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
         const loyaltySnapshot = await getDocs(query(loyaltyLevelsRef, limit(1)));
