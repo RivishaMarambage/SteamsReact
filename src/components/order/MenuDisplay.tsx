@@ -10,7 +10,7 @@ import type { MenuItem, CartItem, Category } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
 
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
@@ -71,29 +71,31 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         return;
     }
     
-    // Add to root collection for admin analytics
-    const rootOrderRef = await addDoc(collection(firestore, 'orders'), {
+    const orderData = {
         customerId: user.uid,
         orderDate: serverTimestamp(),
         totalAmount: cartTotal,
-        status: "Placed",
+        status: "Placed" as const,
         menuItemIds: cart.map(item => item.menuItem.id)
-    });
+    };
     
-    // Add to user's subcollection for their own history, using the same ID
-    await addDoc(collection(firestore, `users/${user.uid}/orders`), {
-        customerId: user.uid,
-        orderDate: serverTimestamp(),
-        totalAmount: cartTotal,
-        status: "Placed",
-        menuItemIds: cart.map(item => item.menuItem.id)
-    });
+    const batch = writeBatch(firestore);
 
-    // Update user's loyalty points
+    // 1. Create a new document in the root /orders collection
+    const rootOrderRef = doc(collection(firestore, 'orders'));
+    batch.set(rootOrderRef, orderData);
+    
+    // 2. Create a new document in the user's subcollection with the same ID
+    const userOrderRef = doc(firestore, `users/${user.uid}/orders`, rootOrderRef.id);
+    batch.set(userOrderRef, orderData);
+
+    // 3. Update the user's loyalty points
     const userDocRef = doc(firestore, "users", user.uid);
-    await updateDoc(userDocRef, {
+    batch.update(userDocRef, {
       loyaltyPoints: increment(Math.floor(cartTotal))
     });
+
+    await batch.commit();
 
     toast({
       title: "Order Placed!",

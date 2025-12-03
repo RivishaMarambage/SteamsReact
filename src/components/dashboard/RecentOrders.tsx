@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import type { Order } from "@/lib/types";
@@ -19,6 +20,21 @@ export default function RecentOrders({ userId }: { userId: string }) {
   }, [firestore, userId]);
 
   const { data: recentOrders, isLoading } = useCollection<Order>(recentOrdersQuery);
+
+  const getStatusVariant = (status?: Order['status']) => {
+    switch (status) {
+      case 'Placed':
+        return 'secondary';
+      case 'Processing':
+        return 'default';
+      case 'Ready for Pickup':
+        return 'outline'; 
+      case 'Completed':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
 
   if (isLoading) {
       return (
@@ -59,7 +75,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
           <TableHeader>
             <TableRow>
               <TableHead>Order</TableHead>
-              <TableHead className="hidden sm:table-cell">Items</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Total</TableHead>
             </TableRow>
           </TableHeader>
@@ -70,8 +86,8 @@ export default function RecentOrders({ userId }: { userId: string }) {
                   <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
                   <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                    {order.menuItemIds.join(', ')}
+                <TableCell>
+                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                 </TableCell>
                 <TableCell className="text-right">Rs. {order.totalAmount.toFixed(2)}</TableCell>
               </TableRow>
