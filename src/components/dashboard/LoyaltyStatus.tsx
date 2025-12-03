@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
-import { Medal, Shield, Gem, Crown, Minus, Star, Award } from 'lucide-react';
+import { Medal, Shield, Gem, Crown, Minus, Star } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,7 +30,7 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
 
   const { data: loyaltyTiers, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
-  if (isLoading) {
+  if (isLoading || !loyaltyTiers) {
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -48,8 +48,8 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     )
   }
 
-  // Handle case where tiers are not loaded
-  if (!user || !loyaltyTiers || loyaltyTiers.length === 0) {
+  // Handle case where tiers are not loaded but we have a user
+  if (!user || loyaltyTiers.length === 0) {
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -81,7 +81,7 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   if (nextTier) {
       const pointsInCurrentTier = userPoints - currentTier.minimumPoints;
       const pointsForNextTier = nextTier.minimumPoints - currentTier.minimumPoints;
-      progress = (pointsInCurrentTier / pointsForNextTier) * 100;
+      progress = pointsForNextTier > 0 ? (pointsInCurrentTier / pointsForNextTier) * 100 : 100;
       pointsToNext = nextTier.minimumPoints - userPoints;
   } else {
       // User is at the highest tier
@@ -124,3 +124,4 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     </Card>
   );
 }
+
