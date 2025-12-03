@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,8 +18,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit } from 'firebase/firestore';
 import { useEffect } from 'react';
+import type { Category, LoyaltyLevel } from '@/lib/types';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -41,6 +43,23 @@ const DEMO_ACCOUNTS = {
     staff: { email: 'staff@example.com', password: 'password123', name: 'Demo Staff' },
     admin: { email: 'admin@example.com', password: 'password123', name: 'Demo Admin' },
 }
+
+const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
+    { name: 'Coffee Classics', type: 'coffee' },
+    { name: 'Specialty Lattes', type: 'coffee' },
+    { name: 'Matcha & Tea', type: 'match' },
+    { name: 'Pastries & Bakes', type: 'breakfast' },
+    { name: 'Savory Snacks', type: 'snacks' },
+    { name: 'Lunch Specials', type: 'lunch' },
+];
+
+const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
+    { name: 'None', minimumPoints: 0 },
+    { name: 'Bronze', minimumPoints: 50 },
+    { name: 'Silver', minimumPoints: 150 },
+    { name: 'Gold', minimumPoints: 300 },
+    { name: 'Platinum', minimumPoints: 500 },
+]
 
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
@@ -97,6 +116,44 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
     ensureDemoUserExists();
   }, [auth, firestore, authType, demoAccount, role]);
+
+  useEffect(() => {
+    // This effect seeds the database with essential data if it's empty.
+    const seedDatabase = async () => {
+        if (!firestore) return;
+
+        // Seed Categories
+        const categoriesRef = collection(firestore, 'categories');
+        const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
+        if (categorySnapshot.empty) {
+            console.log("Categories collection is empty. Seeding...");
+            const categoryBatch = writeBatch(firestore);
+            SEED_CATEGORIES.forEach(category => {
+                const docRef = doc(categoriesRef); // Create a new doc with a generated ID
+                categoryBatch.set(docRef, category);
+            });
+            await categoryBatch.commit();
+            console.log("Seeded categories.");
+        }
+
+        // Seed Loyalty Levels
+        const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
+        const loyaltySnapshot = await getDocs(query(loyaltyLevelsRef, limit(1)));
+        if (loyaltySnapshot.empty) {
+            console.log("Loyalty levels collection is empty. Seeding...");
+            const loyaltyBatch = writeBatch(firestore);
+            SEED_LOYALTY_LEVELS.forEach(level => {
+                const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
+                loyaltyBatch.set(docRef, level);
+            });
+            await loyaltyBatch.commit();
+            console.log("Seeded loyalty levels.");
+        }
+    };
+
+    seedDatabase().catch(console.error);
+  }, [firestore]);
+
 
   const onSubmit = async (data: AuthFormValues) => {
     if (authType === 'signup') {
