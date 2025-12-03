@@ -15,7 +15,7 @@ import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
 type FormData = Omit<MenuItem, 'id' | 'price'> & { price: number | '' };
@@ -85,11 +85,21 @@ export default function MenuTable() {
   
   const confirmDelete = async () => {
     if(!selectedItem || !firestore) return;
-    await deleteDoc(doc(firestore, "menu_items", selectedItem.id));
-
-    toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
-    setAlertOpen(false);
-    setSelectedItem(null);
+    const docRef = doc(firestore, "menu_items", selectedItem.id);
+    
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
+        setAlertOpen(false);
+        setSelectedItem(null);
+      })
+      .catch((error) => {
+         const contextualError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', contextualError);
+      })
   }
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -112,12 +122,35 @@ export default function MenuTable() {
 
     if (selectedItem) {
       // Update existing item
-      await setDoc(doc(firestore, "menu_items", selectedItem.id), finalData, { merge: true });
-      toast({ title: "Item Updated", description: `${finalData.name} has been updated.`});
+      const docRef = doc(firestore, "menu_items", selectedItem.id);
+      setDoc(docRef, finalData, { merge: true })
+        .then(() => {
+            toast({ title: "Item Updated", description: `${finalData.name} has been updated.`});
+        })
+        .catch((error) => {
+            const contextualError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: finalData,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        });
+
     } else {
       // Add new item
-      await addDoc(collection(firestore, "menu_items"), finalData);
-      toast({ title: "Item Added", description: `${finalData.name} has been added to the menu.`});
+      const collRef = collection(firestore, "menu_items");
+      addDoc(collRef, finalData)
+        .then(() => {
+            toast({ title: "Item Added", description: `${finalData.name} has been added to the menu.`});
+        })
+        .catch((error) => {
+            const contextualError = new FirestorePermissionError({
+                path: collRef.path,
+                operation: 'create',
+                requestResourceData: finalData,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        });
     }
 
     setFormOpen(false);
@@ -220,7 +253,7 @@ export default function MenuTable() {
                   <select
                     id="categoryId"
                     name="categoryId"
-                    value={formData.categoryId}
+                    value={formData.categoryId || ''}
                     onChange={handleFormChange}
                     required
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
