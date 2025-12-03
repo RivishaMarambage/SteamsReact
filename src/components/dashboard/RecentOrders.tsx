@@ -1,16 +1,22 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { useCollection } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { collection, query, where, orderBy, limit, useFirestore } from "firebase/firestore";
+import type { Order } from "@/lib/types";
 
 export default function RecentOrders({ userId }: { userId: string }) {
   const firestore = useFirestore();
-  const ordersRef = collection(firestore, `users/${userId}/orders`);
-  const q = query(ordersRef, orderBy("orderDate", "desc"), limit(5));
+  
+  // Correctly construct the query object
+  const recentOrdersQuery = query(
+    collection(firestore, `users/${userId}/orders`),
+    orderBy("orderDate", "desc"),
+    limit(5)
+  );
 
-  const { data: recentOrders, isLoading } = useCollection(q);
+  const { data: recentOrders, isLoading } = useCollection<Order>(recentOrdersQuery);
 
   if (isLoading) {
       return (
@@ -60,7 +66,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
               <TableRow key={order.id}>
                 <TableCell>
                   <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
-                  <div className="text-sm text-muted-foreground">{new Date(order.orderDate.toDate()).toLocaleDateString()}</div>
+                  <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                     {order.menuItemIds.join(', ')}
