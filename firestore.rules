@@ -1,174 +1,38 @@
-/**
- * Core Philosophy: This ruleset implements a security model that strictly segregates private user data from public application data.
- * A user has full control over their own data tree (profile, orders), but no access to other users' data. Core application
- * data like the menu, categories, and loyalty levels are publicly readable to all clients but are write-protected,
- * ensuring only trusted backend processes (or a future admin role) can modify them.
- *
- * Data Structure: Private data is nested under a user-specific path (`/users/{userId}`), enabling path-based security.
- * Publicly shared data (menu, categories) is stored in top-level collections for easy and secure querying.
- *
- * Key Security Decisions:
- * - User data (`/users/{userId}` and subcollections) is strictly owned. Only the authenticated user matching `{userId}` can read or write their own documents.
- * - Listing all users (`/users`) is explicitly disabled to protect user privacy and prevent data scraping.
- * - Core business data (`menu_items`, `categories`, `loyalty_levels`) is public for reads (`get`, `list`) to allow any client to view the cafe's offerings.
- * - Writes to core business data are disabled by default (`allow write: if false;`). This provides a secure-by-default posture, anticipating that an admin role or trusted server process will be implemented to manage this data.
- *
- * Denormalization for Authorization: The ruleset leverages a path-based security model for all user-owned data, which is a highly
- * performant and secure pattern. For example, an order's ownership is determined by its path (`/users/{userId}/orders/{orderId}`)
- * rather than a field within the document, avoiding costly `get()` calls in rules.
- *
- * Structural Segregation: The design correctly separates private user data (profiles, orders) into a `/users` collection tree
- * and public data (menu, categories) into separate top-level collections. This makes it safe to allow broad `list` operations
- * on the public collections without risk of exposing private information.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Helper Functions
-    // ------------------------------------------------------------------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
-    /**
-    * Checks for ownership on an existing resource.
-    * Ensures that update/delete operations target documents that actually exist.
-    */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
 
-    /**
-     * On create, validates that the UserProfile's internal `id` field
-     * matches the document's ID in the path, ensuring relational integrity.
-     */
-    function isValidNewUserProfile(userId) {
-      return request.resource.data.id == userId;
-    }
-    
-    /**
-     * On update, ensures the UserProfile's internal `id` field cannot be changed.
-     */
-    function isImmutableUserProfile() {
-      return request.resource.data.id == resource.data.id;
-    }
-    
-    /**
-     * On create, validates that the Order's `customerId` field
-     * matches the user ID from the path.
-     */
-    function isValidNewOrder(userId) {
-      return request.resource.data.customerId == userId;
-    }
-    
-    /**
-     * On update, ensures the Order's `customerId` field is immutable.
-     */
-    function isImmutableOrder() {
-      return request.resource.data.customerId == resource.data.customerId;
-    }
-
-    // ------------------------------------------------------------------------
-    // User Data
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Manages user profiles. A user can only access and manage their own profile.
-     * @path /users/{userId}
-     * @allow (create) A new user (uid: 'user123') creates their own profile at `/users/user123`.
-     * @deny (get) A signed-in user (uid: 'user456') tries to read a different profile at `/users/user123`.
-     * @principle Restricts access to a user's own data tree and enforces self-creation.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && isValidNewUserProfile(userId);
-      allow update: if isExistingOwner(userId) && isImmutableUserProfile();
-      allow delete: if isExistingOwner(userId);
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isSignedIn();
+    }
 
-      /**
-       * @description Manages a user's order history. Access is inherited from the parent user document.
-       * @path /users/{userId}/orders/{orderId}
-       * @allow (list) A signed-in user (uid: 'user123') lists their own orders at `/users/user123/orders`.
-       * @deny (create) A signed-in user (uid: 'user456') tries to create an order at `/users/user123/orders/order999`.
-       * @principle Enforces document ownership for all operations within a user's private data subcollection.
-       */
-      match /orders/{orderId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidNewOrder(userId);
-        allow update: if isExistingOwner(userId) && isImmutableOrder();
-        allow delete: if isExistingOwner(userId);
-      }
+    match /menu_items/{menuItemId} {
+      allow read: if true;
+      allow write: if false; // Or check for admin role
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false; // Or check for admin role
     }
     
-    // ------------------------------------------------------------------------
-    // Public Cafe Data
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Stores the cafe's menu items. All users can read the menu, but writes are disabled.
-     * @path /menu_items/{menuItemId}
-     * @allow (get, list) Any user, signed-in or not, can read the list of menu items.
-     * @deny (create) Any user attempts to add a new menu item.
-     * @principle Provides public read access while protecting data integrity by blocking all client writes.
-     */
-    match /menu_items/{menuItemId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MenuItem' entity is missing an 'ownerId' or 'authorId' field.
-      // Writes are disabled. Enable them by implementing an admin role check.
-      allow create: if false; // TODO: Add admin role validation once available.
-      allow update: if false; // TODO: Add admin role validation once available.
-      allow delete: if false; // TODO: Add admin role validation once available.
-    }
-
-    /**
-     * @description Stores menu categories (e.g., Breakfast, Lunch). Publicly readable by all.
-     * @path /categories/{categoryId}
-     * @allow (get, list) Any client can read the list of available menu categories.
-     * @deny (update) Any user attempts to rename a category.
-     * @principle Provides public read access while protecting data integrity by blocking all client writes.
-     */
-    match /categories/{categoryId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'Category' entity is missing an 'ownerId' or 'authorId' field.
-      // Writes are disabled. Enable them by implementing an admin role check.
-      allow create: if false; // TODO: Add admin role validation once available.
-      allow update: if false; // TODO: Add admin role validation once available.
-      allow delete: if false; // TODO: Add admin role validation once available.
-    }
-
-    /**
-     * @description Stores loyalty levels (e.g., Bronze, Silver). Publicly readable by all.
-     * @path /loyalty_levels/{loyaltyLevelId}
-     * @allow (get, list) Any client can read the available loyalty levels and their point requirements.
-     * @deny (create) Any user attempts to create a new loyalty level.
-     * @principle Provides public read access while protecting data integrity by blocking all client writes.
-     */
     match /loyalty_levels/{loyaltyLevelId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'LoyaltyLevel' entity is missing an 'ownerId' or 'authorId' field.
-      // Writes are disabled. Enable them by implementing an admin role check.
-      allow create: if false; // TODO: Add admin role validation once available.
-      allow update: if false; // TODO: Add admin role validation once available.
-      allow delete: if false; // TODO: Add admin role validation once available.
+      allow read: if true;
+      allow write: if false; // Or check for admin role
+    }
+    
+    match /users/{userId}/orders/{orderId} {
+        allow read, create, update, delete: if isOwner(userId);
     }
   }
 }

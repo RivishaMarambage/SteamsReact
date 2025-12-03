@@ -13,9 +13,9 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
-import { useAuth, useUser } from '@/lib/auth/provider';
+import { useAuth, useUser } from '@/firebase';
 
 function getPageTitle(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
@@ -27,11 +27,14 @@ function getPageTitle(pathname: string) {
 export default function AppHeader() {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
-  const { logout } = useAuth();
+  const auth = useAuth();
   const { user } = useUser();
+  const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/');
   };
 
   return (
@@ -48,7 +51,7 @@ export default function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                {user && <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.name} />}
+                {user && <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.displayName || user.email || ''} />}
                 <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </Button>
@@ -56,9 +59,9 @@ export default function AppHeader() {
           <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                 <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.id}</p>
+                 <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.uid}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

@@ -2,11 +2,12 @@
 
 import MenuDisplay from "@/components/order/MenuDisplay";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMockData } from "@/lib/auth/provider";
+import { useCollection } from "@/firebase";
+import { collection, getFirestore } from "firebase/firestore";
 
 
 export default function OrderPage() {
-  const { menuItems, isLoading } = useMockData();
+  const { data: menuItems, isLoading } = useCollection("menu_items");
 
   if (isLoading) {
     return (

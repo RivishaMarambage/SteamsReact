@@ -9,19 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { MenuItem } from '@/lib/types';
+import type { MenuItem } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
-import { useMockData } from '@/lib/auth/provider';
 import { Badge } from '../ui/badge';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
 export default function MenuTable() {
-  const { menuItems: menu, isLoading, updateMenuItem, addMenuItem, deleteMenuItem } = useMockData();
-  
+  const { data: menu, isLoading } = useCollection("menu_items");
+  const { data: categories } = useCollection("categories");
+  const firestore = useFirestore();
+
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -42,36 +45,33 @@ export default function MenuTable() {
     setAlertOpen(true);
   }
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if(!selectedItem) return;
-    deleteMenuItem(selectedItem.id);
+    await deleteDoc(doc(firestore, "menu_items", selectedItem.id));
 
     toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
     setAlertOpen(false);
     setSelectedItem(null);
   }
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const itemData: MenuItem = {
-      id: selectedItem?.id || `item_${Date.now()}`,
+    const itemData = {
       name: formData.get('name') as string,
       price: parseFloat(formData.get('price') as string),
-      category: formData.get('category') as MenuItem['category'],
+      categoryId: formData.get('categoryId') as string,
       description: formData.get('description') as string,
-      stock: parseInt(formData.get('stock') as string, 10),
-      imageId: selectedItem?.imageId || 'latte', // Default image for now
     };
 
     if (selectedItem) {
       // Update existing item
-      updateMenuItem(itemData);
+      await setDoc(doc(firestore, "menu_items", selectedItem.id), itemData, { merge: true });
       toast({ title: "Item Updated", description: `${itemData.name} has been updated.`});
     } else {
       // Add new item
-      addMenuItem(itemData);
+      await addDoc(collection(firestore, "menu_items"), itemData);
       toast({ title: "Item Added", description: `${itemData.name} has been added to the menu.`});
     }
 
@@ -98,10 +98,8 @@ export default function MenuTable() {
     )
   }
 
-  const getStockVariant = (stock: number): "default" | "secondary" | "destructive" => {
-    if (stock > 20) return "default";
-    if (stock > 0) return "secondary";
-    return "destructive";
+  const getCategoryName = (categoryId: string) => {
+    return categories?.find(c => c.id === categoryId)?.name || 'N/A';
   }
 
   return (
@@ -117,10 +115,8 @@ export default function MenuTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Stock</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -129,19 +125,10 @@ export default function MenuTable() {
           </TableHeader>
           <TableBody>
             {menu?.map(item => {
-              const image = PlaceHolderImages.find(p => p.id === item.imageId);
               return (
                 <TableRow key={item.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    {image && <Image src={image.imageUrl} alt={item.name} width={64} height={48} className="rounded-md object-cover aspect-[4/3]" data-ai-hint={image.imageHint}/>}
-                  </TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                   <TableCell>
-                    <Badge variant={getStockVariant(item.stock)}>
-                      {item.stock > 0 ? `${item.stock} in stock` : 'Out of Stock'}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{getCategoryName(item.categoryId)}</TableCell>
                   <TableCell className="text-right">Rs. {item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -182,17 +169,13 @@ export default function MenuTable() {
                   <Label htmlFor="price">Price</Label>
                   <Input id="price" name="price" type="number" step="0.01" defaultValue={selectedItem?.price} required />
                 </div>
-                 <div className="grid gap-2">
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input id="stock" name="stock" type="number" defaultValue={selectedItem?.stock ?? 0} required />
-                </div>
               </div>
                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <select id="category" name="category" defaultValue={selectedItem?.category} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                    <option>Hot Coffee</option>
-                    <option>Iced Coffee</option>
-                    <option>Pastries</option>
+                  <Label htmlFor="categoryId">Category</Label>
+                  <select id="categoryId" name="categoryId" defaultValue={selectedItem?.categoryId} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    {categories?.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
               <div className="grid gap-2">

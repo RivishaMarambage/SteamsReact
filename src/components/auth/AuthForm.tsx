@@ -14,8 +14,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth } from '@/lib/auth/provider';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -36,14 +38,15 @@ interface AuthFormProps {
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { login, signup } = useAuth();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false },
   });
 
-  const onSubmit = (data: AuthFormValues) => {
+  const onSubmit = async (data: AuthFormValues) => {
     if (authType === 'signup') {
       if (!data.fullName) {
         form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
@@ -54,35 +57,43 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         return;
       }
       
-      const success = signup({
-        email: data.email,
-        name: data.fullName,
-        mobileNumber: data.mobileNumber,
-        cafeNickname: data.cafeNickname,
-        role,
-      });
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const user = userCredential.user;
 
-      if (success) {
+        const userProfile = {
+          id: user.uid,
+          email: data.email,
+          name: data.fullName,
+          role,
+          mobileNumber: data.mobileNumber,
+          cafeNickname: data.cafeNickname,
+          loyaltyPoints: 0,
+          loyaltyLevelId: "none", // Default loyalty level
+        };
+
+        await setDoc(doc(firestore, "users", user.uid), userProfile);
+        
         toast({
           title: 'Account Created!',
           description: "Welcome! Please log in to continue.",
         });
         router.push(`/login/${role}`);
-      } else {
+      } catch (error: any) {
         toast({
           variant: 'destructive',
-          title: 'Email In Use',
-          description: 'This email address is already registered. Please log in instead.',
+          title: 'Sign Up Failed',
+          description: error.message,
         });
       }
       
     } else { // Login
-      const user = login(data.email, data.password);
-      if (user) {
-        // On successful login, redirect to the correct dashboard.
-        const targetPath = getDashboardPathForRole(user.role);
+      try {
+        await signInWithEmailAndPassword(auth, data.email, data.password);
+        // onAuthStateChanged in provider will handle redirect
+        const targetPath = getDashboardPathForRole(role);
         router.push(targetPath);
-      } else {
+      } catch (error: any) {
         toast({
           variant: 'destructive',
           title: 'Login Failed',
@@ -119,14 +130,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 <Info className="h-4 w-4 text-blue-600"/>
                 <AlertTitle className="text-blue-800">Demo Accounts</AlertTitle>
                 <AlertDescription className="text-blue-700">
-                  <ul className="list-disc pl-5 text-sm">
-                    <li><strong className="font-semibold">Admin:</strong> admin@example.com</li>
-                    <li><strong className="font-semibold">Staff:</strong> staff@example.com</li>
-                    <li><strong className="font-semibold">Customer:</strong> customer@example.com</li>
-                  </ul>
-                  <p className="mt-2">
-                    <strong>Password (for all):</strong> password123
-                  </p>
+                  <p>Use any email and `password123` to log in.</p>
                 </AlertDescription>
             </Alert>
           )}

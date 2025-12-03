@@ -3,11 +3,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUser } from "@/lib/auth/provider";
-import type { User } from "@/lib/types";
+import { useUser, useDoc } from "@/firebase";
+import { doc, getFirestore } from "firebase/firestore";
 
 export default function ProfilePage() {
-  const { user, isLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
+  const firestore = getFirestore();
+  const userRef = authUser ? doc(firestore, "users", authUser.uid) : null;
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userRef);
+
+  const isLoading = isUserLoading || isProfileLoading;
 
   if (isLoading) {
     return (
@@ -37,7 +42,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
+  if (!userProfile) {
     return <p>Could not load user profile. Please try again.</p>;
   }
 
@@ -54,7 +59,7 @@ export default function ProfilePage() {
           <CardDescription>Keep your details up to date.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm userProfile={user as User} />
+          <ProfileForm userProfile={userProfile} />
         </CardContent>
       </Card>
     </div>

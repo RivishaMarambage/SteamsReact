@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@/lib/types";
-import { useMockData } from "@/lib/auth/provider";
+import { UserProfile } from "@/lib/types";
+import { useFirestore } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -28,9 +29,9 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function ProfileForm({ userProfile }: { userProfile: User }) {
+export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
   const { toast } = useToast();
-  const { updateUser } = useMockData();
+  const firestore = useFirestore();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -43,11 +44,9 @@ export function ProfileForm({ userProfile }: { userProfile: User }) {
     mode: "onChange",
   });
 
-  function onSubmit(data: ProfileFormValues) {
-    updateUser({
-      ...userProfile,
-      ...data,
-    });
+  async function onSubmit(data: ProfileFormValues) {
+    const userRef = doc(firestore, "users", userProfile.id);
+    await setDoc(userRef, data, { merge: true });
     
     toast({
       title: "Profile Updated",

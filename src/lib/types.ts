@@ -1,55 +1,46 @@
-export type User = {
+import { Timestamp } from "firebase/firestore";
+
+export type UserProfile = {
   id: string;
-  name: string;
   email: string;
-  role: 'customer' | 'admin' | 'staff';
-  // Optional fields, primarily for customers
   mobileNumber?: string;
+  name: string;
   cafeNickname?: string;
-  points?: number;
-  loyaltyLevel?: LoyaltyLevel;
-  recentOrders?: Order[];
-  analytics?: {
-    totalSpent: number;
-    orderCount: number;
-  };
+  loyaltyPoints?: number;
+  loyaltyLevelId?: string;
+  role: 'customer' | 'admin' | 'staff';
 };
 
 export type MenuItem = {
   id: string;
-  name:string;
+  name: string;
   description: string;
   price: number;
-  category: 'Hot Coffee' | 'Iced Coffee' | 'Pastries';
-  imageId: string;
-  stock: number;
-  analytics?: {
-    unitsSold: number;
-  };
+  categoryId: string;
 };
+
+export type Category = {
+  id: string;
+  name: string;
+  type: 'breakfast' | 'lunch' | 'snacks' | 'dinner' | 'beverage' | 'main food' | 'deserts' | 'match' | 'coffee';
+};
+
+export type LoyaltyLevel = {
+    id: string;
+    name: string;
+    minimumPoints: number;
+};
+
+export type Order = {
+    id: string;
+    customerId: string;
+    orderDate: Timestamp;
+    totalAmount: number;
+    status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed';
+    menuItemIds: string[];
+}
 
 export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
-};
-
-export type OrderStatus = 'Pending' | 'Processing' | 'Ready for Pickup' | 'Completed';
-
-export type Order = {
-  id: string;
-  date: string;
-  items: CartItem[];
-  total: number;
-  pointsEarned: number;
-  status: OrderStatus;
-};
-
-export type LoyaltyLevel = 'None' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
-
-export type LoyaltyTier = {
-  level: LoyaltyLevel;
-  minPoints: number;
-  nextTierPoints: number | null;
-  icon: React.ComponentType<{ className?: string }>;
-  progressColor: string;
 };

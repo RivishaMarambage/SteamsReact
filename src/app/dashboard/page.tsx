@@ -3,14 +3,21 @@
 import LoyaltyStatus from "@/components/dashboard/LoyaltyStatus";
 import RecentOrders from "@/components/dashboard/RecentOrders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUser } from "@/lib/auth/provider";
+import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User as UserIcon } from "lucide-react";
+import { useDoc } from "@/firebase";
+import { doc, getFirestore } from "firebase/firestore";
 
 export default function DashboardPage() {
-  const { user, isLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
+  const firestore = getFirestore();
+  const userRef = authUser ? doc(firestore, "users", authUser.uid) : null;
+  const { data: user, isLoading: isProfileLoading } = useDoc(userRef);
+
+  const isLoading = isUserLoading || isProfileLoading;
 
   if (isLoading) {
     return (
@@ -34,7 +41,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Welcome back, {user.name.split(' ')[0]}!</h1>
+        <h1 className="text-3xl font-bold font-headline">Welcome back, {user.name?.split(' ')[0]}!</h1>
         <p className="text-muted-foreground">Here's a look at your loyalty journey with us.</p>
       </div>
 
@@ -64,7 +71,7 @@ export default function DashboardPage() {
             </Card>
         </div>
         <LoyaltyStatus user={user} />
-        <RecentOrders user={user} />
+        <RecentOrders userId={user.id} />
       </div>
     </div>
   );
