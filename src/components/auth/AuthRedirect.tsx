@@ -20,6 +20,7 @@ function FullPageSpinner() {
 export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user: authUser, isUserLoading } = useUser();
   const { firestore } = useFirebase();
+  // We fetch the profile here to determine the role for redirection.
   const userDocRef = authUser ? doc(firestore, 'users', authUser.uid) : null;
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
   const router = useRouter();
@@ -28,7 +29,8 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
   const isPublicPath = PUBLIC_PATHS.some(path => path === pathname || (path.endsWith('/') && pathname.startsWith(path)));
 
   useEffect(() => {
-    if (isUserLoading || isProfileLoading) {
+    const isLoading = isUserLoading || isProfileLoading;
+    if (isLoading) {
       return; // Wait until auth state and profile are resolved
     }
 
@@ -38,7 +40,7 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
         const targetDashboard = getDashboardPathForRole(userProfile.role);
         router.replace(targetDashboard);
       }
-    } else {
+    } else if (!authUser) {
       // User is not logged in.
       if (!isPublicPath) {
         router.replace('/');
@@ -46,12 +48,16 @@ export function AuthRedirect({ children }: { children: React.ReactNode }) {
     }
   }, [authUser, userProfile, isUserLoading, isProfileLoading, pathname, router, isPublicPath]);
   
-  const isLoading = isUserLoading || isProfileLoading;
+  const isLoading = isUserLoading || (authUser && !userProfile);
   
-  // While authentication is loading, or if a redirect is imminent, show the spinner.
-  if (isLoading || (authUser && isPublicPath) || (!authUser && !isPublicPath)) {
+  if (isLoading || (authUser && isPublicPath)) {
+      return <FullPageSpinner />;
+  }
+
+  if (!authUser && !isPublicPath) {
     return <FullPageSpinner />;
   }
+
 
   // Otherwise, render the children (the requested page)
   return <>{children}</>;
