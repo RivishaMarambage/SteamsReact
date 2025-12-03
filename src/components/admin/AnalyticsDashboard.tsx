@@ -1,9 +1,10 @@
 'use client';
 
-import { useCollection, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, DollarSign } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
+import { collection, query } from "firebase/firestore";
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType<{className?: string}>, isLoading: boolean }) {
   if (isLoading) {
@@ -34,12 +35,16 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 
 export default function AnalyticsDashboard() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   
-  const { data: users, isLoading: usersLoading } = useCollection(user ? "users" : null);
+  const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
+  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders')) : null, [firestore]);
+
+  const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
   
   // This is not efficient for large scale, but works for this demo.
   // A better approach would be to use a cloud function to aggregate this data.
-  const { data: allOrders, isLoading: ordersLoading } = useCollection(user ? "orders" : null);
+  const { data: allOrders, isLoading: ordersLoading } = useCollection(ordersQuery);
 
   const totalUsers = users?.length ?? 0;
   const totalOrders = allOrders?.length ?? 0;
