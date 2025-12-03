@@ -71,41 +71,64 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         return;
     }
     
-    const orderData = {
-        customerId: user.uid,
-        orderDate: serverTimestamp(),
-        totalAmount: cartTotal,
-        status: "Placed" as const,
-        menuItemIds: cart.map(item => item.menuItem.id)
-    };
-    
-    const batch = writeBatch(firestore);
+    try {
+        const batch = writeBatch(firestore);
 
-    // 1. Create a new document in the root /orders collection
-    const rootOrderRef = doc(collection(firestore, 'orders'));
-    batch.set(rootOrderRef, orderData);
-    
-    // 2. Create a new document in the user's subcollection with the same ID
-    const userOrderRef = doc(firestore, `users/${user.uid}/orders`, rootOrderRef.id);
-    batch.set(userOrderRef, orderData);
+        // 1. Create a new document ref in the root /orders collection
+        const rootOrderRef = doc(collection(firestore, 'orders'));
 
-    // 3. Update the user's loyalty points
-    const userDocRef = doc(firestore, "users", user.uid);
-    const pointsToEarn = Math.floor(cartTotal);
-    if (pointsToEarn > 0) {
-      batch.update(userDocRef, {
-        loyaltyPoints: increment(pointsToEarn)
-      });
+        // 2. Define the data for the root order and the user-specific order.
+        // It's crucial to create separate objects for each set operation if using serverTimestamp.
+        const rootOrderData = {
+            customerId: user.uid,
+            orderDate: serverTimestamp(),
+            totalAmount: cartTotal,
+            status: "Placed" as const,
+            menuItemIds: cart.map(item => item.menuItem.id)
+        };
+        const userOrderData = {
+            customerId: user.uid,
+            orderDate: serverTimestamp(),
+            totalAmount: cartTotal,
+            status: "Placed" as const,
+            menuItemIds: cart.map(item => item.menuItem.id)
+        };
+
+        // 3. Set the data for the root order document
+        batch.set(rootOrderRef, rootOrderData);
+        
+        // 4. Set the data for the user's subcollection document using the SAME ID
+        const userOrderRef = doc(firestore, `users/${user.uid}/orders`, rootOrderRef.id);
+        batch.set(userOrderRef, userOrderData);
+
+        // 5. Update the user's loyalty points
+        const userDocRef = doc(firestore, "users", user.uid);
+        const pointsToEarn = Math.floor(cartTotal);
+        if (pointsToEarn > 0) {
+            batch.update(userDocRef, {
+                loyaltyPoints: increment(pointsToEarn)
+            });
+        }
+
+        // 6. Commit the batch
+        await batch.commit();
+
+        toast({
+            title: "Order Placed!",
+            description: "Your pickup order has been confirmed. You've earned points!",
+        });
+        setCart([]);
+
+    } catch (error) {
+        console.error("Error placing order: ", error);
+        toast({
+            variant: "destructive",
+            title: "Order Failed",
+            description: "There was a problem placing your order. Please try again.",
+        });
     }
+}
 
-    await batch.commit();
-
-    toast({
-      title: "Order Placed!",
-      description: "Your pickup order has been confirmed. You've earned points!",
-    });
-    setCart([]);
-  }
 
   return (
     <>
