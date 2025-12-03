@@ -36,11 +36,15 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { user: authUser } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+
+  // Memoize the doc reference to prevent re-renders in useDoc
   const userDocRef = authUser ? doc(firestore, 'users', authUser.uid) : null;
-  const { data: userProfile } = useDoc(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
   const userRole = userProfile?.role;
+  const isLoading = isUserLoading || isProfileLoading;
+
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === href;
@@ -67,6 +71,13 @@ export default function AppSidebar() {
         <Logo link="/dashboard"/>
       </SidebarHeader>
       <SidebarContent>
+        {isLoading ? (
+          <div className="p-2 space-y-2">
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+          </div>
+        ) : (
         <SidebarMenu>
           {userRole === 'admin' && (
             <>
@@ -112,6 +123,7 @@ export default function AppSidebar() {
             </>
           )}
         </SidebarMenu>
+        )}
       </SidebarContent>
       <SidebarFooter>
         {/* Can add elements to footer here */}
