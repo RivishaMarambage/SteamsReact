@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import type { Category, LoyaltyLevel } from '@/lib/types';
 
@@ -139,14 +139,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
         // Seed Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
-        // To ensure we re-seed if the levels change, we can check the count or a version number.
-        // For simplicity here, we'll just overwrite them if the count is off.
-        const loyaltySnapshot = await getDocs(loyaltyLevelsRef);
-        if (loyaltySnapshot.size !== SEED_LOYALTY_LEVELS.length) {
+        // Check a specific doc to see if seeding happened.
+        const memberDoc = await getDoc(doc(loyaltyLevelsRef, 'member'));
+
+        if (!memberDoc.exists()) {
             console.log("Loyalty levels collection is missing or outdated. Seeding...");
             const loyaltyBatch = writeBatch(firestore);
-            // Delete existing documents to prevent conflicts
-            loyaltySnapshot.docs.forEach(d => loyaltyBatch.delete(d.ref));
+            // Delete existing documents to prevent conflicts if any partial data exists
+            const existingLevels = await getDocs(loyaltyLevelsRef);
+            existingLevels.docs.forEach(d => loyaltyBatch.delete(d.ref));
+            
             SEED_LOYALTY_LEVELS.forEach(level => {
                 const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
                 loyaltyBatch.set(docRef, level);
