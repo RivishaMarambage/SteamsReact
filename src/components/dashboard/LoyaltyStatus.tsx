@@ -6,6 +6,7 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase
 import { doc, collection } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
 import { Medal, Shield, Gem, Crown, Minus } from 'lucide-react';
+import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
     "none": Minus,
@@ -17,11 +18,35 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   const firestore = useFirestore();
+  
+  // Fetch all loyalty levels to determine the next tier.
   const { data: loyaltyLevels, isLoading: levelsLoading } = useCollection("loyalty_levels");
+  
+  // Fetch the user's current loyalty tier document using the ID from their profile.
   const currentTierRef = useMemoFirebase(() => (firestore && user.loyaltyLevelId) ? doc(firestore, "loyalty_levels", user.loyaltyLevelId) : null, [firestore, user.loyaltyLevelId]);
   const { data: currentTier, isLoading: tierLoading } = useDoc<LoyaltyLevel>(currentTierRef);
 
-  if (!user || levelsLoading || tierLoading || !currentTier) return null;
+  const isLoading = levelsLoading || tierLoading;
+
+  if (isLoading) {
+    return (
+        <Card className="shadow-lg">
+            <CardHeader>
+                 <Skeleton className="h-8 w-1/2" />
+                 <Skeleton className="h-4 w-1/3 mt-2" />
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <Skeleton className="h-8 w-1/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  if (!user || !currentTier) return null;
 
   // Find the next tier based on minimum points
   const sortedLevels = loyaltyLevels?.sort((a, b) => a.minimumPoints - b.minimumPoints) || [];
