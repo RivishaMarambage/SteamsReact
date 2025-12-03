@@ -51,6 +51,7 @@ service cloud.firestore {
     // A root collection of all orders for admin and staff analytics/management
     match /orders/{orderId} {
         allow read, write: if isStaff();
+        allow list: if isStaff();
     }
   }
 }
