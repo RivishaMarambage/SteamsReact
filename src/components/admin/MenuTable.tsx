@@ -17,13 +17,17 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
 export default function MenuTable() {
-  const { data: menu, isLoading } = useCollection("menu_items");
-  const { data: categories } = useCollection("categories");
   const firestore = useFirestore();
+  const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
+  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
+
+  const { data: menu, isLoading: isMenuLoading } = useCollection(menuItemsQuery);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection(categoriesQuery);
+  
 
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -46,7 +50,7 @@ export default function MenuTable() {
   }
   
   const confirmDelete = async () => {
-    if(!selectedItem) return;
+    if(!selectedItem || !firestore) return;
     await deleteDoc(doc(firestore, "menu_items", selectedItem.id));
 
     toast({ title: "Item Deleted", description: `${selectedItem.name} has been removed from the menu.`});
@@ -56,6 +60,8 @@ export default function MenuTable() {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!firestore) return;
+
     const formData = new FormData(e.currentTarget);
     
     const itemData = {
@@ -79,7 +85,7 @@ export default function MenuTable() {
     setSelectedItem(null);
   };
   
-  if (isLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
