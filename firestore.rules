@@ -1,193 +1,174 @@
 /**
- * Core Philosophy: This ruleset enforces a strict Role-Based Access Control (RBAC) model
- * for a Cafe Loyalty System. There are three primary roles: 'admin', 'staff', and 'customer'.
- * Admins have full control, staff have operational control (e.g., managing orders and menu items),
- * and customers have access only to their own data and public information.
+ * Core Philosophy: This ruleset implements a security model that strictly segregates private user data from public application data.
+ * A user has full control over their own data tree (profile, orders), but no access to other users' data. Core application
+ * data like the menu, categories, and loyalty levels are publicly readable to all clients but are write-protected,
+ * ensuring only trusted backend processes (or a future admin role) can modify them.
  *
- * Data Structure:
- * - /users/{userId}: The core document for a user, linking their auth UID to their data.
- * - /users/{userId}/orders/{orderId}: User-specific orders are nested, enforcing a clear ownership model.
- * - /customer_profiles/{customerProfileId}: A top-level collection of customer data, accessible by the
- *   owning customer, staff, and admins.
- * - /roles_admin/{userId}, /roles_staff/{userId}: Role management is handled via dedicated lookup
- *   collections. The existence of a document in these collections grants the corresponding role,
- *   which is a secure and performant pattern.
- * - /menu_items, /loyalty_levels: Publicly readable collections managed by staff and admins.
+ * Data Structure: Private data is nested under a user-specific path (`/users/{userId}`), enabling path-based security.
+ * Publicly shared data (menu, categories) is stored in top-level collections for easy and secure querying.
  *
  * Key Security Decisions:
- * - Role Source of Truth: Admin and Staff roles are determined by the existence of a document in
- *   /roles_admin/{userId} and /roles_staff/{userId} respectively, not by a field in the user document.
- *   This is a more secure and explicit method for managing privileged access.
- * - Disallowed Listing: Listing all users or all customer profiles is strictly forbidden to protect user privacy.
- * - Denormalization for Authorization: We assume `order_items` documents contain a denormalized `customerId`
- *   field to enable direct authorization checks without requiring costly `get` calls to parent orders.
+ * - User data (`/users/{userId}` and subcollections) is strictly owned. Only the authenticated user matching `{userId}` can read or write their own documents.
+ * - Listing all users (`/users`) is explicitly disabled to protect user privacy and prevent data scraping.
+ * - Core business data (`menu_items`, `categories`, `loyalty_levels`) is public for reads (`get`, `list`) to allow any client to view the cafe's offerings.
+ * - Writes to core business data are disabled by default (`allow write: if false;`). This provides a secure-by-default posture, anticipating that an admin role or trusted server process will be implemented to manage this data.
  *
- * Structural Segregation: User-specific, private data (like orders) is stored in a user
- * subcollection (/users/{userId}/orders), while public data (like menu_items) is in a separate,
- * top-level collection. This provides a clear and secure separation of concerns.
+ * Denormalization for Authorization: The ruleset leverages a path-based security model for all user-owned data, which is a highly
+ * performant and secure pattern. For example, an order's ownership is determined by its path (`/users/{userId}/orders/{orderId}`)
+ * rather than a field within the document, avoiding costly `get()` calls in rules.
+ *
+ * Structural Segregation: The design correctly separates private user data (profiles, orders) into a `/users` collection tree
+ * and public data (menu, categories) into separate top-level collections. This makes it safe to allow broad `list` operations
+ * on the public collections without risk of exposing private information.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for concise and readable rules
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    // Checks if a document exists. For use with update/delete operations.
-    function isExistingDoc() {
-      return resource != null;
+    
+    /**
+    * Checks for ownership on an existing resource.
+    * Ensures that update/delete operations target documents that actually exist.
+    */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
-    // Role check: User is an admin if their UID exists in the roles_admin collection.
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    // Role check: User is staff if their UID exists in the roles_staff collection.
-    function isStaff() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_staff/$(request.auth.uid));
-    }
-
-    function isStaffOrAdmin() {
-      return isAdmin() || isStaff();
+    /**
+     * On create, validates that the UserProfile's internal `id` field
+     * matches the document's ID in the path, ensuring relational integrity.
+     */
+    function isValidNewUserProfile(userId) {
+      return request.resource.data.id == userId;
     }
     
-    // Checks if no admin users exist in the system.
-    function noAdminsExist() {
-      return !exists(/databases/$(database)/documents/roles_admin/);
+    /**
+     * On update, ensures the UserProfile's internal `id` field cannot be changed.
+     */
+    function isImmutableUserProfile() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * On create, validates that the Order's `customerId` field
+     * matches the user ID from the path.
+     */
+    function isValidNewOrder(userId) {
+      return request.resource.data.customerId == userId;
+    }
+    
+    /**
+     * On update, ensures the Order's `customerId` field is immutable.
+     */
+    function isImmutableOrder() {
+      return request.resource.data.customerId == resource.data.customerId;
     }
 
-    // Checks if the requesting user owns the specified customer profile.
-    // This requires a 'get' call to the user's own document.
-    function isOwnerOfProfile(customerProfileId) {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customerProfileId == customerProfileId;
-    }
-
+    // ------------------------------------------------------------------------
+    // User Data
+    // ------------------------------------------------------------------------
 
     /**
-     * @description Manages user account documents. Users can create and manage their own document.
+     * @description Manages user profiles. A user can only access and manage their own profile.
      * @path /users/{userId}
-     * @allow A user (auth.uid='user_abc') can (create) their own user document at /users/user_abc.
-     * @deny An anonymous user cannot (create) any user document.
-     * @principle Enforces self-creation and ownership for a user's primary record. Disallows user enumeration.
+     * @allow (create) A new user (uid: 'user123') creates their own profile at `/users/user123`.
+     * @deny (get) A signed-in user (uid: 'user456') tries to read a different profile at `/users/user123`.
+     * @principle Restricts access to a user's own data tree and enforces self-creation.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && isExistingDoc();
+      allow create: if isOwner(userId) && isValidNewUserProfile(userId);
+      allow update: if isExistingOwner(userId) && isImmutableUserProfile();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Manages a user's order history. Access is inherited from the parent user document.
+       * @path /users/{userId}/orders/{orderId}
+       * @allow (list) A signed-in user (uid: 'user123') lists their own orders at `/users/user123/orders`.
+       * @deny (create) A signed-in user (uid: 'user456') tries to create an order at `/users/user123/orders/order999`.
+       * @principle Enforces document ownership for all operations within a user's private data subcollection.
+       */
+      match /orders/{orderId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidNewOrder(userId);
+        allow update: if isExistingOwner(userId) && isImmutableOrder();
+        allow delete: if isExistingOwner(userId);
+      }
     }
+    
+    // ------------------------------------------------------------------------
+    // Public Cafe Data
+    // ------------------------------------------------------------------------
 
     /**
-     * @description Stores detailed customer profiles. Accessible by the customer, staff, and admins.
-     * @path /customer_profiles/{customerProfileId}
-     * @allow A staff member can (get) any customer's profile.
-     * @deny A regular customer cannot (list) all customer profiles.
-     * @principle Access is granted based on ownership (via a link in the user doc) or elevated staff/admin roles.
-     */
-    match /customer_profiles/{customerProfileId} {
-      allow get: if isOwnerOfProfile(customerProfileId) || isStaffOrAdmin();
-      allow list: if false;
-      allow create: if isOwner(customerProfileId) || isStaffOrAdmin();
-      allow update: if (isOwnerOfProfile(customerProfileId) || isStaffOrAdmin()) && isExistingDoc();
-      allow delete: if (isOwnerOfProfile(customerProfileId) || isStaffOrAdmin()) && isExistingDoc();
-    }
-
-    /**
-     * @description Publicly readable menu items. Only staff and admins can modify the menu.
+     * @description Stores the cafe's menu items. All users can read the menu, but writes are disabled.
      * @path /menu_items/{menuItemId}
-     * @allow Any user, including anonymous ones, can (list) all menu items.
-     * @deny A regular customer cannot (create) a new menu item.
-     * @principle Implements a "Public Read with Role-Based Writes" pattern.
+     * @allow (get, list) Any user, signed-in or not, can read the list of menu items.
+     * @deny (create) Any user attempts to add a new menu item.
+     * @principle Provides public read access while protecting data integrity by blocking all client writes.
      */
     match /menu_items/{menuItemId} {
       allow get: if true;
       allow list: if true;
-      allow create: if isStaffOrAdmin();
-      allow update: if isStaffOrAdmin() && isExistingDoc();
-      allow delete: if isStaffOrAdmin() && isExistingDoc();
+      // CRITICAL: Cannot implement owner-only writes. The 'MenuItem' entity is missing an 'ownerId' or 'authorId' field.
+      // Writes are disabled. Enable them by implementing an admin role check.
+      allow create: if false; // TODO: Add admin role validation once available.
+      allow update: if false; // TODO: Add admin role validation once available.
+      allow delete: if false; // TODO: Add admin role validation once available.
     }
 
     /**
-     * @description Customer orders, nested under the user's path for clear ownership.
-     * @path /users/{userId}/orders/{orderId}
-     * @allow A user (auth.uid='user_abc') can (create) an order at /users/user_abc/orders/order_123.
-     * @deny A different user (auth.uid='user_xyz') cannot (get) an order at /users/user_abc/orders/order_123.
-     * @principle Restricts access to a user's own data tree, but grants read/update access to staff/admins for fulfillment.
+     * @description Stores menu categories (e.g., Breakfast, Lunch). Publicly readable by all.
+     * @path /categories/{categoryId}
+     * @allow (get, list) Any client can read the list of available menu categories.
+     * @deny (update) Any user attempts to rename a category.
+     * @principle Provides public read access while protecting data integrity by blocking all client writes.
      */
-    match /users/{userId}/orders/{orderId} {
-      allow get: if isOwner(userId) || isStaffOrAdmin();
-      allow list: if isOwner(userId) || isStaffOrAdmin();
-      allow create: if isOwner(userId) && request.resource.data.customerId == userId;
-      allow update: if (isOwner(userId) || isStaffOrAdmin()) && isExistingDoc();
-      allow delete: if isOwner(userId) && isExistingDoc();
+    match /categories/{categoryId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'Category' entity is missing an 'ownerId' or 'authorId' field.
+      // Writes are disabled. Enable them by implementing an admin role check.
+      allow create: if false; // TODO: Add admin role validation once available.
+      allow update: if false; // TODO: Add admin role validation once available.
+      allow delete: if false; // TODO: Add admin role validation once available.
     }
 
     /**
-     * @description Individual items within an order. Assumes a denormalized `customerId` for security.
-     * @path /orders_items/{orderItemId}
-     * @allow A user (auth.uid='user_abc') can (get) an order item if its `customerId` field is 'user_abc'.
-     * @deny A user cannot (list) this collection to see items from other people's orders.
-     * @principle Secures a flat collection by relying on a denormalized ownership field (`customerId`).
-     */
-    match /orders_items/{orderItemId} {
-      allow get: if isStaffOrAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-      allow update: if (isStaffOrAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid)) && isExistingDoc();
-      allow delete: if (isStaffOrAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid)) && isExistingDoc();
-    }
-
-    /**
-     * @description Publicly readable loyalty levels. Only admins can define these levels.
+     * @description Stores loyalty levels (e.g., Bronze, Silver). Publicly readable by all.
      * @path /loyalty_levels/{loyaltyLevelId}
-     * @allow Any user, including anonymous ones, can (get) the 'Gold' loyalty level document.
-     * @deny A staff member cannot (create) a new loyalty level.
-     * @principle Implements a "Public Read with Admin-Only Writes" pattern for critical system configuration.
+     * @allow (get, list) Any client can read the available loyalty levels and their point requirements.
+     * @deny (create) Any user attempts to create a new loyalty level.
+     * @principle Provides public read access while protecting data integrity by blocking all client writes.
      */
     match /loyalty_levels/{loyaltyLevelId} {
       allow get: if true;
       allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && isExistingDoc();
-      allow delete: if isAdmin() && isExistingDoc();
-    }
-
-    /**
-     * @description Grants admin privileges. Existence of a document here makes a user an admin.
-     * @path /roles_admin/{userId}
-     * @allow An existing admin can (create) a document to grant another user admin rights.
-     * @deny A staff member or regular customer cannot (list) the admins.
-     * @principle Secures the admin role by restricting management of this collection to other admins. The first admin can be created if no other admins exist.
-     */
-    match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin() || (isOwner(userId) && getAfter(/databases/$(database)/documents/roles_admin/nonexistent-doc-for-size-check).size == 0);
-      allow update: if isAdmin() && isExistingDoc();
-      allow delete: if isAdmin() && isExistingDoc();
-    }
-
-    /**
-     * @description Grants staff privileges. Existence of a document here makes a user staff.
-     * @path /roles_staff/{userId}
-     * @allow An admin can (create) a document to grant a user staff rights.
-     * @deny A staff member cannot (create) a document to make another user staff.
-     * @principle Secures the staff role by restricting management of this collection to admins only.
-     */
-    match /roles_staff/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin() && isExistingDoc();
-      allow delete: if isAdmin() && isExistingDoc();
+      // CRITICAL: Cannot implement owner-only writes. The 'LoyaltyLevel' entity is missing an 'ownerId' or 'authorId' field.
+      // Writes are disabled. Enable them by implementing an admin role check.
+      allow create: if false; // TODO: Add admin role validation once available.
+      allow update: if false; // TODO: Add admin role validation once available.
+      allow delete: if false; // TODO: Add admin role validation once available.
     }
   }
 }
