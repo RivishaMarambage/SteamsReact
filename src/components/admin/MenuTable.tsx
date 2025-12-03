@@ -51,10 +51,8 @@ export default function MenuTable() {
           description: selectedItem.description,
         });
       } else {
-        // When adding a new item, reset the form and set a default category
         setFormData({
           ...INITIAL_FORM_DATA,
-          // Set categoryId to the first category's ID if available
           categoryId: categories && categories.length > 0 ? categories[0].id : '',
         });
       }

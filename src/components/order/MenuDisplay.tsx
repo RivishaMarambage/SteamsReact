@@ -11,7 +11,7 @@ import type { MenuItem, CartItem, Category } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, getDocs, query, limit, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
