@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -29,6 +29,7 @@ const staffMenuItems = [
 
 const adminMenuItems = [
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: AreaChart },
+  { href: '/dashboard/admin/categories', label: 'Manage Categories', icon: FolderPlus },
   { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
   { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
