@@ -77,8 +77,14 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         menuItemIds: cart.map(item => item.menuItem.id)
     }
 
-    const userDocRef = doc(firestore, "users", user.uid);
+    // Add to user's subcollection for their own history
     await addDoc(collection(firestore, `users/${user.uid}/orders`), orderData);
+    
+    // Add to root collection for admin analytics
+    await addDoc(collection(firestore, 'orders'), orderData);
+
+    // Update user's loyalty points
+    const userDocRef = doc(firestore, "users", user.uid);
     await updateDoc(userDocRef, {
       loyaltyPoints: increment(Math.floor(cartTotal))
     })
