@@ -1,11 +1,11 @@
 'use client';
 
-import { useCollection } from "@/firebase";
+import { useCollection, useUser } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, DollarSign } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 
-function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType, isLoading: boolean }) {
+function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType<{className?: string}>, isLoading: boolean }) {
   if (isLoading) {
     return (
       <Card className="shadow-lg">
@@ -23,7 +23,7 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon />
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -33,17 +33,19 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 }
 
 export default function AnalyticsDashboard() {
-  const { data: users, isLoading: usersLoading } = useCollection("users");
+  const { user, isUserLoading } = useUser();
+  
+  const { data: users, isLoading: usersLoading } = useCollection(user ? "users" : null);
   
   // This is not efficient for large scale, but works for this demo.
   // A better approach would be to use a cloud function to aggregate this data.
-  const { data: allOrders, isLoading: ordersLoading } = useCollection("orders");
+  const { data: allOrders, isLoading: ordersLoading } = useCollection(user ? "orders" : null);
 
   const totalUsers = users?.length ?? 0;
   const totalOrders = allOrders?.length ?? 0;
   const totalRevenue = allOrders?.reduce((acc, order) => acc + order.totalAmount, 0) ?? 0;
 
-  const isLoading = usersLoading || ordersLoading;
+  const isLoading = isUserLoading || usersLoading || ordersLoading;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
