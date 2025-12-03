@@ -16,43 +16,47 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserRole() == 'admin';
+      return isSignedIn() && getUserRole() == 'admin';
     }
     
     function isStaff() {
-        return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (getUserRole() == 'staff' || getUserRole() == 'admin');
+      return isSignedIn() && (getUserRole() == 'staff' || isAdmin());
     }
 
     match /users/{userId} {
-      allow read, update, delete: if isOwner(userId) || isAdmin();
-      allow create: if isSignedIn();
-      allow list: if isAdmin();
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn(); // A user can create their own profile document after signing up
+      allow list: if isAdmin(); // Only admins can list all users
+      allow delete: if isAdmin(); // Only admins can delete users
     }
 
     match /menu_items/{menuItemId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if true; // Menu is public
+      allow write: if isAdmin(); // Only admins can create, update, or delete menu items
     }
 
     match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if true; // Categories are public
+      allow write: if isAdmin(); // Only admins can manage categories
     }
     
     match /loyalty_levels/{loyaltyLevelId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if true; // Loyalty levels are public
+      allow write: if isAdmin(); // Only admins can manage loyalty levels
     }
     
-    match /users/{userId}/orders/{orderId} {
-      allow read, create, update, delete: if isOwner(userId) || isStaff();
-      allow list: if isOwner(userId) || isStaff();
-    }
-    
-    // A root collection of all orders for admin and staff analytics/management
+    // This is the root collection for all orders, used by staff and admins
     match /orders/{orderId} {
-        allow read, write: if isStaff();
-        allow list: if isStaff();
+        allow read, write: if isStaff(); // Staff/admins can read and update any order (e.g., to change status)
+        allow list: if isStaff(); // Staff/admins can list all orders for the management dashboard
+        allow create: if isSignedIn(); // A customer creates an order here
+    }
+
+    // This is the customer's private view of their own orders
+    match /users/{userId}/orders/{orderId} {
+      allow read, list, create: if isOwner(userId); // A user can see their own orders
+      allow update: if isOwner(userId) || isStaff(); // A user can update their order, and so can staff to update status.
+      allow delete: if false; // Users should not be able to modify their past orders
     }
   }
 }
