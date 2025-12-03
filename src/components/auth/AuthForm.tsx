@@ -65,27 +65,33 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const methods = await fetchSignInMethodsForEmail(auth, demoAccount.email);
         if (methods.length === 0) {
           // User does not exist, so create them
-          const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
-          const user = userCredential.user;
+          try {
+            const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
+            const user = userCredential.user;
 
-          const userProfile = {
-            id: user.uid,
-            email: demoAccount.email,
-            name: demoAccount.name,
-            role,
-            loyaltyPoints: role === 'customer' ? 125 : 0,
-            loyaltyLevelId: role === 'customer' ? "gold" : "none",
-          };
-          
-          await setDoc(doc(firestore, "users", user.uid), userProfile);
-          console.log(`Created demo user: ${demoAccount.email}`);
+            const userProfile = {
+              id: user.uid,
+              email: demoAccount.email,
+              name: demoAccount.name,
+              role,
+              loyaltyPoints: role === 'customer' ? 125 : 0,
+              loyaltyLevelId: role === 'customer' ? "gold" : "none",
+            };
+            
+            await setDoc(doc(firestore, "users", user.uid), userProfile);
+            console.log(`Created demo user: ${demoAccount.email}`);
 
-          // It's good practice to sign the user out immediately after creation
-          // so the login form is fresh for the user to try.
-          await auth.signOut();
+            // It's good practice to sign the user out immediately after creation
+            // so the login form is fresh for the user to try.
+            await auth.signOut();
+          } catch (creationError: any) {
+              if (creationError.code !== 'auth/email-already-in-use') {
+                console.error(`Failed to create demo user ${demoAccount.email}:`, creationError);
+              }
+          }
         }
       } catch (error) {
-        console.error(`Failed to ensure demo user ${demoAccount.email} exists:`, error);
+        console.error(`Failed to check for demo user ${demoAccount.email}:`, error);
       }
     };
     
