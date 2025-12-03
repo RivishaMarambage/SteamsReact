@@ -53,10 +53,10 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
 
   if (!user || !currentTier || !loyaltyLevels) return null;
 
-  const sortedLevels = loyaltyLevels.sort((a, b) => a.minimumPoints - b.minimumPoints);
+  const sortedLevels = [...loyaltyLevels].sort((a, b) => a.minimumPoints - b.minimumPoints);
   const nextTier = sortedLevels.find(l => l.minimumPoints > currentTier.minimumPoints);
 
-  const Icon = ICONS[currentTier.name.toLowerCase()] || Minus;
+  const Icon = ICONS[currentTier.id.toLowerCase()] || Minus;
 
   const progress = nextTier
     ? (((user.loyaltyPoints ?? 0) - currentTier.minimumPoints) / (nextTier.minimumPoints - currentTier.minimumPoints)) * 100
@@ -70,7 +70,7 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
                 <CardTitle className="font-headline text-2xl">Your Loyalty Status</CardTitle>
                 <CardDescription>Earn points with every purchase.</CardDescription>
             </div>
-            <div className="flex items-center gap-2 text-lg font-semibold capitalize">
+            <div className="flex items-center gap-2 text-lg font-semibold capitalize text-primary">
                 <Icon className="h-6 w-6" />
                 <span>{currentTier.name}</span>
             </div>
@@ -94,5 +94,3 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     </Card>
   );
 }
-
-    

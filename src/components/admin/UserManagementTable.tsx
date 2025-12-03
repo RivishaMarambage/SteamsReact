@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -14,11 +15,12 @@ import { Badge } from '../ui/badge';
 import { MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore } from '@/firebase';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, LoyaltyLevel } from '@/lib/types';
 import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
 
 export default function UserManagementTable() {
-  const { data: users, isLoading } = useCollection("users");
+  const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>("users");
+  const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>("loyalty_levels");
   const firestore = useFirestore();
 
   const [isRoleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -26,6 +28,8 @@ export default function UserManagementTable() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserProfile['role']>('customer');
   const { toast } = useToast();
+
+  const isLoading = areUsersLoading || areLevelsLoading;
 
   const handleEditRoleClick = (user: UserProfile) => {
     setSelectedUser(user);
@@ -96,6 +100,12 @@ export default function UserManagementTable() {
     }
   };
 
+  const getLoyaltyLevelName = (levelId?: string) => {
+    if (!levelId || !loyaltyLevels) return 'N/A';
+    const level = loyaltyLevels.find(l => l.id === levelId);
+    return level ? level.name : 'N/A';
+  }
+
   return (
     <>
       <Card className="shadow-lg">
@@ -109,6 +119,7 @@ export default function UserManagementTable() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Loyalty Level</TableHead>
                 <TableHead className="text-right">Loyalty Points</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -122,6 +133,9 @@ export default function UserManagementTable() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    {user.role === 'customer' ? getLoyaltyLevelName(user.loyaltyLevelId) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">{user.loyaltyPoints ?? 0}</TableCell>
                   <TableCell>
