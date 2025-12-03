@@ -51,10 +51,11 @@ export default function MenuTable() {
           description: selectedItem.description,
         });
       } else {
-        // Reset form for new item and set default category
+        // When adding a new item, reset the form and set a default category
         setFormData({
           ...INITIAL_FORM_DATA,
-          categoryId: categories?.[0]?.id || '',
+          // Set categoryId to the first category's ID if available
+          categoryId: categories && categories.length > 0 ? categories[0].id : '',
         });
       }
     }
@@ -223,8 +224,10 @@ export default function MenuTable() {
                     name="categoryId"
                     value={formData.categoryId}
                     onChange={handleFormChange}
+                    required
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
+                    <option value="" disabled>Select a category</option>
                     {categories?.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
