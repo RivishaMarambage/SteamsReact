@@ -8,6 +8,8 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  getFirestore,
+  collection as createCollection,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -58,9 +60,17 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const query = typeof targetRefOrQuery === 'string'
-      ? { path: targetRefOrQuery } // It's just a string path
-      : targetRefOrQuery;
+    const getQuery = () => {
+        if (typeof targetRefOrQuery === 'string') {
+            // If it's a string, create a collection reference.
+            // This requires access to the firestore instance.
+            return createCollection(getFirestore(), targetRefOrQuery);
+        }
+        // Otherwise, it's already a Query or CollectionReference
+        return targetRefOrQuery;
+    }
+
+    const query = getQuery();
 
     const unsubscribe = onSnapshot(
       query as Query, // Cast to Query
@@ -81,7 +91,7 @@ export function useCollection<T = any>(
             path = (query as CollectionReference).path;
         } else {
           // This is a workaround as the direct path isn't exposed on the public Query type
-          path = (query as any)._query.path.segments.join('/');
+          path = (query as any)._query?.path.segments.join('/') || 'unknown_path';
         }
         
         const contextualError = new FirestorePermissionError({
