@@ -26,11 +26,11 @@ export default function RecentOrders({ userId }: { userId: string }) {
       case 'Placed':
         return 'secondary';
       case 'Processing':
-        return 'default';
+        return 'outline';
       case 'Ready for Pickup':
-        return 'outline'; 
+        return 'default'; 
       case 'Completed':
-        return 'destructive';
+        return 'secondary';
       default:
         return 'secondary';
     }

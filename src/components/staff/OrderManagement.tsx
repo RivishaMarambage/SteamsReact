@@ -54,11 +54,11 @@ export default function OrderManagement() {
       case 'Placed':
         return 'secondary';
       case 'Processing':
-        return 'default';
+        return 'outline';
       case 'Ready for Pickup':
-        return 'outline'; 
+        return 'default';
       case 'Completed':
-        return 'destructive'; 
+        return 'destructive';
       default:
         return 'secondary';
     }
