@@ -16,8 +16,9 @@ import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { useEffect } from 'react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -36,9 +37,9 @@ interface AuthFormProps {
 }
 
 const DEMO_ACCOUNTS = {
-    customer: { email: 'customer@example.com', password: 'password123' },
-    staff: { email: 'staff@example.com', password: 'password123' },
-    admin: { email: 'admin@example.com', password: 'password123' },
+    customer: { email: 'customer@example.com', password: 'password123', name: 'Demo Customer' },
+    staff: { email: 'staff@example.com', password: 'password123', name: 'Demo Staff' },
+    admin: { email: 'admin@example.com', password: 'password123', name: 'Demo Admin' },
 }
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -51,6 +52,45 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false },
   });
+
+  const demoAccount = DEMO_ACCOUNTS[role];
+
+  useEffect(() => {
+    // This effect ensures our demo users are pre-populated in Firebase Auth
+    // so that testers can log in without signing up.
+    const ensureDemoUserExists = async () => {
+      if (!auth || !firestore || authType !== 'login') return;
+
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, demoAccount.email);
+        if (methods.length === 0) {
+          // User does not exist, so create them
+          const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
+          const user = userCredential.user;
+
+          const userProfile = {
+            id: user.uid,
+            email: demoAccount.email,
+            name: demoAccount.name,
+            role,
+            loyaltyPoints: role === 'customer' ? 125 : 0,
+            loyaltyLevelId: role === 'customer' ? "gold" : "none",
+          };
+          
+          await setDoc(doc(firestore, "users", user.uid), userProfile);
+          console.log(`Created demo user: ${demoAccount.email}`);
+
+          // It's good practice to sign the user out immediately after creation
+          // so the login form is fresh for the user to try.
+          await auth.signOut();
+        }
+      } catch (error) {
+        console.error(`Failed to ensure demo user ${demoAccount.email} exists:`, error);
+      }
+    };
+    
+    ensureDemoUserExists();
+  }, [auth, firestore, authType, demoAccount, role]);
 
   const onSubmit = async (data: AuthFormValues) => {
     if (authType === 'signup') {
@@ -117,7 +157,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const buttonText = authType === 'login' ? 'Log In' : 'Sign Up';
   
   const showSignupLink = role === 'customer';
-  const demoAccount = DEMO_ACCOUNTS[role];
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
