@@ -97,6 +97,15 @@ export default function MenuTable() {
     e.preventDefault();
     if (!firestore) return;
 
+    if (!formData.categoryId) {
+        toast({
+            variant: "destructive",
+            title: "Category Required",
+            description: "Please select a category for the menu item.",
+        });
+        return;
+    }
+
     const finalData = {
         ...formData,
         price: Number(formData.price) || 0,
