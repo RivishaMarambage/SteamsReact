@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,14 +11,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import type { MenuItem } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
-import { Badge } from '../ui/badge';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+
+type FormData = Omit<MenuItem, 'id'>;
+
+const INITIAL_FORM_DATA: FormData = {
+  name: '',
+  price: 0,
+  categoryId: '',
+  description: '',
+};
 
 export default function MenuTable() {
   const firestore = useFirestore();
@@ -28,11 +34,39 @@ export default function MenuTable() {
   const { data: menu, isLoading: isMenuLoading } = useCollection(menuItemsQuery);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection(categoriesQuery);
   
-
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isFormOpen) {
+      if (selectedItem) {
+        setFormData({
+          name: selectedItem.name,
+          price: selectedItem.price,
+          categoryId: selectedItem.categoryId,
+          description: selectedItem.description,
+        });
+      } else {
+        // Reset form for new item and set default category
+        setFormData({
+          ...INITIAL_FORM_DATA,
+          categoryId: categories?.[0]?.id || '',
+        });
+      }
+    }
+  }, [isFormOpen, selectedItem, categories]);
+
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'price' ? parseFloat(value) : value,
+    }));
+  };
 
   const handleEdit = (item: MenuItem) => {
     setSelectedItem(item);
@@ -62,23 +96,14 @@ export default function MenuTable() {
     e.preventDefault();
     if (!firestore) return;
 
-    const formData = new FormData(e.currentTarget);
-    
-    const itemData = {
-      name: formData.get('name') as string,
-      price: parseFloat(formData.get('price') as string),
-      categoryId: formData.get('categoryId') as string,
-      description: formData.get('description') as string,
-    };
-
     if (selectedItem) {
       // Update existing item
-      await setDoc(doc(firestore, "menu_items", selectedItem.id), itemData, { merge: true });
-      toast({ title: "Item Updated", description: `${itemData.name} has been updated.`});
+      await setDoc(doc(firestore, "menu_items", selectedItem.id), formData, { merge: true });
+      toast({ title: "Item Updated", description: `${formData.name} has been updated.`});
     } else {
       // Add new item
-      await addDoc(collection(firestore, "menu_items"), itemData);
-      toast({ title: "Item Added", description: `${itemData.name} has been added to the menu.`});
+      await addDoc(collection(firestore, "menu_items"), formData);
+      toast({ title: "Item Added", description: `${formData.name} has been added to the menu.`});
     }
 
     setFormOpen(false);
@@ -168,17 +193,17 @@ export default function MenuTable() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" defaultValue={selectedItem?.name} required />
+                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="price">Price</Label>
-                  <Input id="price" name="price" type="number" step="0.01" defaultValue={selectedItem?.price} required />
+                  <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
                 </div>
               </div>
                <div className="grid gap-2">
                   <Label htmlFor="categoryId">Category</Label>
-                  <select id="categoryId" name="categoryId" defaultValue={selectedItem?.categoryId} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                  <select id="categoryId" name="categoryId" value={formData.categoryId} onChange={handleFormChange} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                     {categories?.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -186,7 +211,7 @@ export default function MenuTable() {
                 </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" defaultValue={selectedItem?.description} />
+                <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
               </div>
             </div>
             <DialogFooter>
