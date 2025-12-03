@@ -56,9 +56,9 @@ export default function OrderManagement() {
       case 'Processing':
         return 'default';
       case 'Ready for Pickup':
-        return 'outline'; // A different color might be better, e.g., a custom green
+        return 'outline'; 
       case 'Completed':
-        return 'destructive'; // Using destructive to indicate it's "done" and out of the active queue
+        return 'destructive'; 
       default:
         return 'secondary';
     }
