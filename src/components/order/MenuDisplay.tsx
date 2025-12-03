@@ -1,12 +1,11 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
-import Image from "next/image";
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { MenuItem, CartItem, Category } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +21,6 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
-
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
@@ -73,25 +71,29 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         return;
     }
     
-    const orderData = {
+    // Add to root collection for admin analytics
+    const rootOrderRef = await addDoc(collection(firestore, 'orders'), {
         customerId: user.uid,
         orderDate: serverTimestamp(),
         totalAmount: cartTotal,
         status: "Placed",
         menuItemIds: cart.map(item => item.menuItem.id)
-    }
-
-    // Add to user's subcollection for their own history
-    await addDoc(collection(firestore, `users/${user.uid}/orders`), orderData);
+    });
     
-    // Add to root collection for admin analytics
-    await addDoc(collection(firestore, 'orders'), orderData);
+    // Add to user's subcollection for their own history, using the same ID
+    await addDoc(collection(firestore, `users/${user.uid}/orders`), {
+        customerId: user.uid,
+        orderDate: serverTimestamp(),
+        totalAmount: cartTotal,
+        status: "Placed",
+        menuItemIds: cart.map(item => item.menuItem.id)
+    });
 
     // Update user's loyalty points
     const userDocRef = doc(firestore, "users", user.uid);
     await updateDoc(userDocRef, {
       loyaltyPoints: increment(Math.floor(cartTotal))
-    })
+    });
 
     toast({
       title: "Order Placed!",
