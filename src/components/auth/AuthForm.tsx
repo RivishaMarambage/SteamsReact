@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -33,6 +33,12 @@ type AuthFormValues = z.infer<typeof formSchema>;
 interface AuthFormProps {
   authType: 'login' | 'signup';
   role: 'customer' | 'staff' | 'admin';
+}
+
+const DEMO_ACCOUNTS = {
+    customer: { email: 'customer@example.com', password: 'password123' },
+    staff: { email: 'staff@example.com', password: 'password123' },
+    admin: { email: 'admin@example.com', password: 'password123' },
 }
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -111,6 +117,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const buttonText = authType === 'login' ? 'Log In' : 'Sign Up';
   
   const showSignupLink = role === 'customer';
+  const demoAccount = DEMO_ACCOUNTS[role];
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -125,12 +132,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {authType === 'login' && (
+          {authType === 'login' && demoAccount && (
              <Alert className="mb-4 bg-blue-50 border-blue-200">
                 <Info className="h-4 w-4 text-blue-600"/>
-                <AlertTitle className="text-blue-800">Demo Accounts</AlertTitle>
-                <AlertDescription className="text-blue-700">
-                  <p>Use any email and `password123` to log in.</p>
+                <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
+                <AlertDescription className="text-blue-700 text-xs">
+                  <p><strong>Email:</strong> {demoAccount.email}</p>
+                  <p><strong>Password:</strong> {demoAccount.password}</p>
                 </AlertDescription>
             </Alert>
           )}
