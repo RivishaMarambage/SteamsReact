@@ -11,8 +11,16 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
     function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserRole() == 'admin';
+    }
+    
+    function isStaff() {
+        return exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (getUserRole() == 'staff' || getUserRole() == 'admin');
     }
 
     match /users/{userId} {
@@ -37,13 +45,12 @@ service cloud.firestore {
     }
     
     match /users/{userId}/orders/{orderId} {
-      allow read, create, update, delete: if isOwner(userId);
+      allow read, create, update, delete: if isOwner(userId) || isStaff();
     }
     
-    // A root collection of all orders for admin analytics
+    // A root collection of all orders for admin and staff analytics/management
     match /orders/{orderId} {
-        allow read: if isAdmin();
-        allow write: if true; // Should be restricted in production
+        allow read, write: if isStaff();
     }
   }
 }
