@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,11 +18,11 @@ import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
-type FormData = Omit<MenuItem, 'id'>;
+type FormData = Omit<MenuItem, 'id' | 'price'> & { price: number | '' };
 
 const INITIAL_FORM_DATA: FormData = {
   name: '',
-  price: 0,
+  price: '',
   categoryId: '',
   description: '',
 };
@@ -65,7 +65,7 @@ export default function MenuTable() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' ? parseFloat(value) : value,
+      [name]: name === 'price' ? (value === '' ? '' : parseFloat(value)) : value,
     }));
   };
 
@@ -97,14 +97,19 @@ export default function MenuTable() {
     e.preventDefault();
     if (!firestore) return;
 
+    const finalData = {
+        ...formData,
+        price: Number(formData.price) || 0,
+    };
+
     if (selectedItem) {
       // Update existing item
-      await setDoc(doc(firestore, "menu_items", selectedItem.id), formData, { merge: true });
-      toast({ title: "Item Updated", description: `${formData.name} has been updated.`});
+      await setDoc(doc(firestore, "menu_items", selectedItem.id), finalData, { merge: true });
+      toast({ title: "Item Updated", description: `${finalData.name} has been updated.`});
     } else {
       // Add new item
-      await addDoc(collection(firestore, "menu_items"), formData);
-      toast({ title: "Item Added", description: `${formData.name} has been added to the menu.`});
+      await addDoc(collection(firestore, "menu_items"), finalData);
+      toast({ title: "Item Added", description: `${finalData.name} has been added to the menu.`});
     }
 
     setFormOpen(false);
