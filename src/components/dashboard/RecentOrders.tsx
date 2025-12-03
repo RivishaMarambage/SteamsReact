@@ -2,19 +2,21 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import type { Order } from "@/lib/types";
 
 export default function RecentOrders({ userId }: { userId: string }) {
   const firestore = useFirestore();
   
-  // Correctly construct the query object
-  const recentOrdersQuery = query(
-    collection(firestore, `users/${userId}/orders`),
-    orderBy("orderDate", "desc"),
-    limit(5)
-  );
+  const recentOrdersQuery = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return query(
+        collection(firestore, `users/${userId}/orders`),
+        orderBy("orderDate", "desc"),
+        limit(5)
+    );
+  }, [firestore, userId]);
 
   const { data: recentOrders, isLoading } = useCollection<Order>(recentOrdersQuery);
 

@@ -13,7 +13,7 @@ import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon,
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
-import { useUser, useDoc, useFirestore } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 const customerMenuItems = [
@@ -39,8 +39,7 @@ export default function AppSidebar() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  // Memoize the doc reference to prevent re-renders in useDoc
-  const userDocRef = authUser ? doc(firestore, 'users', authUser.uid) : null;
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
   const userRole = userProfile?.role;
   const isLoading = isUserLoading || isProfileLoading;

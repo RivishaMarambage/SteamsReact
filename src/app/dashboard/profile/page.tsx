@@ -3,13 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUser, useDoc } from "@/firebase";
-import { doc, getFirestore } from "firebase/firestore";
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
-  const firestore = getFirestore();
-  const userRef = authUser ? doc(firestore, "users", authUser.uid) : null;
+  const firestore = useFirestore();
+  const userRef = useMemoFirebase(() => authUser ? doc(firestore, "users", authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userRef);
 
   const isLoading = isUserLoading || isProfileLoading;

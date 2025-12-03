@@ -1,6 +1,6 @@
 'use client';
 
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,10 +16,12 @@ export default function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Query all orders from the root 'orders' collection, ordered by date
-  const ordersRef = collection(firestore, 'orders');
-  const q = query(ordersRef, orderBy('orderDate', 'desc'));
-  const { data: orders, isLoading } = useCollection(q);
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'orders'), orderBy('orderDate', 'desc'));
+  }, [firestore]);
+  
+  const { data: orders, isLoading } = useCollection(ordersQuery);
 
   const handleStatusChange = async (order: Order, status: Order['status']) => {
     // Reference to the order in the root /orders collection

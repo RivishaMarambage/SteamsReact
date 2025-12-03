@@ -8,13 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User as UserIcon } from "lucide-react";
-import { useDoc } from "@/firebase";
-import { doc, getFirestore } from "firebase/firestore";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export default function DashboardPage() {
   const { user: authUser, isUserLoading } = useUser();
-  const firestore = getFirestore();
-  const userRef = authUser ? doc(firestore, "users", authUser.uid) : null;
+  const firestore = useFirestore();
+  const userRef = useMemoFirebase(() => authUser ? doc(firestore, "users", authUser.uid) : null, [authUser, firestore]);
   const { data: user, isLoading: isProfileLoading } = useDoc(userRef);
 
   const isLoading = isUserLoading || isProfileLoading;
