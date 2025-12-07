@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 
 const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[]): number | undefined => {
-    if (!offer.tierDiscounts) {
+    if (!offer.tierDiscounts || !userProfile || !loyaltyLevels) {
       return undefined;
     }
   
@@ -23,15 +23,19 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
     // Find the best tier the user qualifies for that has a discount
     for (const tier of sortedTiers) {
       if (userPoints >= tier.minimumPoints) {
-        if (offer.tierDiscounts[tier.id] !== undefined) {
+        if (offer.tierDiscounts[tier.id] !== undefined && offer.tierDiscounts[tier.id] !== null) {
           return offer.tierDiscounts[tier.id];
         }
       }
     }
-  
-    // Fallback for users who might not fit a tier but there's a 'member' discount
-    if (offer.tierDiscounts['member'] !== undefined) {
-      return offer.tierDiscounts['member'];
+    
+    // Check for a specific 'member' tier discount if no other tier matched.
+    // This is for users who have 0 points but might have a 'member' tier offer.
+    if (offer.tierDiscounts['member'] !== undefined && offer.tierDiscounts['member'] !== null) {
+        const memberTier = loyaltyLevels.find(l => l.id === 'member');
+        if(memberTier && userPoints >= memberTier.minimumPoints) {
+             return offer.tierDiscounts['member'];
+        }
     }
   
     return undefined;
@@ -55,6 +59,33 @@ export default function DailyOffersPreview() {
     const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
     const isLoading = offersLoading || menuLoading || profileLoading || areLevelsLoading;
+    
+    const filteredOffers = dailyOffers?.map(offer => {
+        const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
+        if (!menuItem || !loyaltyLevels) return null;
+
+        const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
+        if (discountValue === undefined) {
+            return null; // Don't show the offer if there's no discount for this user's tier
+        }
+        
+        const originalPrice = menuItem.price;
+        let displayPrice;
+        if (offer.discountType === 'percentage') {
+            displayPrice = originalPrice - (originalPrice * discountValue / 100);
+        } else { // fixed
+            displayPrice = originalPrice - discountValue;
+        }
+        displayPrice = Math.max(0, displayPrice);
+
+        return {
+            ...offer,
+            menuItem,
+            originalPrice,
+            displayPrice
+        }
+    }).filter((o): o is NonNullable<typeof o> => o !== null);
+
 
     if (isLoading) {
         return (
@@ -70,8 +101,8 @@ export default function DailyOffersPreview() {
         )
     }
 
-    if (!dailyOffers || dailyOffers.length === 0 || !loyaltyLevels) {
-        return null; // Don't show the card if there are no offers or levels today
+    if (!filteredOffers || filteredOffers.length === 0) {
+        return null; // Don't show the card if there are no applicable offers
     }
 
     return (
@@ -81,34 +112,15 @@ export default function DailyOffersPreview() {
                 <CardDescription>Don't miss out on these exclusive deals for today!</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {dailyOffers.map(offer => {
-                    const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
-                    if (!menuItem) return null;
-
-                    const originalPrice = menuItem.price;
-                    let displayPrice = originalPrice;
-                    let isOfferApplied = false;
-                    
-                    const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
-
-                    if (discountValue !== undefined) {
-                        if (offer.discountType === 'percentage') {
-                            displayPrice = originalPrice - (originalPrice * discountValue / 100);
-                        } else { // fixed
-                            displayPrice = originalPrice - discountValue;
-                        }
-                        isOfferApplied = true;
-                    }
-                    displayPrice = Math.max(0, displayPrice);
-
+                {filteredOffers.map(offer => {
                     return (
                         <div key={offer.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-background rounded-lg">
                            <div>
-                                <h4 className="font-semibold">{offer.title} - {menuItem.name}</h4>
+                                <h4 className="font-semibold">{offer.title} - {offer.menuItem.name}</h4>
                                 <p className="text-sm text-muted-foreground">
                                     Your price today: 
-                                    {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mx-2">Rs. {originalPrice.toFixed(2)}</span>}
-                                    <span className="font-bold text-primary">Rs. {displayPrice.toFixed(2)}</span>
+                                    <span className="text-sm font-normal text-muted-foreground line-through mx-2">Rs. {offer.originalPrice.toFixed(2)}</span>
+                                    <span className="font-bold text-primary">Rs. {offer.displayPrice.toFixed(2)}</span>
                                 </p>
                            </div>
                            <Button asChild>

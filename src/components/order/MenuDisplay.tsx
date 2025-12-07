@@ -24,8 +24,8 @@ interface MenuDisplayProps {
   freebieToClaim: string | null;
 }
 
-const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[]): number | undefined => {
-    if (!offer.tierDiscounts) {
+const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[] | null): number | undefined => {
+    if (!offer.tierDiscounts || !userProfile || !loyaltyLevels) {
       return undefined;
     }
   
@@ -36,15 +36,18 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
     // Find the best tier the user qualifies for that has a discount
     for (const tier of sortedTiers) {
       if (userPoints >= tier.minimumPoints) {
-        if (offer.tierDiscounts[tier.id] !== undefined) {
+        if (offer.tierDiscounts[tier.id] !== undefined && offer.tierDiscounts[tier.id] !== null) {
           return offer.tierDiscounts[tier.id];
         }
       }
     }
-  
-    // Fallback for users who might not fit a tier but there's a 'member' discount
-    if (offer.tierDiscounts['member'] !== undefined) {
-      return offer.tierDiscounts['member'];
+    
+    // Check for a specific 'member' tier discount if no other tier matched.
+    if (offer.tierDiscounts['member'] !== undefined && offer.tierDiscounts['member'] !== null) {
+        const memberTier = loyaltyLevels.find(l => l.id === 'member');
+        if(memberTier && userPoints >= memberTier.minimumPoints) {
+             return offer.tierDiscounts['member'];
+        }
     }
   
     return undefined;
@@ -281,7 +284,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         let displayPrice = originalPrice;
                         let isOfferApplied = false;
                         
-                        if (offer && loyaltyLevels) {
+                        if (offer) {
                             const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
                             if (discountValue !== undefined) {
                                 if (offer.discountType === 'percentage') {
