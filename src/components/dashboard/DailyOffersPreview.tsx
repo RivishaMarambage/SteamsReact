@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
@@ -58,14 +59,16 @@ export default function DailyOffersPreview() {
                     let displayPrice = menuItem.price;
                     const originalPrice = menuItem.price;
                     let isOfferApplied = false;
-
-                    const userTierId = userProfile?.loyaltyLevelId;
                     let discountValue: number | undefined;
 
-                    if (userTierId && offer.tierDiscounts[userTierId]) {
-                        discountValue = offer.tierDiscounts[userTierId];
-                    } else if (offer.tierDiscounts['member']) {
-                        discountValue = offer.tierDiscounts['member'];
+                    if (offer.tierDiscounts) {
+                        const userTierId = userProfile?.loyaltyLevelId;
+
+                        if (userTierId && offer.tierDiscounts[userTierId]) {
+                            discountValue = offer.tierDiscounts[userTierId];
+                        } else if (offer.tierDiscounts['member']) {
+                            discountValue = offer.tierDiscounts['member'];
+                        }
                     }
 
                     if (discountValue !== undefined) {
