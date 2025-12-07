@@ -266,14 +266,15 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
               <div className="space-y-4">
                 {cart.map(item => (
                   <div key={item.menuItem.id} className="flex items-center gap-4 pr-2">
-                    <Image
-                        src={`https://picsum.photos/seed/${item.menuItem.id}/100/100`}
-                        alt={item.menuItem.name}
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover"
-                        data-ai-hint="food item"
-                    />
+                    <div className="relative w-16 h-16 rounded-md overflow-hidden">
+                        <Image
+                            src={`https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                            alt={item.menuItem.name}
+                            fill
+                            className="object-cover"
+                            data-ai-hint="food item"
+                        />
+                    </div>
                     <div className="flex-grow grid gap-1">
                       <p className="font-semibold leading-tight">{item.menuItem.name}</p>
                       <p className="text-sm text-muted-foreground">Rs. {item.menuItem.price.toFixed(2)}</p>
@@ -292,10 +293,9 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
               </div>
             )}
           </div>
-          <SheetFooter className="flex-col space-y-4 pt-4">
+          <SheetFooter className="mt-auto flex-col space-y-4 pt-4 border-t">
             {cart.length > 0 && (
                 <>
-                <Separator />
                  <div className="space-y-4">
                     <h3 className="font-headline text-lg">Redeem Points</h3>
                     <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
@@ -337,3 +337,4 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     </>
   );
 }
+
