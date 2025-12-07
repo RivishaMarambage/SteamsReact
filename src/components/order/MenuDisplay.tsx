@@ -253,7 +253,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         const offer = dailyOffers.find(o => o.menuItemId === item.id);
                         
                         let displayPrice = item.price;
-                        if (offer) {
+                        if (offer && offer.tierPrices) {
                             if (userProfile && userProfile.loyaltyLevelId && offer.tierPrices[userProfile.loyaltyLevelId]) {
                                 displayPrice = offer.tierPrices[userProfile.loyaltyLevelId];
                             } else if (offer.tierPrices['member']) {
