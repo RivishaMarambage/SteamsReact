@@ -70,6 +70,14 @@
             "type": "string",
             "enum": ["Dine-in", "Pick up", "Takeway"],
             "description": "The type of order."
+        },
+        "pointsRedeemed": {
+          "type": "number",
+          "description": "The number of loyalty points redeemed for this order."
+        },
+        "discountApplied": {
+          "type": "number",
+          "description": "The monetary discount applied to this order from redeemed points."
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]

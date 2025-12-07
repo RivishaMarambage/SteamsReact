@@ -39,6 +39,8 @@ export type Order = {
     status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed';
     menuItemIds: string[];
     orderType: 'Dine-in' | 'Pick up' | 'Takeway';
+    pointsRedeemed?: number;
+    discountApplied?: number;
 }
 
 export type CartItem = {

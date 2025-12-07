@@ -6,21 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
+import type { MenuItem, CartItem, Category, Order, UserProfile } from '@/lib/types';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Separator } from '../ui/separator';
 
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user: authUser } = useUser();
   const firestore = useFirestore();
+  
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
@@ -65,73 +71,94 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     });
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
+  const handleRedeemPoints = () => {
+    const redeemAmount = Number(pointsToRedeem);
+    if (!userProfile || !userProfile.loyaltyPoints) {
+      toast({ variant: 'destructive', title: "No points available" });
+      return;
+    }
+    if (redeemAmount <= 0) {
+      toast({ variant: 'destructive', title: "Invalid Amount", description: "Please enter a positive number of points." });
+      return;
+    }
+    if (redeemAmount > userProfile.loyaltyPoints) {
+      toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${userProfile.loyaltyPoints} points available.` });
+      return;
+    }
+    if (redeemAmount > cartTotal) {
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is Rs. ${cartTotal.toFixed(2)}.` });
+        return;
+    }
+
+    // Set points to redeem, the discount will be calculated from this
+    setPointsToRedeem(redeemAmount);
+    toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a Rs. ${redeemAmount.toFixed(2)} discount.` });
+  };
+
+
+  const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
+  const discount = Math.min(subtotal, Number(pointsToRedeem) || 0); // Discount cannot be more than the subtotal
+  const cartTotal = subtotal - discount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handlePlaceOrder = async () => {
-    if (!user || !firestore) {
+    if (!authUser || !firestore || !userProfile) {
         toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
         return;
     }
     
     try {
         const batch = writeBatch(firestore);
+        const userDocRef = doc(firestore, "users", authUser.uid);
 
         // 1. Create a new document ref in the root /orders collection
         const rootOrderRef = doc(collection(firestore, 'orders'));
 
-        // 2. Define the data for the root order and the user-specific order.
-        // It's crucial to create separate objects for each set operation if using serverTimestamp.
-        const rootOrderData = {
-            customerId: user.uid,
+        const finalDiscount = Number(pointsToRedeem) || 0;
+        const finalTotal = subtotal - finalDiscount;
+
+        // 2. Define the data for the order
+        const orderData = {
+            customerId: authUser.uid,
             orderDate: serverTimestamp(),
-            totalAmount: cartTotal,
+            totalAmount: finalTotal,
             status: "Placed" as const,
             menuItemIds: cart.map(item => item.menuItem.id),
-            orderType: orderType
-        };
-        const userOrderData = {
-            customerId: user.uid,
-            orderDate: serverTimestamp(),
-            totalAmount: cartTotal,
-            status: "Placed" as const,
-            menuItemIds: cart.map(item => item.menuItem.id),
-            orderType: orderType
+            orderType: orderType,
+            pointsRedeemed: finalDiscount,
+            discountApplied: finalDiscount
         };
 
-        // 3. Set the data for the root order document
-        batch.set(rootOrderRef, rootOrderData);
-        
-        // 4. Set the data for the user's subcollection document using the SAME ID
-        const userOrderRef = doc(firestore, `users/${user.uid}/orders`, rootOrderRef.id);
-        batch.set(userOrderRef, userOrderData);
+        // 3. Set the data for the root order and the user's subcollection order
+        batch.set(rootOrderRef, orderData);
+        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
+        batch.set(userOrderRef, orderData);
 
-        // 5. Update the user's loyalty points based on the new logic
-        const userDocRef = doc(firestore, "users", user.uid);
-        
+        // 4. Update loyalty points
         let pointsToEarn = 0;
-        if (cartTotal > 5000) {
+        if (subtotal > 5000) {
           pointsToEarn = 5;
-        } else if (cartTotal > 1000) {
+        } else if (subtotal > 1000) {
           pointsToEarn = 2;
-        } else if (cartTotal > 100) {
+        } else if (subtotal > 100) {
           pointsToEarn = 1;
         }
-
-        if (pointsToEarn > 0) {
-            batch.update(userDocRef, {
-                loyaltyPoints: increment(pointsToEarn)
-            });
-        }
-
+        
+        // The total point change is new points earned minus points redeemed
+        const netPointChange = pointsToEarn - finalDiscount;
+        batch.update(userDocRef, {
+            loyaltyPoints: increment(netPointChange)
+        });
+        
         // 6. Commit the batch
         await batch.commit();
 
         toast({
             title: "Order Placed!",
-            description: `Your ${orderType} order has been confirmed. You've earned ${pointsToEarn} points!`,
+            description: `Your ${orderType} order is confirmed. You earned ${pointsToEarn} points and redeemed ${finalDiscount} points.`,
         });
         setCart([]);
+        setPointsToRedeem(0);
 
     } catch (error) {
         console.error("Error placing order: ", error);
@@ -221,7 +248,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent>
+        <SheetContent className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
             <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
@@ -251,14 +278,45 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
               </div>
             )}
           </div>
-          <SheetFooter>
-            <div className="w-full space-y-4">
-                <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span>Rs. {cartTotal.toFixed(2)}</span>
+          <SheetFooter className="flex-col space-y-4">
+            {cart.length > 0 && (
+                <>
+                <Separator />
+                 <div className="space-y-4">
+                    <h3 className="font-headline text-lg">Redeem Points</h3>
+                    <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor='redeem-points' className='sr-only'>Points to redeem</Label>
+                        <Input 
+                            id="redeem-points"
+                            type="number"
+                            placeholder="Points to use"
+                            value={pointsToRedeem || ''}
+                            onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                            max={userProfile?.loyaltyPoints ?? 0}
+                            min={0}
+                        />
+                        <Button variant="secondary" onClick={handleRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
+                    </div>
                 </div>
-                <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
-            </div>
+                <Separator />
+                <div className="w-full space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>Rs. {subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-destructive">
+                        <span>Discount:</span>
+                        <span>- Rs. {discount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold">
+                        <span>Total:</span>
+                        <span>Rs. {cartTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+                </>
+            )}
+            <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
