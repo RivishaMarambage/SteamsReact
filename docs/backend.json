@@ -90,10 +90,16 @@
         "id": { "type": "string", "description": "Unique ID for the offer." },
         "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
         "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
-        "discountPrice": { "type": "number", "description": "The special discounted price for the item." },
+        "tierPrices": {
+          "type": "object",
+          "description": "A map of loyalty tier IDs to their specific discount price.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
         "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "discountPrice", "offerDate"]
+      "required": ["id", "title", "menuItemId", "tierPrices", "offerDate"]
     }
   },
   "auth": {

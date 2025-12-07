@@ -9,69 +9,86 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { DailyOffer, MenuItem } from '@/lib/types';
+import type { DailyOffer, MenuItem, LoyaltyLevel } from '@/lib/types';
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, addDoc, orderBy, query } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 
-type FormData = Omit<DailyOffer, 'id' | 'discountPrice'> & { discountPrice: number | '' };
+type TierPrices = { [key: string]: number | '' };
+type FormData = Omit<DailyOffer, 'id' | 'tierPrices'> & { tierPrices: TierPrices };
 
-const INITIAL_FORM_DATA: FormData = {
+const INITIAL_FORM_DATA: Omit<DailyOffer, 'id'> = {
   title: '',
   menuItemId: '',
   offerDate: format(new Date(), 'yyyy-MM-dd'),
-  discountPrice: '',
+  tierPrices: {},
 };
 
 export default function DailyOfferTable() {
   const firestore = useFirestore();
   const offersQuery = useMemoFirebase(() => firestore ? collection(firestore, "daily_offers") : null, [firestore]);
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
+  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
 
   const { data: offers, isLoading: areOffersLoading } = useCollection<DailyOffer>(offersQuery);
   const { data: menuItems, isLoading: areMenuItemsLoading } = useCollection<MenuItem>(menuItemsQuery);
+  const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
-  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, tierPrices: {} });
   const { toast } = useToast();
 
-  const isLoading = areOffersLoading || areMenuItemsLoading;
+  const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading;
 
   useEffect(() => {
     if (isFormOpen) {
+      // Initialize form data with placeholder for each tier
+      const initialTierPrices = loyaltyLevels?.reduce((acc, level) => {
+        acc[level.id] = '';
+        return acc;
+      }, {} as TierPrices) || {};
+
       if (selectedOffer) {
         setFormData({
           title: selectedOffer.title,
           menuItemId: selectedOffer.menuItemId,
           offerDate: selectedOffer.offerDate,
-          discountPrice: selectedOffer.discountPrice,
+          tierPrices: { ...initialTierPrices, ...selectedOffer.tierPrices },
         });
       } else {
         setFormData({
           ...INITIAL_FORM_DATA,
           menuItemId: menuItems && menuItems.length > 0 ? menuItems[0].id : '',
+          tierPrices: initialTierPrices,
         });
       }
     }
-  }, [isFormOpen, selectedOffer, menuItems]);
+  }, [isFormOpen, selectedOffer, menuItems, loyaltyLevels]);
 
+
+  const handleTierPriceChange = (tierId: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tierPrices: {
+        ...prev.tierPrices,
+        [tierId]: value === '' ? '' : parseFloat(value)
+      }
+    }));
+  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'discountPrice' ? (value === '' ? '' : parseFloat(value)) : value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
   
   const handleDateSelect = (date?: Date) => {
@@ -111,29 +128,29 @@ export default function DailyOfferTable() {
     e.preventDefault();
     if (!firestore) return;
 
-    if (!formData.title || !formData.menuItemId || !formData.offerDate || formData.discountPrice === '') {
-        toast({
-            variant: "destructive",
-            title: "Missing Information",
-            description: "Please fill out all fields.",
-        });
-        return;
-    }
-    
-    const menuItem = menuItems?.find(item => item.id === formData.menuItemId);
-    if (menuItem && Number(formData.discountPrice) >= menuItem.price) {
-        toast({
-            variant: "destructive",
-            title: "Invalid Price",
-            description: "Discount price must be less than the item's original price.",
-        });
+    if (!formData.title || !formData.menuItemId || !formData.offerDate) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out title, item, and date." });
         return;
     }
 
+    const finalTierPrices: { [key: string]: number } = {};
+    for (const tierId in formData.tierPrices) {
+        const price = formData.tierPrices[tierId];
+        if (price !== '' && !isNaN(Number(price))) {
+            finalTierPrices[tierId] = Number(price);
+        }
+    }
+
+    if (Object.keys(finalTierPrices).length === 0) {
+        toast({ variant: "destructive", title: "No Prices Set", description: "Please set a discount price for at least one loyalty tier." });
+        return;
+    }
 
     const finalData = {
-        ...formData,
-        discountPrice: Number(formData.discountPrice),
+        title: formData.title,
+        menuItemId: formData.menuItemId,
+        offerDate: formData.offerDate,
+        tierPrices: finalTierPrices,
     };
 
     if (selectedOffer) {
@@ -188,7 +205,7 @@ export default function DailyOfferTable() {
               <TableHead>Date</TableHead>
               <TableHead>Offer Title</TableHead>
               <TableHead>Menu Item</TableHead>
-              <TableHead>Discount Price</TableHead>
+              <TableHead>Tier Prices</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -201,7 +218,15 @@ export default function DailyOfferTable() {
                   <TableCell><Badge variant="outline">{offer.offerDate}</Badge></TableCell>
                   <TableCell className="font-medium">{offer.title}</TableCell>
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
-                  <TableCell>Rs. {offer.discountPrice.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-xs">
+                        {Object.entries(offer.tierPrices).map(([tierId, price]) => (
+                            <div key={tierId} className='capitalize'>
+                                <span className='font-semibold'>{tierId}:</span> Rs. {price.toFixed(2)}
+                            </div>
+                        ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -225,7 +250,7 @@ export default function DailyOfferTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
               <DialogTitle className="font-headline">{selectedOffer ? 'Edit Offer' : 'Add New Offer'}</DialogTitle>
@@ -237,52 +262,67 @@ export default function DailyOfferTable() {
                 <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required placeholder="e.g., Muffin Monday" />
               </div>
 
-               <div className="grid gap-2">
-                  <Label htmlFor="menuItemId">Menu Item</Label>
-                  <select
-                    id="menuItemId"
-                    name="menuItemId"
-                    value={formData.menuItemId || ''}
-                    onChange={handleFormChange}
-                    required
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="" disabled>Select an item</option>
-                    {menuItems?.map(item => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                  </select>
-                </div>
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="grid gap-2">
+                    <Label htmlFor="menuItemId">Menu Item</Label>
+                    <select
+                      id="menuItemId"
+                      name="menuItemId"
+                      value={formData.menuItemId || ''}
+                      onChange={handleFormChange}
+                      required
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select an item</option>
+                      {menuItems?.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="discountPrice">Discount Price</Label>
-                      <Input id="discountPrice" name="discountPrice" type="number" step="0.01" value={formData.discountPrice} onChange={handleFormChange} required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Offer Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !formData.offerDate && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {formData.offerDate ? format(parseISO(formData.offerDate), "PPP") : <span>Pick a date</span>}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={parseISO(formData.offerDate)}
-                              onSelect={handleDateSelect}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                  <div className="grid gap-2">
+                    <Label>Offer Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !formData.offerDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.offerDate ? format(parseISO(formData.offerDate), "PPP") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={parseISO(formData.offerDate)}
+                            onSelect={handleDateSelect}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                  </div>
+               </div>
+
+                <div className="grid gap-2">
+                    <Label>Tier Prices</Label>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border p-4">
+                        {loyaltyLevels?.map(level => (
+                            <div key={level.id} className="grid grid-cols-2 items-center gap-2">
+                                <Label htmlFor={`price-${level.id}`} className='capitalize text-muted-foreground'>{level.name}</Label>
+                                <Input 
+                                    id={`price-${level.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    placeholder='Rs.'
+                                    value={formData.tierPrices[level.id] ?? ''}
+                                    onChange={(e) => handleTierPriceChange(level.id, e.target.value)}
+                                />
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

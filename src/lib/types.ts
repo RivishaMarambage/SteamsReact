@@ -49,7 +49,7 @@ export type Order = {
 export type DailyOffer = {
   id: string;
   menuItemId: string;
-  discountPrice: number;
+  tierPrices: { [key: string]: number }; // e.g., { standard: 2.50, gold: 2.00 }
   offerDate: string; // Stored as YYYY-MM-DD string
   title: string;
 }

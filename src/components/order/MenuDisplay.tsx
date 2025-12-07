@@ -234,7 +234,17 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const offer = dailyOffers.find(o => o.menuItemId === item.id);
-                        const displayPrice = offer ? offer.discountPrice : item.price;
+                        
+                        let displayPrice = item.price;
+                        if (offer) {
+                            if (userProfile && userProfile.loyaltyLevelId && offer.tierPrices[userProfile.loyaltyLevelId]) {
+                                displayPrice = offer.tierPrices[userProfile.loyaltyLevelId];
+                            } else if (offer.tierPrices['member']) {
+                                // Fallback to a default or base tier price if available
+                                displayPrice = offer.tierPrices['member'];
+                            }
+                        }
+
                         const originalPrice = item.price;
 
                         return (
@@ -250,7 +260,7 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
                             </CardContent>
                             <CardFooter className="p-4 flex justify-between items-center">
                               <div className="font-bold text-lg text-primary">
-                                {offer && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
+                                {offer && displayPrice < originalPrice && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
                                 Rs. {displayPrice.toFixed(2)}
                               </div>
                               <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })}>
