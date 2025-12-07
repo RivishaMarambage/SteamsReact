@@ -254,7 +254,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
             <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
           </SheetHeader>
-          <div className="flex-1 py-4 overflow-y-auto -mx-6 px-6">
+          <div className="flex-1 py-4 overflow-y-auto">
             {cart.length === 0 ? (
               <div className="text-center text-muted-foreground h-full flex flex-col items-center justify-center">
                 <ShoppingCart className="w-16 h-16 mb-4 text-muted-foreground/50" />
@@ -264,7 +264,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             ) : (
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.menuItem.id} className="flex items-center gap-4 pr-2">
+                  <div key={item.menuItem.id} className="flex items-center gap-4">
                     <div className="relative w-16 h-16 rounded-md overflow-hidden">
                         <Image
                             src={`https://picsum.photos/seed/${item.menuItem.id}/100/100`}
@@ -292,49 +292,45 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
               </div>
             )}
           </div>
-          <SheetFooter className="mt-auto flex-col space-y-4 pt-4 border-t">
-            {cart.length > 0 && (
-                <>
-                 <div className="space-y-4">
-                    <h3 className="font-headline text-lg">Redeem Points</h3>
-                    <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor='redeem-points' className='sr-only'>Points to redeem</Label>
-                        <Input 
-                            id="redeem-points"
-                            type="number"
-                            placeholder="Points to use"
-                            value={pointsToRedeem || ''}
-                            onChange={(e) => setPointsToRedeem(Number(e.target.value))}
-                            max={userProfile?.loyaltyPoints ?? 0}
-                            min={0}
-                        />
-                        <Button variant="secondary" onClick={handleRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
-                    </div>
-                </div>
-                <Separator />
-                <div className="w-full space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>Rs. {subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-destructive">
-                        <span>Discount:</span>
-                        <span>- Rs. {discount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold">
-                        <span>Total:</span>
-                        <span>Rs. {cartTotal.toFixed(2)}</span>
-                    </div>
-                </div>
-                </>
-            )}
-            <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
-          </SheetFooter>
+          {cart.length > 0 && (
+            <SheetFooter className="mt-auto flex-col space-y-4 pt-4 border-t">
+              <div className="space-y-4">
+                  <h3 className="font-headline text-lg">Redeem Points</h3>
+                  <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor='redeem-points' className='sr-only'>Points to redeem</Label>
+                      <Input 
+                          id="redeem-points"
+                          type="number"
+                          placeholder="Points to use"
+                          value={pointsToRedeem || ''}
+                          onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                          max={userProfile?.loyaltyPoints ?? 0}
+                          min={0}
+                      />
+                      <Button variant="secondary" onClick={handleRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
+                  </div>
+              </div>
+              <Separator />
+              <div className="w-full space-y-2 text-sm">
+                  <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>Rs. {subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-destructive">
+                      <span>Discount</span>
+                      <span>- Rs. {discount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span>Rs. {cartTotal.toFixed(2)}</span>
+                  </div>
+              </div>
+              <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
+            </SheetFooter>
+          )}
         </SheetContent>
       </Sheet>
     </>
   );
 }
-
-    
