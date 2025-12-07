@@ -25,6 +25,7 @@ const INITIAL_FORM_DATA: FormData = {
   price: '',
   categoryId: '',
   description: '',
+  imageUrl: '',
 };
 
 export default function MenuTable() {
@@ -49,6 +50,7 @@ export default function MenuTable() {
           price: selectedItem.price,
           categoryId: selectedItem.categoryId,
           description: selectedItem.description,
+          imageUrl: selectedItem.imageUrl || '',
         });
       } else {
         setFormData({
@@ -247,8 +249,7 @@ export default function MenuTable() {
                   <Label htmlFor="price">Price (LKR)</Label>
                   <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
                 </div>
-              </div>
-               <div className="grid gap-2">
+                 <div className="grid gap-2">
                   <Label htmlFor="categoryId">Category</Label>
                   <select
                     id="categoryId"
@@ -264,9 +265,14 @@ export default function MenuTable() {
                     ))}
                   </select>
                 </div>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="imageUrl">Image URL</Label>
+                <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
               </div>
             </div>
             <DialogFooter>

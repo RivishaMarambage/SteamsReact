@@ -21,6 +21,7 @@ export type MenuItem = {
   description: string;
   price: number;
   categoryId: string;
+  imageUrl?: string;
 };
 
 export type Category = {

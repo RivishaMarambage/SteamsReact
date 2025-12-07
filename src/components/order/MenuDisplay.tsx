@@ -293,12 +293,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
                         return (
                           <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                             <div className="relative w-full h-40">
+                                <Image
+                                    src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
+                                    alt={item.name}
+                                    fill
+                                    className="object-cover"
+                                    data-ai-hint="food item"
+                                />
+                                {isOfferApplied && (
+                                    <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
+                                    <Tag className="h-3 w-3"/> Daily Special
+                                    </Badge>
+                                )}
+                            </div>
                             <CardContent className="p-4 flex-grow">
-                               {isOfferApplied && (
-                                <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
-                                  <Tag className="h-3 w-3"/> Daily Special
-                                </Badge>
-                              )}
                               <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
                               <CardDescription>{item.description}</CardDescription>
                             </CardContent>
@@ -351,7 +360,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                   <div key={item.menuItem.id} className="flex items-center gap-4">
                     <div className="relative w-16 h-16 rounded-md overflow-hidden">
                         <Image
-                            src={`https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                            src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
                             alt={item.menuItem.name}
                             fill
                             className="object-cover"

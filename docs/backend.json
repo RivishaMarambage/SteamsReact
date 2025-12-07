@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -28,7 +29,8 @@
         "name": { "type": "string", "description": "Name of the menu item." },
         "description": { "type": "string", "description": "A brief description of the item." },
         "price": { "type": "number", "description": "Price of the item." },
-        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." }
+        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
+        "imageUrl": { "type": "string", "description": "URL of an image for the menu item." }
       },
       "required": ["id", "name", "price", "categoryId"]
     },
@@ -103,7 +105,7 @@
         "discountType": {
             "type": "string",
             "enum": ["fixed", "percentage"],
-            "description": "The type of discount (Rs. or %)."
+            "description": "The type of discount (LKR or %)."
         },
         "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
       },
