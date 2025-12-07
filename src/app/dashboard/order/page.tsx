@@ -13,7 +13,6 @@ import { Suspense } from "react";
 function OrderPageContent() {
   const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>("menu_items");
   
-  // Get today's date in YYYY-MM-DD format
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(
     query(collection(getFirestore(), 'daily_offers'), where('offerDate', '==', todayStr))
@@ -55,10 +54,26 @@ function OrderPageContent() {
   );
 }
 
-export default function OrderPage() {
+function OrderPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="space-y-8">
+        <div>
+          <Skeleton className="h-10 w-1/3" />
+          <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <div className="flex justify-center mb-6">
+            <Skeleton className="h-10 w-64" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-80 w-full" />
+        </div>
+      </div>}>
       <OrderPageContent />
     </Suspense>
   )
 }
+
+export default OrderPage;
