@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { MenuItem, UserProfile } from "@/lib/types";
 import { isWithinInterval, addDays, parseISO, format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -13,16 +13,27 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 type RewardType = 'credit' | 'free-item';
 
 export default function BirthdayReminders() {
-  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>("users");
-  const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>('menu_items');
+  const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+  
+  const userRole = userProfile?.role;
+  const canFetchUsers = userRole === 'admin' || userRole === 'staff';
+
+  const usersQuery = useMemoFirebase(() => canFetchUsers ? collection(firestore, "users") : null, [firestore, canFetchUsers]);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+
+  const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>('menu_items');
+  
   const { toast } = useToast();
 
   const [isRewardDialogOpen, setRewardDialogOpen] = useState(false);
@@ -31,7 +42,7 @@ export default function BirthdayReminders() {
   const [creditAmount, setCreditAmount] = useState<number>(0);
   const [selectedFreebieId, setSelectedFreebieId] = useState<string>('');
 
-  const isLoading = usersLoading || menuLoading;
+  const isLoading = isAuthLoading || isProfileLoading || usersLoading || menuLoading;
 
   const handleOpenRewardDialog = (user: UserProfile) => {
     setSelectedUser(user);
@@ -83,6 +94,10 @@ export default function BirthdayReminders() {
     setRewardDialogOpen(false);
   };
 
+  // Don't render anything if the user isn't staff or admin
+  if (!canFetchUsers && !isProfileLoading) {
+      return null;
+  }
 
   if (isLoading) {
     return (
@@ -216,3 +231,4 @@ export default function BirthdayReminders() {
   );
 }
 
+    
