@@ -11,7 +11,7 @@ import { collection, query, where, getDocs, doc, updateDoc, increment } from 'fi
 import type { UserProfile } from '@/lib/types';
 
 export default function RedeemPoints() {
-  const [email, setEmail] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [customer, setCustomer] = useState<UserProfile | null>(null);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,19 +20,34 @@ export default function RedeemPoints() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!firestore) return;
     setIsLoading(true);
     setCustomer(null);
 
     const usersRef = collection(firestore, 'users');
-    const q = query(usersRef, where('email', '==', email), where('role', '==', 'customer'));
+    const emailQuery = query(usersRef, where('email', '==', searchTerm), where('role', '==', 'customer'));
+    const mobileQuery = query(usersRef, where('mobileNumber', '==', searchTerm), where('role', '==', 'customer'));
     
     try {
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) {
+      const [emailSnapshot, mobileSnapshot] = await Promise.all([
+        getDocs(emailQuery),
+        getDocs(mobileQuery),
+      ]);
+      
+      const allResults = [...emailSnapshot.docs, ...mobileSnapshot.docs];
+      
+      if (allResults.length === 0) {
         toast({ variant: 'destructive', title: 'Customer not found' });
       } else {
-        const customerData = querySnapshot.docs[0].data() as UserProfile;
-        setCustomer({ ...customerData, id: querySnapshot.docs[0].id });
+        // Use a map to handle cases where a user might be found by both email and mobile
+        const customerMap = new Map();
+        allResults.forEach(doc => {
+            if (!customerMap.has(doc.id)) {
+                customerMap.set(doc.id, { ...(doc.data() as UserProfile), id: doc.id });
+            }
+        });
+        const uniqueCustomers = Array.from(customerMap.values());
+        setCustomer(uniqueCustomers[0]); // Display the first unique customer found
       }
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error searching for customer' });
@@ -42,7 +57,7 @@ export default function RedeemPoints() {
   };
 
   const handleRedeem = async () => {
-    if (!customer || pointsToRedeem <= 0) {
+    if (!customer || pointsToRedeem <= 0 || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Invalid Redemption',
@@ -88,18 +103,18 @@ export default function RedeemPoints() {
     <Card>
       <CardHeader>
         <CardTitle>Redeem Loyalty Points</CardTitle>
-        <CardDescription>Search for a customer by email to redeem their points.</CardDescription>
+        <CardDescription>Search for a customer by email or mobile number to redeem their points.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSearch} className="flex items-end gap-2">
           <div className="flex-grow">
-            <Label htmlFor="email">Customer Email</Label>
+            <Label htmlFor="search-term">Customer Email or Mobile</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="customer@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="search-term"
+              type="text"
+              placeholder="customer@example.com or 555-123-4567"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               required
             />
           </div>
@@ -114,6 +129,7 @@ export default function RedeemPoints() {
               <div>
                 <h3 className="font-semibold text-lg">{customer.name}</h3>
                 <p className="text-sm text-muted-foreground">{customer.email}</p>
+                {customer.mobileNumber && <p className="text-sm text-muted-foreground">{customer.mobileNumber}</p>}
               </div>
               <div className="text-2xl font-bold text-primary">
                 {customer.loyaltyPoints ?? 0} <span className="text-sm font-normal">Points Available</span>
