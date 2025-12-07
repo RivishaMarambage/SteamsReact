@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -154,6 +155,9 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
+                              captionLayout="dropdown-buttons"
+                              fromYear={new Date().getFullYear() - 100}
+                              toYear={new Date().getFullYear()}
                               selected={field.value}
                               onSelect={field.onChange}
                               disabled={(date) =>
