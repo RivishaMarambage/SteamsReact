@@ -10,6 +10,8 @@ export type UserProfile = {
   loyaltyLevelId?: string;
   role: 'customer' | 'admin' | 'staff';
   dateOfBirth?: string;
+  birthdayCredit?: number;
+  birthdayFreebieMenuItemIds?: string[];
 };
 
 export type MenuItem = {
@@ -48,3 +50,4 @@ export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
+

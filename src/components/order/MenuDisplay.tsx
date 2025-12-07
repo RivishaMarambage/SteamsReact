@@ -42,22 +42,24 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   
   const mainCategories = Array.from(new Set(categories?.map(c => c.type).filter(Boolean) as string[]));
 
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: MenuItem, quantity: number = 1) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(cartItem => cartItem.menuItem.id === item.id);
       if (existingItem) {
         return prevCart.map(cartItem =>
           cartItem.menuItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            ? { ...cartItem, quantity: cartItem.quantity + quantity }
             : cartItem
         );
       }
-      return [...prevCart, { menuItem: item, quantity: 1 }];
+      return [...prevCart, { menuItem: item, quantity: quantity }];
     });
-    toast({
-      title: "Added to order",
-      description: `${item.name} is now in your cart.`,
-    });
+     if (quantity > 0) {
+      toast({
+        title: "Added to order",
+        description: `${item.name} is now in your cart.`,
+      });
+    }
   };
 
   const updateQuantity = (itemId: string, amount: number) => {
@@ -86,8 +88,8 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
       toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${userProfile.loyaltyPoints} points available.` });
       return;
     }
-    if (redeemAmount > cartTotal) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is Rs. ${cartTotal.toFixed(2)}.` });
+    if (redeemAmount > subtotal) {
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is Rs. ${subtotal.toFixed(2)}.` });
         return;
     }
 
@@ -95,11 +97,24 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     setPointsToRedeem(redeemAmount);
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a Rs. ${redeemAmount.toFixed(2)} discount.` });
   };
-
+  
+  const claimFreebie = (freebieId: string) => {
+    const freebieItem = menuItems.find(item => item.id === freebieId);
+    if (freebieItem) {
+      addToCart({ ...freebieItem, price: 0 }, 1); // Add to cart with price 0
+      
+      // Remove the freebie from the user's profile so it can't be claimed again
+      if (userDocRef) {
+        updateDoc(userDocRef, { birthdayFreebieMenuItemIds: [] });
+      }
+    }
+  }
 
   const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
-  const discount = Math.min(subtotal, Number(pointsToRedeem) || 0); // Discount cannot be more than the subtotal
-  const cartTotal = subtotal - discount;
+  const loyaltyDiscount = Math.min(subtotal, Number(pointsToRedeem) || 0); // Discount cannot be more than the subtotal
+  const birthdayCreditDiscount = Math.min(subtotal - loyaltyDiscount, userProfile?.birthdayCredit || 0);
+  const totalDiscount = loyaltyDiscount + birthdayCreditDiscount;
+  const cartTotal = subtotal - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handlePlaceOrder = async () => {
@@ -115,19 +130,16 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         // 1. Create a new document ref in the root /orders collection
         const rootOrderRef = doc(collection(firestore, 'orders'));
 
-        const finalDiscount = Number(pointsToRedeem) || 0;
-        const finalTotal = subtotal - finalDiscount;
-
         // 2. Define the data for the order
         const orderData = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
-            totalAmount: finalTotal,
+            totalAmount: cartTotal,
             status: "Placed" as const,
             menuItemIds: cart.map(item => item.menuItem.id),
             orderType: orderType,
-            pointsRedeemed: finalDiscount,
-            discountApplied: finalDiscount
+            pointsRedeemed: loyaltyDiscount,
+            discountApplied: totalDiscount
         };
 
         // 3. Set the data for the root order and the user's subcollection order
@@ -135,7 +147,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
         batch.set(userOrderRef, orderData);
 
-        // 4. Update loyalty points
+        // 4. Update loyalty points & birthday credit
         let pointsToEarn = 0;
         if (subtotal > 5000) {
           pointsToEarn = 5;
@@ -145,18 +157,23 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
           pointsToEarn = 1;
         }
         
-        // The total point change is new points earned minus points redeemed
-        const netPointChange = pointsToEarn - finalDiscount;
-        batch.update(userDocRef, {
+        const netPointChange = pointsToEarn - loyaltyDiscount;
+        const updates: any = {
             loyaltyPoints: increment(netPointChange)
-        });
+        };
+        
+        if (birthdayCreditDiscount > 0) {
+            updates.birthdayCredit = increment(-birthdayCreditDiscount);
+        }
+
+        batch.update(userDocRef, updates);
         
         // 6. Commit the batch
         await batch.commit();
 
         toast({
             title: "Order Placed!",
-            description: `Your ${orderType} order is confirmed. You earned ${pointsToEarn} points and redeemed ${finalDiscount} points.`,
+            description: `Your ${orderType} order is confirmed.`,
         });
         setCart([]);
         setPointsToRedeem(0);
@@ -295,6 +312,27 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
           {cart.length > 0 && (
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
+                  
+                  {/* Birthday Rewards */}
+                  {(userProfile?.birthdayCredit || userProfile?.birthdayFreebieMenuItemIds) && (
+                     <div className="space-y-2 p-3 bg-accent/10 rounded-lg border border-accent/20">
+                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Your Birthday Reward!</h3>
+                      {userProfile.birthdayCredit && userProfile.birthdayCredit > 0 && (
+                        <p className="text-sm text-muted-foreground">You have a <span className="font-bold">Rs. {userProfile.birthdayCredit.toFixed(2)}</span> credit. It will be automatically applied.</p>
+                      )}
+                      {userProfile.birthdayFreebieMenuItemIds?.map(freebieId => {
+                         const freebieItem = menuItems.find(item => item.id === freebieId);
+                         const isClaimed = cart.some(cartItem => cartItem.menuItem.id === freebieId && cartItem.menuItem.price === 0);
+                         return freebieItem && !isClaimed ? (
+                            <div key={freebieId} className="flex items-center justify-between">
+                              <p className="text-sm">Free: <span className="font-bold">{freebieItem.name}</span></p>
+                              <Button size="sm" variant="secondary" onClick={() => claimFreebie(freebieId)}>Claim</Button>
+                            </div>
+                         ) : null;
+                      })}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                       <h3 className="font-headline text-lg">Redeem Points</h3>
                       <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
@@ -318,10 +356,12 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                           <span>Subtotal</span>
                           <span>Rs. {subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-destructive">
-                          <span>Discount</span>
-                          <span>- Rs. {discount.toFixed(2)}</span>
-                      </div>
+                      {totalDiscount > 0 && (
+                        <div className="flex justify-between text-destructive">
+                            <span>Discount</span>
+                            <span>- Rs. {totalDiscount.toFixed(2)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-lg font-bold">
                           <span>Total</span>
                           <span>Rs. {cartTotal.toFixed(2)}</span>
@@ -336,3 +376,4 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     </>
   );
 }
+
