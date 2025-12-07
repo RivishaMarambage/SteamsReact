@@ -220,7 +220,7 @@ export default function DailyOfferTable() {
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
                   <TableCell>
                     <div className="flex flex-col text-xs">
-                        {Object.entries(offer.tierPrices).map(([tierId, price]) => (
+                        {offer.tierPrices && Object.entries(offer.tierPrices).map(([tierId, price]) => (
                             <div key={tierId} className='capitalize'>
                                 <span className='font-semibold'>{tierId}:</span> Rs. {price.toFixed(2)}
                             </div>
