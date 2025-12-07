@@ -1,10 +1,11 @@
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, DollarSign } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
-import { collection, query } from "firebase/firestore";
+import { collection, query, doc } from "firebase/firestore";
+import type { UserProfile } from "@/lib/types";
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType<{className?: string}>, isLoading: boolean }) {
   if (isLoading) {
@@ -34,11 +35,21 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 }
 
 export default function AnalyticsDashboard() {
-  const { user, isUserLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
-  const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
-  const ordersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'orders')) : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'admin') return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, userProfile]);
+  
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'admin') return null;
+    return query(collection(firestore, 'orders'));
+  }, [firestore, userProfile]);
 
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
   
@@ -50,7 +61,7 @@ export default function AnalyticsDashboard() {
   const totalOrders = allOrders?.length ?? 0;
   const totalRevenue = allOrders?.reduce((acc, order) => acc + order.totalAmount, 0) ?? 0;
 
-  const isLoading = isUserLoading || usersLoading || ordersLoading;
+  const isLoading = isUserLoading || isProfileLoading || usersLoading || ordersLoading;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
