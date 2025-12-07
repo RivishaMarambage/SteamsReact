@@ -58,7 +58,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             : cartItem
         );
       }
-      return [...prevCart, { menuItem: item, quantity: quantity }];
+      return [...prevCart, { menuItem: { ...item }, quantity: quantity }];
     });
      if (quantity > 0) {
       toast({
@@ -121,14 +121,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         return;
     }
 
-    // Set points to redeem, the discount will be calculated from this
     setPointsToRedeem(redeemAmount);
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a Rs. ${redeemAmount.toFixed(2)} discount.` });
   };
   
 
   const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
-  const loyaltyDiscount = Math.min(subtotal, Number(pointsToRedeem) || 0); // Discount cannot be more than the subtotal
+  const loyaltyDiscount = Math.min(subtotal, Number(pointsToRedeem) || 0);
   const birthdayCreditDiscount = Math.min(subtotal - loyaltyDiscount, userProfile?.birthdayCredit || 0);
   const totalDiscount = loyaltyDiscount + birthdayCreditDiscount;
   const cartTotal = subtotal - totalDiscount;
@@ -145,10 +144,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         
         if (!userDocRef) return;
 
-        // 1. Create a new document ref in the root /orders collection
         const rootOrderRef = doc(collection(firestore, 'orders'));
 
-        // 2. Define the data for the order
         const orderData = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
@@ -160,12 +157,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             discountApplied: totalDiscount
         };
 
-        // 3. Set the data for the root order and the user's subcollection order
         batch.set(rootOrderRef, orderData);
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
         batch.set(userOrderRef, orderData);
 
-        // 4. Update loyalty points & birthday credit
         let pointsToEarn = 0;
         if (subtotal > 5000) {
           pointsToEarn = 5;
@@ -186,7 +181,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
         batch.update(userDocRef, updates);
         
-        // 6. Commit the batch
         await batch.commit();
 
         toast({
@@ -253,21 +247,36 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         const offer = dailyOffers.find(o => o.menuItemId === item.id);
                         
                         let displayPrice = item.price;
-                        if (offer && offer.tierPrices) {
-                            if (userProfile && userProfile.loyaltyLevelId && offer.tierPrices[userProfile.loyaltyLevelId]) {
-                                displayPrice = offer.tierPrices[userProfile.loyaltyLevelId];
-                            } else if (offer.tierPrices['member']) {
-                                // Fallback to a default or base tier price if available
-                                displayPrice = offer.tierPrices['member'];
+                        const originalPrice = item.price;
+                        let isOfferApplied = false;
+
+                        if (offer && offer.tierDiscounts) {
+                            const userTierId = userProfile?.loyaltyLevelId;
+                            let discountValue: number | undefined;
+
+                            if (userTierId && offer.tierDiscounts[userTierId]) {
+                                discountValue = offer.tierDiscounts[userTierId];
+                            } else if (offer.tierDiscounts['member']) {
+                                discountValue = offer.tierDiscounts['member'];
+                            }
+                            
+                            if (discountValue !== undefined) {
+                                if (offer.discountType === 'percentage') {
+                                    displayPrice = originalPrice - (originalPrice * discountValue / 100);
+                                } else { // fixed
+                                    displayPrice = originalPrice - discountValue;
+                                }
+                                isOfferApplied = true;
                             }
                         }
 
-                        const originalPrice = item.price;
+                        // Ensure price is not negative
+                        displayPrice = Math.max(0, displayPrice);
 
                         return (
                           <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
                             <CardContent className="p-4 flex-grow">
-                               {offer && (
+                               {isOfferApplied && (
                                 <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
                                   <Tag className="h-3 w-3"/> Daily Special
                                 </Badge>
@@ -277,7 +286,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                             </CardContent>
                             <CardFooter className="p-4 flex justify-between items-center">
                               <div className="font-bold text-lg text-primary">
-                                {offer && displayPrice < originalPrice && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
+                                {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
                                 Rs. {displayPrice.toFixed(2)}
                               </div>
                               <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })}>
@@ -353,7 +362,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
                   
-                  {/* Birthday Credit Message */}
                   {birthdayCreditDiscount > 0 && (
                      <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
                       <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Credit Applied!</h3>

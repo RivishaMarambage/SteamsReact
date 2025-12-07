@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -21,15 +21,17 @@ import { Calendar } from '../ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-type TierPrices = { [key: string]: number | '' };
-type FormData = Omit<DailyOffer, 'id' | 'tierPrices'> & { tierPrices: TierPrices };
+type TierDiscounts = { [key: string]: number | '' };
+type FormData = Omit<DailyOffer, 'id' | 'tierDiscounts'> & { tierDiscounts: TierDiscounts };
 
 const INITIAL_FORM_DATA: Omit<DailyOffer, 'id'> = {
   title: '',
   menuItemId: '',
   offerDate: format(new Date(), 'yyyy-MM-dd'),
-  tierPrices: {},
+  tierDiscounts: {},
+  discountType: 'fixed',
 };
 
 export default function DailyOfferTable() {
@@ -45,42 +47,42 @@ export default function DailyOfferTable() {
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
-  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, tierPrices: {} });
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, tierDiscounts: {} });
   const { toast } = useToast();
 
   const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading;
 
   useEffect(() => {
     if (isFormOpen) {
-      // Initialize form data with placeholder for each tier
-      const initialTierPrices = loyaltyLevels?.reduce((acc, level) => {
+      const initialTierDiscounts = loyaltyLevels?.reduce((acc, level) => {
         acc[level.id] = '';
         return acc;
-      }, {} as TierPrices) || {};
+      }, {} as TierDiscounts) || {};
 
       if (selectedOffer) {
         setFormData({
           title: selectedOffer.title,
           menuItemId: selectedOffer.menuItemId,
           offerDate: selectedOffer.offerDate,
-          tierPrices: { ...initialTierPrices, ...selectedOffer.tierPrices },
+          discountType: selectedOffer.discountType,
+          tierDiscounts: { ...initialTierDiscounts, ...selectedOffer.tierDiscounts },
         });
       } else {
         setFormData({
           ...INITIAL_FORM_DATA,
           menuItemId: menuItems && menuItems.length > 0 ? menuItems[0].id : '',
-          tierPrices: initialTierPrices,
+          tierDiscounts: initialTierDiscounts,
         });
       }
     }
   }, [isFormOpen, selectedOffer, menuItems, loyaltyLevels]);
 
 
-  const handleTierPriceChange = (tierId: string, value: string) => {
+  const handleTierDiscountChange = (tierId: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      tierPrices: {
-        ...prev.tierPrices,
+      tierDiscounts: {
+        ...prev.tierDiscounts,
         [tierId]: value === '' ? '' : parseFloat(value)
       }
     }));
@@ -89,6 +91,10 @@ export default function DailyOfferTable() {
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+   const handleDiscountTypeChange = (value: 'fixed' | 'percentage') => {
+    setFormData(prev => ({ ...prev, discountType: value }));
   };
   
   const handleDateSelect = (date?: Date) => {
@@ -133,24 +139,25 @@ export default function DailyOfferTable() {
         return;
     }
 
-    const finalTierPrices: { [key: string]: number } = {};
-    for (const tierId in formData.tierPrices) {
-        const price = formData.tierPrices[tierId];
-        if (price !== '' && !isNaN(Number(price))) {
-            finalTierPrices[tierId] = Number(price);
+    const finalTierDiscounts: { [key: string]: number } = {};
+    for (const tierId in formData.tierDiscounts) {
+        const discount = formData.tierDiscounts[tierId];
+        if (discount !== '' && !isNaN(Number(discount))) {
+            finalTierDiscounts[tierId] = Number(discount);
         }
     }
 
-    if (Object.keys(finalTierPrices).length === 0) {
-        toast({ variant: "destructive", title: "No Prices Set", description: "Please set a discount price for at least one loyalty tier." });
+    if (Object.keys(finalTierDiscounts).length === 0) {
+        toast({ variant: "destructive", title: "No Discounts Set", description: "Please set a discount for at least one loyalty tier." });
         return;
     }
 
-    const finalData = {
+    const finalData: Omit<DailyOffer, 'id'> = {
         title: formData.title,
         menuItemId: formData.menuItemId,
         offerDate: formData.offerDate,
-        tierPrices: finalTierPrices,
+        discountType: formData.discountType,
+        tierDiscounts: finalTierDiscounts,
     };
 
     if (selectedOffer) {
@@ -205,7 +212,7 @@ export default function DailyOfferTable() {
               <TableHead>Date</TableHead>
               <TableHead>Offer Title</TableHead>
               <TableHead>Menu Item</TableHead>
-              <TableHead>Tier Prices</TableHead>
+              <TableHead>Tier Discounts</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -220,9 +227,9 @@ export default function DailyOfferTable() {
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
                   <TableCell>
                     <div className="flex flex-col text-xs">
-                        {offer.tierPrices && Object.entries(offer.tierPrices).map(([tierId, price]) => (
+                        {offer.tierDiscounts && Object.entries(offer.tierDiscounts).map(([tierId, discount]) => (
                             <div key={tierId} className='capitalize'>
-                                <span className='font-semibold'>{tierId}:</span> Rs. {price.toFixed(2)}
+                                <span className='font-semibold'>{tierId}:</span> {offer.discountType === 'percentage' ? `${discount}%` : `Rs. ${discount.toFixed(2)}`}
                             </div>
                         ))}
                     </div>
@@ -308,7 +315,21 @@ export default function DailyOfferTable() {
                </div>
 
                 <div className="grid gap-2">
-                    <Label>Tier Prices</Label>
+                    <Label>Discount Type</Label>
+                     <RadioGroup value={formData.discountType} onValueChange={handleDiscountTypeChange} className="flex gap-4">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="fixed" id="fixed" />
+                            <Label htmlFor="fixed" className='flex items-center gap-1'><IndianRupee className="h-4 w-4"/> Fixed Amount (Rs.)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="percentage" id="percentage" />
+                            <Label htmlFor="percentage" className='flex items-center gap-1'><Percent className="h-4 w-4"/> Percentage (%)</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label>Tier Discounts</Label>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border p-4">
                         {loyaltyLevels?.map(level => (
                             <div key={level.id} className="grid grid-cols-2 items-center gap-2">
@@ -317,9 +338,9 @@ export default function DailyOfferTable() {
                                     id={`price-${level.id}`}
                                     type="number"
                                     step="0.01"
-                                    placeholder='Rs.'
-                                    value={formData.tierPrices[level.id] ?? ''}
-                                    onChange={(e) => handleTierPriceChange(level.id, e.target.value)}
+                                    placeholder={formData.discountType === 'fixed' ? 'Rs.' : '%'}
+                                    value={formData.tierDiscounts[level.id] ?? ''}
+                                    onChange={(e) => handleTierDiscountChange(level.id, e.target.value)}
                                 />
                             </div>
                         ))}

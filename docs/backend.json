@@ -12,7 +12,10 @@
         "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
         "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
         "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
-        "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." }
+        "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
+        "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
+        "birthdayCredit": { "type": "number", "description": "Store credit awarded for a birthday." },
+        "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." }
       },
       "required": ["id", "email", "name", "role"]
     },
@@ -90,16 +93,21 @@
         "id": { "type": "string", "description": "Unique ID for the offer." },
         "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
         "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
-        "tierPrices": {
+        "tierDiscounts": {
           "type": "object",
-          "description": "A map of loyalty tier IDs to their specific discount price.",
+          "description": "A map of loyalty tier IDs to their specific discount value.",
           "additionalProperties": {
             "type": "number"
           }
         },
+        "discountType": {
+            "type": "string",
+            "enum": ["fixed", "percentage"],
+            "description": "The type of discount (Rs. or %)."
+        },
         "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "tierPrices", "offerDate"]
+      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerDate"]
     }
   },
   "auth": {

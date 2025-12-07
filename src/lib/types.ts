@@ -49,9 +49,10 @@ export type Order = {
 export type DailyOffer = {
   id: string;
   menuItemId: string;
-  tierPrices: { [key: string]: number }; // e.g., { standard: 2.50, gold: 2.00 }
+  tierDiscounts: { [key: string]: number }; // e.g., { standard: 50, gold: 15 } (value is Rs. or %)
   offerDate: string; // Stored as YYYY-MM-DD string
   title: string;
+  discountType: 'fixed' | 'percentage'; // Rs. amount or %
 }
 
 export type CartItem = {
