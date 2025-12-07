@@ -6,15 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category } from '@/lib/types';
+import type { MenuItem, CartItem, Category, Order } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -84,14 +87,16 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
             status: "Placed" as const,
-            menuItemIds: cart.map(item => item.menuItem.id)
+            menuItemIds: cart.map(item => item.menuItem.id),
+            orderType: orderType
         };
         const userOrderData = {
             customerId: user.uid,
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
             status: "Placed" as const,
-            menuItemIds: cart.map(item => item.menuItem.id)
+            menuItemIds: cart.map(item => item.menuItem.id),
+            orderType: orderType
         };
 
         // 3. Set the data for the root order document
@@ -124,7 +129,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
 
         toast({
             title: "Order Placed!",
-            description: `Your pickup order has been confirmed. You've earned ${pointsToEarn} points!`,
+            description: `Your ${orderType} order has been confirmed. You've earned ${pointsToEarn} points!`,
         });
         setCart([]);
 
@@ -141,6 +146,31 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
 
   return (
     <>
+      <div className="mb-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Order Type</CardTitle>
+                <CardDescription>Select how you'd like to receive your order.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <RadioGroup defaultValue="Pick up" value={orderType} onValueChange={(value: Order['orderType']) => setOrderType(value)} className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Dine-in" id="dine-in" />
+                        <Label htmlFor="dine-in">Dine-in</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Pick up" id="pick-up" />
+                        <Label htmlFor="pick-up">Pick up</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Takeway" id="takeway" />
+                        <Label htmlFor="takeway">Takeway</Label>
+                    </div>
+                </RadioGroup>
+            </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue={mainCategories[0]} className="w-full">
         <div className="flex justify-center mb-6">
           <TabsList>
@@ -194,7 +224,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
         <SheetContent>
           <SheetHeader>
             <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
-            <SheetDescription>Review your items before placing your pickup order.</SheetDescription>
+            <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
           </SheetHeader>
           <div className="flex-1 py-4 overflow-y-auto">
             {cart.length === 0 ? (
@@ -227,7 +257,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                     <span>Total:</span>
                     <span>Rs. {cartTotal.toFixed(2)}</span>
                 </div>
-                <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place Pickup Order</Button>
+                <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
             </div>
           </SheetFooter>
         </SheetContent>

@@ -18,7 +18,7 @@ import { doc } from 'firebase/firestore';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/order', label: 'Order Online', icon: ShoppingCart },
+  { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
 

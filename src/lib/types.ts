@@ -38,6 +38,7 @@ export type Order = {
     totalAmount: number;
     status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed';
     menuItemIds: string[];
+    orderType: 'Dine-in' | 'Pick up' | 'Takeway';
 }
 
 export type CartItem = {

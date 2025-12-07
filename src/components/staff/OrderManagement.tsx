@@ -72,6 +72,20 @@ export default function OrderManagement() {
         return 'secondary';
     }
   };
+  
+    const getOrderTypeVariant = (orderType?: Order['orderType']) => {
+    switch (orderType) {
+      case 'Dine-in':
+        return 'default';
+      case 'Pick up':
+        return 'secondary';
+      case 'Takeway':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -103,6 +117,7 @@ export default function OrderManagement() {
             <TableRow>
               <TableHead>Order ID</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -113,6 +128,9 @@ export default function OrderManagement() {
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id.substring(0, 7).toUpperCase()}</TableCell>
                 <TableCell>{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleString() : 'N/A'}</TableCell>
+                <TableCell>
+                    <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
+                </TableCell>
                 <TableCell>Rs. {order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>

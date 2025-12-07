@@ -65,9 +65,14 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "List of IDs of the menu items in the order."
+        },
+        "orderType": {
+            "type": "string",
+            "enum": ["Dine-in", "Pick up", "Takeway"],
+            "description": "The type of order."
         }
       },
-      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds"]
+      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]
     }
   },
   "auth": {

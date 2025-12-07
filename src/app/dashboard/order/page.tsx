@@ -32,7 +32,7 @@ export default function OrderPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Order for Pickup</h1>
+        <h1 className="text-3xl font-bold font-headline">Place an Order</h1>
         <p className="text-muted-foreground">Select your favorites and we'll have them ready for you.</p>
       </div>
       <MenuDisplay menuItems={menuItems || []} />
