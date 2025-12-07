@@ -20,7 +20,7 @@ import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
-import type { Category, LoyaltyLevel } from '@/lib/types';
+import type { Category, LoyaltyLevel, UserProfile } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -218,10 +218,37 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       
     } else { // Login
       try {
-        await signInWithEmailAndPassword(auth, data.email, data.password);
-        // onAuthStateChanged in provider will handle redirect
-        const targetPath = getDashboardPathForRole(role);
-        router.push(targetPath);
+        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+        
+        // After successful login, check the user's role from Firestore
+        const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userProfile = userDocSnap.data() as UserProfile;
+            if (userProfile.role === role) {
+                // Role matches, proceed to dashboard
+                const targetPath = getDashboardPathForRole(role);
+                router.push(targetPath);
+            } else {
+                // Role mismatch, sign out and show error
+                await auth.signOut();
+                toast({
+                    variant: 'destructive',
+                    title: 'Access Denied',
+                    description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
+                });
+            }
+        } else {
+            // This case should ideally not happen if signup is done correctly
+             await auth.signOut();
+             toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: 'User profile not found. Please contact support.',
+            });
+        }
+
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -339,7 +366,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 <Calendar
                                   mode="single"
                                   captionLayout="dropdown-buttons"
-                                  fromYear={new Date().getFullYear() - 100}
+                                  fromYear={1920}
                                   toYear={new Date().getFullYear()}
                                   selected={field.value}
                                   onSelect={field.onChange}
@@ -440,3 +467,5 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
