@@ -9,6 +9,7 @@ export type UserProfile = {
   loyaltyPoints?: number;
   loyaltyLevelId?: string;
   role: 'customer' | 'admin' | 'staff';
+  dateOfBirth?: string;
 };
 
 export type MenuItem = {

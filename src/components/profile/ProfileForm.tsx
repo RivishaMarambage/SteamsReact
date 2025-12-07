@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +20,17 @@ import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/lib/types";
 import { useFirestore } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "@/lib/utils";
+import { Calendar } from "../ui/calendar";
+import { CalendarIcon } from "lucide-react";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   cafeNickname: z.string().optional(),
   email: z.string().email(),
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }).optional().or(z.literal('')),
+  dateOfBirth: z.date().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -40,13 +46,18 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
       cafeNickname: userProfile.cafeNickname || '',
       email: userProfile.email,
       mobileNumber: userProfile.mobileNumber || '',
+      dateOfBirth: userProfile.dateOfBirth ? new Date(userProfile.dateOfBirth) : undefined,
     },
     mode: "onChange",
   });
 
   async function onSubmit(data: ProfileFormValues) {
     const userRef = doc(firestore, "users", userProfile.id);
-    await setDoc(userRef, data, { merge: true });
+    const profileData = {
+        ...data,
+        dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
+    }
+    await setDoc(userRef, profileData, { merge: true });
     
     toast({
       title: "Profile Updated",
@@ -114,6 +125,48 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                       <FormMessage />
                       </FormItem>
                   )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of birth</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                         <FormDescription>Your date of birth is used to send you birthday wishes.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
               </>
             )}

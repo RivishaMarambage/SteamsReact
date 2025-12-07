@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { CalendarIcon, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
@@ -21,6 +21,10 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignIn
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import type { Category, LoyaltyLevel } from '@/lib/types';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Calendar } from '../ui/calendar';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -28,6 +32,7 @@ const formSchema = z.object({
   fullName: z.string().optional(),
   mobileNumber: z.string().optional(),
   cafeNickname: z.string().optional(),
+  dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
 });
 
@@ -191,6 +196,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           role,
           mobileNumber: data.mobileNumber || '',
           cafeNickname: data.cafeNickname || '',
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
           loyaltyPoints: 0,
           loyaltyLevelId: "member", // Default loyalty level
         };
@@ -304,6 +310,47 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="dateOfBirth"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Date of birth</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full pl-3 text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, "PPP")
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) =>
+                                    date > new Date() || date < new Date("1900-01-01")
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </>
                   )}
                 </>
@@ -390,5 +437,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-
-    

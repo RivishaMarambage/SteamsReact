@@ -1,4 +1,5 @@
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
+import BirthdayReminders from "@/components/dashboard/BirthdayReminders";
 
 export default function AdminAnalyticsPage() {
   return (
@@ -10,6 +11,9 @@ export default function AdminAnalyticsPage() {
         </p>
       </div>
       <AnalyticsDashboard />
+      <div className="mt-8">
+        <BirthdayReminders />
+      </div>
     </div>
   );
 }

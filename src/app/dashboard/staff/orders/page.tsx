@@ -1,3 +1,4 @@
+import BirthdayReminders from "@/components/dashboard/BirthdayReminders";
 import OrderManagement from "@/components/staff/OrderManagement";
 
 export default function StaffOrdersPage() {
@@ -8,6 +9,9 @@ export default function StaffOrdersPage() {
         <p className="text-muted-foreground">View and manage incoming customer orders.</p>
       </div>
       <OrderManagement />
+      <div className="mt-8">
+        <BirthdayReminders />
+      </div>
     </div>
   );
 }
