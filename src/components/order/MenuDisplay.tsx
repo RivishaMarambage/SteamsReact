@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from 'react';
@@ -250,7 +249,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex flex-col">
+        <SheetContent className="flex flex-col w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
             <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
@@ -338,3 +337,4 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
   );
 }
 
+    
