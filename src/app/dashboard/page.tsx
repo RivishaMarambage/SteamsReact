@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, User as UserIcon } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import BirthdayReward from "@/components/dashboard/BirthdayReward";
 
 export default function DashboardPage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -46,6 +47,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-8">
+        <BirthdayReward user={user} />
         <div className="grid md:grid-cols-2 gap-8">
             <Card className="shadow-lg flex flex-col justify-between">
                 <CardHeader>

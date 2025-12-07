@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -18,8 +18,13 @@ import { Separator } from '../ui/separator';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
 
+interface MenuDisplayProps {
+  menuItems: MenuItem[];
+  dailyOffers: DailyOffer[];
+  freebieToClaim: string | null;
+}
 
-export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: MenuItem[], dailyOffers: DailyOffer[] }) {
+export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -28,7 +33,7 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
   const firestore = useFirestore();
   
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
@@ -62,6 +67,28 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
       });
     }
   };
+
+  useEffect(() => {
+    if (freebieToClaim && menuItems.length > 0 && userProfile && !isProfileLoading) {
+        const freebieInProfile = userProfile.birthdayFreebieMenuItemIds?.includes(freebieToClaim);
+        if (!freebieInProfile) return;
+
+        const alreadyInCart = cart.some(item => item.menuItem.id === freebieToClaim && item.menuItem.price === 0);
+        if (alreadyInCart) return;
+        
+        const freebieItem = menuItems.find(item => item.id === freebieToClaim);
+        if (freebieItem) {
+            addToCart({ ...freebieItem, price: 0 }, 1);
+            if (userDocRef) {
+                updateDoc(userDocRef, { birthdayFreebieMenuItemIds: [] });
+            }
+            toast({
+                title: "Birthday Reward Added!",
+                description: `Your free ${freebieItem.name} has been added to your cart.`,
+            });
+        }
+    }
+  }, [freebieToClaim, menuItems, userProfile, isProfileLoading]);
 
   const updateQuantity = (itemId: string, amount: number) => {
     setCart(prevCart => {
@@ -99,17 +126,6 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a Rs. ${redeemAmount.toFixed(2)} discount.` });
   };
   
-  const claimFreebie = (freebieId: string) => {
-    const freebieItem = menuItems.find(item => item.id === freebieId);
-    if (freebieItem) {
-      addToCart({ ...freebieItem, price: 0 }, 1); // Add to cart with price 0
-      
-      // Remove the freebie from the user's profile so it can't be claimed again
-      if (userDocRef) {
-        updateDoc(userDocRef, { birthdayFreebieMenuItemIds: [] });
-      }
-    }
-  }
 
   const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
   const loyaltyDiscount = Math.min(subtotal, Number(pointsToRedeem) || 0); // Discount cannot be more than the subtotal
@@ -126,7 +142,8 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
     
     try {
         const batch = writeBatch(firestore);
-        const userDocRef = doc(firestore, "users", authUser.uid);
+        
+        if (!userDocRef) return;
 
         // 1. Create a new document ref in the root /orders collection
         const rootOrderRef = doc(collection(firestore, 'orders'));
@@ -336,23 +353,11 @@ export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: Men
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
                   
-                  {/* Birthday Rewards */}
-                  {(userProfile?.birthdayCredit || userProfile?.birthdayFreebieMenuItemIds) && (
-                     <div className="space-y-2 p-3 bg-accent/10 rounded-lg border border-accent/20">
-                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Your Birthday Reward!</h3>
-                      {userProfile.birthdayCredit && userProfile.birthdayCredit > 0 && (
-                        <p className="text-sm text-muted-foreground">You have a <span className="font-bold">Rs. {userProfile.birthdayCredit.toFixed(2)}</span> credit. It will be automatically applied.</p>
-                      )}
-                      {userProfile.birthdayFreebieMenuItemIds?.map(freebieId => {
-                         const freebieItem = menuItems.find(item => item.id === freebieId);
-                         const isClaimed = cart.some(cartItem => cartItem.menuItem.id === freebieId && cartItem.menuItem.price === 0);
-                         return freebieItem && !isClaimed ? (
-                            <div key={freebieId} className="flex items-center justify-between">
-                              <p className="text-sm">Free: <span className="font-bold">{freebieItem.name}</span></p>
-                              <Button size="sm" variant="secondary" onClick={() => claimFreebie(freebieId)}>Claim</Button>
-                            </div>
-                         ) : null;
-                      })}
+                  {/* Birthday Credit Message */}
+                  {birthdayCreditDiscount > 0 && (
+                     <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
+                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Credit Applied!</h3>
+                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">Rs. {birthdayCreditDiscount.toFixed(2)}</span> credit has been automatically applied.</p>
                     </div>
                   )}
 

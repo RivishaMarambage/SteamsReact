@@ -6,9 +6,11 @@ import { useCollection } from "@/firebase";
 import { collection, getFirestore, query, where } from "firebase/firestore";
 import { DailyOffer, MenuItem } from "@/lib/types";
 import { format } from "date-fns";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 
-export default function OrderPage() {
+function OrderPageContent() {
   const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>("menu_items");
   
   // Get today's date in YYYY-MM-DD format
@@ -16,6 +18,9 @@ export default function OrderPage() {
   const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(
     query(collection(getFirestore(), 'daily_offers'), where('offerDate', '==', todayStr))
   );
+
+  const searchParams = useSearchParams();
+  const freebieToClaim = searchParams.get('claimFreebie');
 
   const isLoading = menuLoading || offersLoading;
 
@@ -45,7 +50,15 @@ export default function OrderPage() {
         <h1 className="text-3xl font-bold font-headline">Place an Order</h1>
         <p className="text-muted-foreground">Select your favorites and we'll have them ready for you.</p>
       </div>
-      <MenuDisplay menuItems={menuItems || []} dailyOffers={dailyOffers || []} />
+      <MenuDisplay menuItems={menuItems || []} dailyOffers={dailyOffers || []} freebieToClaim={freebieToClaim} />
     </div>
   );
+}
+
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OrderPageContent />
+    </Suspense>
+  )
 }
