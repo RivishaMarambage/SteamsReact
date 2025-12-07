@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { DailyOffer, MenuItem, LoyaltyLevel } from '@/lib/types';
+import type { DailyOffer, MenuItem, LoyaltyLevel, Order } from '@/lib/types';
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
@@ -17,7 +17,6 @@ import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc, orderBy, query } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar } from '../ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
@@ -32,6 +31,7 @@ const INITIAL_FORM_DATA: Omit<DailyOffer, 'id'> = {
   offerDate: format(new Date(), 'yyyy-MM-dd'),
   tierDiscounts: {},
   discountType: 'fixed',
+  orderType: 'Pick up',
 };
 
 export default function DailyOfferTable() {
@@ -65,6 +65,7 @@ export default function DailyOfferTable() {
           menuItemId: selectedOffer.menuItemId,
           offerDate: selectedOffer.offerDate,
           discountType: selectedOffer.discountType,
+          orderType: selectedOffer.orderType,
           tierDiscounts: { ...initialTierDiscounts, ...selectedOffer.tierDiscounts },
         });
       } else {
@@ -95,6 +96,10 @@ export default function DailyOfferTable() {
 
    const handleDiscountTypeChange = (value: 'fixed' | 'percentage') => {
     setFormData(prev => ({ ...prev, discountType: value }));
+  };
+
+  const handleOrderTypeChange = (value: Order['orderType']) => {
+    setFormData(prev => ({ ...prev, orderType: value }));
   };
   
   const handleDateSelect = (date?: Date) => {
@@ -157,6 +162,7 @@ export default function DailyOfferTable() {
         menuItemId: formData.menuItemId,
         offerDate: formData.offerDate,
         discountType: formData.discountType,
+        orderType: formData.orderType,
         tierDiscounts: finalTierDiscounts,
     };
 
@@ -212,6 +218,7 @@ export default function DailyOfferTable() {
               <TableHead>Date</TableHead>
               <TableHead>Offer Title</TableHead>
               <TableHead>Menu Item</TableHead>
+              <TableHead>Order Type</TableHead>
               <TableHead>Tier Discounts</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -225,6 +232,7 @@ export default function DailyOfferTable() {
                   <TableCell><Badge variant="outline">{offer.offerDate}</Badge></TableCell>
                   <TableCell className="font-medium">{offer.title}</TableCell>
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
+                  <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
                   <TableCell>
                     <div className="flex flex-col text-xs">
                         {offer.tierDiscounts && Object.entries(offer.tierDiscounts).map(([tierId, discount]) => (
@@ -313,7 +321,23 @@ export default function DailyOfferTable() {
                       </Popover>
                   </div>
                </div>
-
+                <div className="grid gap-2">
+                  <Label>Order Type</Label>
+                  <RadioGroup value={formData.orderType} onValueChange={handleOrderTypeChange} className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Dine-in" id="dine-in" />
+                        <Label htmlFor="dine-in">Dine-in</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Pick up" id="pick-up" />
+                        <Label htmlFor="pick-up">Pick up</Label>
+                    </div>
+                     <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Takeway" id="takeway" />
+                        <Label htmlFor="takeway">Takeway</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
                 <div className="grid gap-2">
                     <Label>Discount Type</Label>
                      <RadioGroup value={formData.discountType} onValueChange={handleDiscountTypeChange} className="flex gap-4">
@@ -372,3 +396,5 @@ export default function DailyOfferTable() {
     </Card>
   );
 }
+
+    

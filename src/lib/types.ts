@@ -53,9 +53,12 @@ export type DailyOffer = {
   offerDate: string; // Stored as YYYY-MM-DD string
   title: string;
   discountType: 'fixed' | 'percentage'; // Rs. amount or %
+  orderType: 'Dine-in' | 'Pick up' | 'Takeway';
 }
 
 export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
+
+    

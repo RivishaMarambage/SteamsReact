@@ -270,7 +270,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     <h2 className="text-2xl font-bold font-headline mb-4">{subCategory.name}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
-                        const offer = dailyOffers.find(o => o.menuItemId === item.id);
+                        const offer = dailyOffers.find(o => o.menuItemId === item.id && o.orderType === orderType);
                         
                         const originalPrice = item.price;
                         let displayPrice = originalPrice;
@@ -430,3 +430,5 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
+    

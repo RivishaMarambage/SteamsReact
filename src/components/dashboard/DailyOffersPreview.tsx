@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel } from "@/lib/types";
+import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel, Order } from "@/lib/types";
 import { collection, query, where, doc, orderBy } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -113,6 +113,7 @@ export default function DailyOffersPreview() {
                                     <span className="text-sm font-normal text-muted-foreground line-through mx-2">Rs. {offer.originalPrice.toFixed(2)}</span>
                                     <span className="font-bold text-primary">Rs. {offer.displayPrice.toFixed(2)}</span>
                                 </p>
+                                <p className="text-xs text-muted-foreground capitalize">Valid for {offer.orderType} orders.</p>
                            </div>
                            <Button asChild>
                                 <Link href="/dashboard/order">Order Now</Link>
@@ -124,3 +125,5 @@ export default function DailyOffersPreview() {
         </Card>
     );
 }
+
+    

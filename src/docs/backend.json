@@ -185,6 +185,62 @@
         "role",
         "name"
       ]
+    },
+    "DailyOffer": {
+      "title": "Daily Offer",
+      "type": "object",
+      "description": "Represents a special daily offer for a menu item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID for the offer."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the offer (e.g., 'Muffin Monday')."
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "The ID of the menu item on offer."
+        },
+        "tierDiscounts": {
+          "type": "object",
+          "description": "A map of loyalty tier IDs to their specific discount value.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "discountType": {
+          "type": "string",
+          "enum": [
+            "fixed",
+            "percentage"
+          ],
+          "description": "The type of discount (Rs. or %)."
+        },
+        "offerDate": {
+          "type": "string",
+          "description": "The date the offer is valid for, in YYYY-MM-DD format."
+        },
+        "orderType": {
+          "type": "string",
+          "enum": [
+            "Dine-in",
+            "Pick up",
+            "Takeway"
+          ],
+          "description": "The type of order the offer is valid for."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "menuItemId",
+        "tierDiscounts",
+        "discountType",
+        "offerDate",
+        "orderType"
+      ]
     }
   },
   "auth": {
@@ -310,9 +366,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/daily_offers/{offerId}",
+        "definition": {
+          "entityName": "DailyOffer",
+          "schema": {
+            "$ref": "#/entities/DailyOffer"
+          },
+          "description": "Publicly readable list of daily offers. Writable only by admins.",
+          "params": [
+            {
+              "name": "offerId",
+              "description": "Unique ID for the daily offer."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore data structure has been simplified by merging the `CustomerProfile` entity into the `User` entity. This creates a single, unified `/users/{userId}` collection that serves as the source of truth for all user-related information, including their role, profile data, and loyalty status. This eliminates the need for the separate `/customer_profiles` collection and complex `get()` calls in security rules, which was a primary source of permission errors.\n\n**Role-Based Access Control:** Role management remains explicit and secure. Admin and staff roles are granted by the existence of documents in the `/roles_admin/{userId}` and `/roles_staff/{userId}` collections, respectively. This is a secure pattern that is now correctly implemented in the client-side code."
   }
 }
+
     
