@@ -11,7 +11,7 @@ import { Tag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 
-const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[]): number | undefined => {
+const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[] | null): number | undefined => {
     if (!offer.tierDiscounts || !userProfile || !loyaltyLevels) {
       return undefined;
     }
@@ -27,15 +27,6 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
           return offer.tierDiscounts[tier.id];
         }
       }
-    }
-    
-    // Check for a specific 'member' tier discount if no other tier matched.
-    // This is for users who have 0 points but might have a 'member' tier offer.
-    if (offer.tierDiscounts['member'] !== undefined && offer.tierDiscounts['member'] !== null) {
-        const memberTier = loyaltyLevels.find(l => l.id === 'member');
-        if(memberTier && userPoints >= memberTier.minimumPoints) {
-             return offer.tierDiscounts['member'];
-        }
     }
   
     return undefined;
@@ -62,7 +53,7 @@ export default function DailyOffersPreview() {
     
     const filteredOffers = dailyOffers?.map(offer => {
         const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
-        if (!menuItem || !loyaltyLevels) return null;
+        if (!menuItem) return null;
 
         const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
         if (discountValue === undefined) {

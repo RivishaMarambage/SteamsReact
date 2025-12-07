@@ -41,14 +41,6 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
         }
       }
     }
-    
-    // Check for a specific 'member' tier discount if no other tier matched.
-    if (offer.tierDiscounts['member'] !== undefined && offer.tierDiscounts['member'] !== null) {
-        const memberTier = loyaltyLevels.find(l => l.id === 'member');
-        if(memberTier && userPoints >= memberTier.minimumPoints) {
-             return offer.tierDiscounts['member'];
-        }
-    }
   
     return undefined;
 };
