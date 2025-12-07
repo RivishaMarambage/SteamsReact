@@ -3,7 +3,7 @@
 
 import { useCollection } from "@/firebase";
 import { UserProfile } from "@/lib/types";
-import { isWithinInterval, addDays, parseISO, getMonth, getDate } from 'date-fns';
+import { isWithinInterval, addDays, parseISO, format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { Gift } from "lucide-react";
@@ -33,17 +33,21 @@ export default function BirthdayReminders() {
 
   const upcomingBirthdays = users?.filter(user => {
     if (!user.dateOfBirth) return false;
-    const dob = parseISO(user.dateOfBirth);
-    
-    // Set the year to the current year to check for the upcoming birthday
-    dob.setFullYear(today.getFullYear());
+    try {
+        const dob = parseISO(user.dateOfBirth);
+        
+        // Set the year to the current year to check for the upcoming birthday
+        dob.setFullYear(today.getFullYear());
 
-    // If birthday has already passed this year, check for next year's birthday
-    if (dob < today) {
-        dob.setFullYear(today.getFullYear() + 1);
+        // If birthday has already passed this year, check for next year's birthday
+        if (dob < today) {
+            dob.setFullYear(today.getFullYear() + 1);
+        }
+        
+        return isWithinInterval(dob, { start: today, end: nextWeek });
+    } catch (e) {
+        return false;
     }
-    
-    return isWithinInterval(dob, { start: today, end: nextWeek });
   }).sort((a, b) => {
     const dateA = parseISO(a.dateOfBirth!);
     const dateB = parseISO(b.dateOfBirth!);
@@ -81,3 +85,4 @@ export default function BirthdayReminders() {
     </Card>
   );
 }
+
