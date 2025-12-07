@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -15,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
+import Image from 'next/image';
 
 
 export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
@@ -253,23 +255,35 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
             <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
             <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
           </SheetHeader>
-          <div className="flex-1 py-4 overflow-y-auto">
+          <div className="flex-1 py-4 overflow-y-auto -mx-6 px-6">
             {cart.length === 0 ? (
-              <div className="text-center text-muted-foreground py-16">Your cart is empty.</div>
+              <div className="text-center text-muted-foreground h-full flex flex-col items-center justify-center">
+                <ShoppingCart className="w-16 h-16 mb-4 text-muted-foreground/50" />
+                <p>Your cart is empty.</p>
+                <p className="text-sm">Add items from the menu to get started.</p>
+                </div>
             ) : (
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.menuItem.id} className="flex items-center gap-4">
-                    <div className="flex-grow">
-                      <p className="font-semibold">{item.menuItem.name}</p>
+                  <div key={item.menuItem.id} className="flex items-center gap-4 pr-2">
+                    <Image
+                        src={`https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                        alt={item.menuItem.name}
+                        width={64}
+                        height={64}
+                        className="rounded-md object-cover"
+                        data-ai-hint="food item"
+                    />
+                    <div className="flex-grow grid gap-1">
+                      <p className="font-semibold leading-tight">{item.menuItem.name}</p>
                       <p className="text-sm text-muted-foreground">Rs. {item.menuItem.price.toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.menuItem.id, -1)}>
-                        {item.quantity === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.menuItem.id, -1)}>
+                        {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
                       </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.menuItem.id, 1)}>
+                      <span className="w-6 text-center font-medium">{item.quantity}</span>
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.menuItem.id, 1)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -278,7 +292,7 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
               </div>
             )}
           </div>
-          <SheetFooter className="flex-col space-y-4">
+          <SheetFooter className="flex-col space-y-4 pt-4">
             {cart.length > 0 && (
                 <>
                 <Separator />
