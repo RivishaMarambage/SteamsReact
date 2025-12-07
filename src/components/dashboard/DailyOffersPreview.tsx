@@ -2,14 +2,40 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { DailyOffer, MenuItem, UserProfile } from "@/lib/types";
-import { collection, query, where, doc } from "firebase/firestore";
+import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel } from "@/lib/types";
+import { collection, query, where, doc, orderBy } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Tag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
+
+const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[]): number | undefined => {
+    if (!offer.tierDiscounts) {
+      return undefined;
+    }
+  
+    // Sort tiers from highest points to lowest
+    const sortedTiers = [...loyaltyLevels].sort((a, b) => b.minimumPoints - a.minimumPoints);
+    const userPoints = userProfile?.loyaltyPoints ?? 0;
+  
+    // Find the best tier the user qualifies for that has a discount
+    for (const tier of sortedTiers) {
+      if (userPoints >= tier.minimumPoints) {
+        if (offer.tierDiscounts[tier.id] !== undefined) {
+          return offer.tierDiscounts[tier.id];
+        }
+      }
+    }
+  
+    // Fallback for users who might not fit a tier but there's a 'member' discount
+    if (offer.tierDiscounts['member'] !== undefined) {
+      return offer.tierDiscounts['member'];
+    }
+  
+    return undefined;
+};
 
 export default function DailyOffersPreview() {
     const firestore = useFirestore();
@@ -25,7 +51,10 @@ export default function DailyOffersPreview() {
     const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
     const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userDocRef);
 
-    const isLoading = offersLoading || menuLoading || profileLoading;
+    const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
+    const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
+    const isLoading = offersLoading || menuLoading || profileLoading || areLevelsLoading;
 
     if (isLoading) {
         return (
@@ -41,8 +70,8 @@ export default function DailyOffersPreview() {
         )
     }
 
-    if (!dailyOffers || dailyOffers.length === 0) {
-        return null; // Don't show the card if there are no offers today
+    if (!dailyOffers || dailyOffers.length === 0 || !loyaltyLevels) {
+        return null; // Don't show the card if there are no offers or levels today
     }
 
     return (
@@ -56,20 +85,11 @@ export default function DailyOffersPreview() {
                     const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
                     if (!menuItem) return null;
 
-                    let displayPrice = menuItem.price;
                     const originalPrice = menuItem.price;
+                    let displayPrice = originalPrice;
                     let isOfferApplied = false;
-                    let discountValue: number | undefined;
-
-                    if (offer.tierDiscounts) {
-                        const userTierId = userProfile?.loyaltyLevelId;
-
-                        if (userTierId && offer.tierDiscounts[userTierId] !== undefined) {
-                            discountValue = offer.tierDiscounts[userTierId];
-                        } else if (offer.tierDiscounts['member'] !== undefined) {
-                            discountValue = offer.tierDiscounts['member'];
-                        }
-                    }
+                    
+                    const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
 
                     if (discountValue !== undefined) {
                         if (offer.discountType === 'percentage') {

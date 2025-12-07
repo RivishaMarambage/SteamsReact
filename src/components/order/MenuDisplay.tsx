@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer } from '@/lib/types';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, orderBy } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -23,6 +23,33 @@ interface MenuDisplayProps {
   dailyOffers: DailyOffer[];
   freebieToClaim: string | null;
 }
+
+const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[]): number | undefined => {
+    if (!offer.tierDiscounts) {
+      return undefined;
+    }
+  
+    // Sort tiers from highest points to lowest
+    const sortedTiers = [...loyaltyLevels].sort((a, b) => b.minimumPoints - a.minimumPoints);
+    const userPoints = userProfile?.loyaltyPoints ?? 0;
+  
+    // Find the best tier the user qualifies for that has a discount
+    for (const tier of sortedTiers) {
+      if (userPoints >= tier.minimumPoints) {
+        if (offer.tierDiscounts[tier.id] !== undefined) {
+          return offer.tierDiscounts[tier.id];
+        }
+      }
+    }
+  
+    // Fallback for users who might not fit a tier but there's a 'member' discount
+    if (offer.tierDiscounts['member'] !== undefined) {
+      return offer.tierDiscounts['member'];
+    }
+  
+    return undefined;
+};
+
 
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -37,6 +64,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+  
+  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
+  const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
@@ -246,20 +277,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const offer = dailyOffers.find(o => o.menuItemId === item.id);
                         
-                        let displayPrice = item.price;
                         const originalPrice = item.price;
+                        let displayPrice = originalPrice;
                         let isOfferApplied = false;
-                        let discountValue: number | undefined;
-
-                        if (offer && offer.tierDiscounts) {
-                            const userTierId = userProfile?.loyaltyLevelId;
-
-                            if (userTierId && offer.tierDiscounts[userTierId] !== undefined) {
-                                discountValue = offer.tierDiscounts[userTierId];
-                            } else if (offer.tierDiscounts['member'] !== undefined) {
-                                discountValue = offer.tierDiscounts['member'];
-                            }
-                            
+                        
+                        if (offer && loyaltyLevels) {
+                            const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
                             if (discountValue !== undefined) {
                                 if (offer.discountType === 'percentage') {
                                     displayPrice = originalPrice - (originalPrice * discountValue / 100);
