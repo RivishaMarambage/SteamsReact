@@ -249,14 +249,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         let displayPrice = item.price;
                         const originalPrice = item.price;
                         let isOfferApplied = false;
+                        let discountValue: number | undefined;
 
                         if (offer && offer.tierDiscounts) {
                             const userTierId = userProfile?.loyaltyLevelId;
-                            let discountValue: number | undefined;
 
-                            if (userTierId && offer.tierDiscounts[userTierId]) {
+                            if (userTierId && offer.tierDiscounts[userTierId] !== undefined) {
                                 discountValue = offer.tierDiscounts[userTierId];
-                            } else if (offer.tierDiscounts['member']) {
+                            } else if (offer.tierDiscounts['member'] !== undefined) {
                                 discountValue = offer.tierDiscounts['member'];
                             }
                             

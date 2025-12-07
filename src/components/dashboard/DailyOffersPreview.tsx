@@ -64,9 +64,9 @@ export default function DailyOffersPreview() {
                     if (offer.tierDiscounts) {
                         const userTierId = userProfile?.loyaltyLevelId;
 
-                        if (userTierId && offer.tierDiscounts[userTierId]) {
+                        if (userTierId && offer.tierDiscounts[userTierId] !== undefined) {
                             discountValue = offer.tierDiscounts[userTierId];
-                        } else if (offer.tierDiscounts['member']) {
+                        } else if (offer.tierDiscounts['member'] !== undefined) {
                             discountValue = offer.tierDiscounts['member'];
                         }
                     }
