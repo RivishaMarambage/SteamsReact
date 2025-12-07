@@ -81,6 +81,19 @@
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]
+    },
+    "DailyOffer": {
+      "title": "Daily Offer",
+      "type": "object",
+      "description": "Represents a special daily offer for a menu item.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the offer." },
+        "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
+        "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
+        "discountPrice": { "type": "number", "description": "The special discounted price for the item." },
+        "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
+      },
+      "required": ["id", "title", "menuItemId", "discountPrice", "offerDate"]
     }
   },
   "auth": {
@@ -143,6 +156,15 @@
             { "name": "userId", "description": "The user's unique auth ID." },
             { "name": "orderId", "description": "Unique ID for the order, matches the ID in the root /orders collection." }
           ]
+        }
+      },
+      {
+        "path": "/daily_offers/{offerId}",
+        "definition": {
+          "entityName": "DailyOffer",
+          "schema": { "$ref": "#/entities/DailyOffer" },
+          "description": "Publicly readable list of daily offers. Writable only by admins.",
+          "params": [{ "name": "offerId", "description": "Unique ID for the daily offer." }]
         }
       }
     ]

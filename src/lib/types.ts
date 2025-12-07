@@ -46,8 +46,15 @@ export type Order = {
     discountApplied?: number;
 }
 
+export type DailyOffer = {
+  id: string;
+  menuItemId: string;
+  discountPrice: number;
+  offerDate: string; // Stored as YYYY-MM-DD string
+  title: string;
+}
+
 export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
-

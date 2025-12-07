@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket } from 'lucide-react';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer } from '@/lib/types';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
@@ -16,9 +16,10 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
 import Image from 'next/image';
+import { Badge } from '../ui/badge';
 
 
-export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
+export default function MenuDisplay({ menuItems, dailyOffers }: { menuItems: MenuItem[], dailyOffers: DailyOffer[] }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -232,15 +233,27 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
                     <h2 className="text-2xl font-bold font-headline mb-4">{subCategory.name}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
+                        const offer = dailyOffers.find(o => o.menuItemId === item.id);
+                        const displayPrice = offer ? offer.discountPrice : item.price;
+                        const originalPrice = item.price;
+
                         return (
                           <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
                             <CardContent className="p-4 flex-grow">
+                               {offer && (
+                                <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
+                                  <Tag className="h-3 w-3"/> Daily Special
+                                </Badge>
+                              )}
                               <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
                               <CardDescription>{item.description}</CardDescription>
                             </CardContent>
                             <CardFooter className="p-4 flex justify-between items-center">
-                              <div className="font-bold text-lg text-primary">Rs. {item.price.toFixed(2)}</div>
-                              <Button size="sm" onClick={() => addToCart(item)}>
+                              <div className="font-bold text-lg text-primary">
+                                {offer && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
+                                Rs. {displayPrice.toFixed(2)}
+                              </div>
+                              <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add
                               </Button>
                             </CardFooter>
@@ -376,4 +389,3 @@ export default function MenuDisplay({ menuItems }: { menuItems: MenuItem[] }) {
     </>
   );
 }
-
