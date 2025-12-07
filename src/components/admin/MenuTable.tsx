@@ -207,7 +207,7 @@ export default function MenuTable() {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{getCategoryName(item.categoryId)}</TableCell>
-                  <TableCell className="text-right">Rs. {item.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -244,7 +244,7 @@ export default function MenuTable() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="price">Price (LKR)</Label>
                   <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
                 </div>
               </div>

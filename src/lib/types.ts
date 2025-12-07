@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 export type UserProfile = {
@@ -49,10 +50,10 @@ export type Order = {
 export type DailyOffer = {
   id: string;
   menuItemId: string;
-  tierDiscounts: { [key: string]: number }; // e.g., { standard: 50, gold: 15 } (value is Rs. or %)
+  tierDiscounts: { [key: string]: number }; // e.g., { standard: 50, gold: 15 } (value is LKR or %)
   offerDate: string; // Stored as YYYY-MM-DD string
   title: string;
-  discountType: 'fixed' | 'percentage'; // Rs. amount or %
+  discountType: 'fixed' | 'percentage'; // LKR amount or %
   orderType: 'Dine-in' | 'Pick up' | 'Takeway';
 }
 
@@ -60,5 +61,3 @@ export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
-
-    

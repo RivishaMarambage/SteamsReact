@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,7 +90,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                 </TableCell>
-                <TableCell className="text-right">Rs. {order.totalAmount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">LKR {order.totalAmount.toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

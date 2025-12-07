@@ -110,8 +110,8 @@ export default function DailyOffersPreview() {
                                 <h4 className="font-semibold">{offer.title} - {offer.menuItem.name}</h4>
                                 <p className="text-sm text-muted-foreground">
                                     Your price today: 
-                                    <span className="text-sm font-normal text-muted-foreground line-through mx-2">Rs. {offer.originalPrice.toFixed(2)}</span>
-                                    <span className="font-bold text-primary">Rs. {offer.displayPrice.toFixed(2)}</span>
+                                    <span className="text-sm font-normal text-muted-foreground line-through mx-2">LKR {offer.originalPrice.toFixed(2)}</span>
+                                    <span className="font-bold text-primary">LKR {offer.displayPrice.toFixed(2)}</span>
                                 </p>
                                 <p className="text-xs text-muted-foreground capitalize">Valid for {offer.orderType} orders.</p>
                            </div>
@@ -125,5 +125,3 @@ export default function DailyOffersPreview() {
         </Card>
     );
 }
-
-    

@@ -66,7 +66,7 @@ export default function BirthdayReminders() {
             return;
         }
         rewardData = { birthdayCredit: creditAmount };
-        toastDescription = `A credit of Rs. ${creditAmount} has been added to their account.`;
+        toastDescription = `A credit of LKR ${creditAmount} has been added to their account.`;
     } else {
         if (!selectedFreebieId) {
             toast({ variant: 'destructive', title: 'No item selected', description: 'Please select a menu item to give.' });
@@ -193,7 +193,7 @@ export default function BirthdayReminders() {
                 </TabsList>
                 <TabsContent value="credit" className="pt-4">
                     <div className="space-y-2">
-                        <Label htmlFor="credit-amount">Credit Amount (Rs.)</Label>
+                        <Label htmlFor="credit-amount">Credit Amount (LKR)</Label>
                         <Input 
                             id="credit-amount" 
                             type="number"
@@ -212,7 +212,7 @@ export default function BirthdayReminders() {
                             <SelectContent>
                                 {menuItems?.map(item => (
                                     <SelectItem key={item.id} value={item.id}>
-                                        {item.name} - Rs. {item.price.toFixed(2)}
+                                        {item.name} - LKR {item.price.toFixed(2)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -230,5 +230,3 @@ export default function BirthdayReminders() {
     </>
   );
 }
-
-    

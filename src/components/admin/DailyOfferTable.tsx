@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, LoyaltyLevel, Order } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, IndianRupee } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -238,7 +238,7 @@ export default function DailyOfferTable() {
                     <div className="flex flex-col text-xs">
                         {offer.tierDiscounts && Object.entries(offer.tierDiscounts).map(([tierId, discount]) => (
                             <div key={tierId} className='capitalize'>
-                                <span className='font-semibold'>{tierId}:</span> {offer.discountType === 'percentage' ? `${discount}%` : `Rs. ${discount.toFixed(2)}`}
+                                <span className='font-semibold'>{tierId}:</span> {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
                             </div>
                         ))}
                     </div>
@@ -344,7 +344,7 @@ export default function DailyOfferTable() {
                      <RadioGroup value={formData.discountType} onValueChange={handleDiscountTypeChange} className="flex gap-4">
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="fixed" id="fixed" />
-                            <Label htmlFor="fixed" className='flex items-center gap-1'><IndianRupee className="h-4 w-4"/> Fixed Amount (Rs.)</Label>
+                            <Label htmlFor="fixed" className='flex items-center gap-1'><span className="font-bold">LKR</span> Fixed Amount</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="percentage" id="percentage" />
@@ -363,7 +363,7 @@ export default function DailyOfferTable() {
                                     id={`price-${level.id}`}
                                     type="number"
                                     step="0.01"
-                                    placeholder={formData.discountType === 'fixed' ? 'Rs.' : '%'}
+                                    placeholder={formData.discountType === 'fixed' ? 'LKR' : '%'}
                                     value={formData.tierDiscounts[level.id] ?? ''}
                                     onChange={(e) => handleTierDiscountChange(level.id, e.target.value)}
                                 />

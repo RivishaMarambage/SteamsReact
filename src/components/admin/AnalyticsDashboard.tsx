@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
@@ -67,7 +68,7 @@ export default function AnalyticsDashboard() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <StatCard title="Total Users" value={totalUsers} icon={Users} isLoading={isLoading} />
       <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} isLoading={isLoading} />
-      <StatCard title="Total Revenue" value={`Rs. ${totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} />
+      <StatCard title="Total Revenue" value={`LKR ${totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} />
     </div>
   );
 }

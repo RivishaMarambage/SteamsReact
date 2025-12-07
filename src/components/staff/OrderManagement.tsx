@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -131,7 +132,7 @@ export default function OrderManagement() {
                 <TableCell>
                     <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
                 </TableCell>
-                <TableCell>Rs. {order.totalAmount.toFixed(2)}</TableCell>
+                <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                 </TableCell>

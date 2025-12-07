@@ -1,3 +1,4 @@
+
 'use client';
 
 import { UserProfile, MenuItem } from "@/lib/types";
@@ -37,7 +38,7 @@ export default function BirthdayReward({ user }: BirthdayRewardProps) {
             <CardContent className="space-y-4">
                 {hasCredit && (
                     <div>
-                        <p className="font-semibold">Rs. {user.birthdayCredit?.toFixed(2)} Store Credit</p>
+                        <p className="font-semibold">LKR {user.birthdayCredit?.toFixed(2)} Store Credit</p>
                         <p className="text-sm text-muted-foreground">This will be automatically applied to your next order.</p>
                     </div>
                 )}

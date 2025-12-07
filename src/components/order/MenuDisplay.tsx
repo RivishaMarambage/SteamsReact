@@ -143,12 +143,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
       return;
     }
     if (redeemAmount > subtotal) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is Rs. ${subtotal.toFixed(2)}.` });
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${subtotal.toFixed(2)}.` });
         return;
     }
 
     setPointsToRedeem(redeemAmount);
-    toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a Rs. ${redeemAmount.toFixed(2)} discount.` });
+    toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
   };
   
 
@@ -304,8 +304,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                             </CardContent>
                             <CardFooter className="p-4 flex justify-between items-center">
                               <div className="font-bold text-lg text-primary">
-                                {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">Rs. {originalPrice.toFixed(2)}</span>}
-                                Rs. {displayPrice.toFixed(2)}
+                                {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
+                                LKR {displayPrice.toFixed(2)}
                               </div>
                               <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add
@@ -360,7 +360,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     </div>
                     <div className="flex-grow grid gap-1">
                       <p className="font-semibold leading-tight">{item.menuItem.name}</p>
-                      <p className="text-sm text-muted-foreground">Rs. {item.menuItem.price.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">LKR {item.menuItem.price.toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.menuItem.id, -1)}>
@@ -383,7 +383,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                   {birthdayCreditDiscount > 0 && (
                      <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
                       <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Credit Applied!</h3>
-                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">Rs. {birthdayCreditDiscount.toFixed(2)}</span> credit has been automatically applied.</p>
+                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayCreditDiscount.toFixed(2)}</span> credit has been automatically applied.</p>
                     </div>
                   )}
 
@@ -408,17 +408,17 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                   <div className="w-full space-y-2 text-sm">
                       <div className="flex justify-between">
                           <span>Subtotal</span>
-                          <span>Rs. {subtotal.toFixed(2)}</span>
+                          <span>LKR {subtotal.toFixed(2)}</span>
                       </div>
                       {totalDiscount > 0 && (
                         <div className="flex justify-between text-destructive">
                             <span>Discount</span>
-                            <span>- Rs. {totalDiscount.toFixed(2)}</span>
+                            <span>- LKR {totalDiscount.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-lg font-bold">
                           <span>Total</span>
-                          <span>Rs. {cartTotal.toFixed(2)}</span>
+                          <span>LKR {cartTotal.toFixed(2)}</span>
                       </div>
                   </div>
                   <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
@@ -430,5 +430,3 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
-
-    
