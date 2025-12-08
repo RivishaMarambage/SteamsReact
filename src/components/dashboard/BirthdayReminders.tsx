@@ -27,7 +27,7 @@ export default function BirthdayReminders() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
   const userRole = userProfile?.role;
-  const canFetchUsers = userRole === 'admin' || userRole === 'staff';
+  const canFetchUsers = userRole === 'admin'; // Only admin can list all users
 
   const usersQuery = useMemoFirebase(() => canFetchUsers ? collection(firestore, "users") : null, [firestore, canFetchUsers]);
   const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
@@ -42,7 +42,7 @@ export default function BirthdayReminders() {
   const [creditAmount, setCreditAmount] = useState<number>(0);
   const [selectedFreebieId, setSelectedFreebieId] = useState<string>('');
 
-  const isLoading = isAuthLoading || isProfileLoading || usersLoading || menuLoading;
+  const isLoading = isAuthLoading || isProfileLoading || (canFetchUsers && usersLoading) || menuLoading;
 
   const handleOpenRewardDialog = (user: UserProfile) => {
     setSelectedUser(user);
@@ -95,7 +95,7 @@ export default function BirthdayReminders() {
   };
 
   // Don't render anything if the user isn't staff or admin
-  if (!canFetchUsers && !isProfileLoading) {
+  if (!userRole || (userRole !== 'staff' && userRole !== 'admin')) {
       return null;
   }
 
@@ -151,7 +151,7 @@ export default function BirthdayReminders() {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2"><Gift /> Upcoming Birthdays</CardTitle>
-        <CardDescription>Customers celebrating their birthday in the next 7 days.</CardDescription>
+        <CardDescription>Customers celebrating their birthday in the next 7 days. (Admin only feature)</CardDescription>
       </CardHeader>
       <CardContent>
         {upcomingBirthdays && upcomingBirthdays.length > 0 ? (
@@ -175,7 +175,9 @@ export default function BirthdayReminders() {
             })}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">No upcoming birthdays in the next 7 days.</p>
+          <p className="text-muted-foreground text-sm">
+            {userRole === 'admin' ? 'No upcoming birthdays in the next 7 days.' : 'Birthday list is only available for admins.'}
+          </p>
         )}
       </CardContent>
     </Card>
@@ -230,3 +232,5 @@ export default function BirthdayReminders() {
     </>
   );
 }
+
+    
