@@ -142,6 +142,7 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                                   "w-full pl-3 text-left font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
+                                disabled={!!userProfile.dateOfBirth} // Disable if dateOfBirth already exists
                               >
                                 {field.value ? (
                                   format(field.value, "PPP")
@@ -167,7 +168,12 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                             />
                           </PopoverContent>
                         </Popover>
-                         <FormDescription>Your date of birth is used to send you birthday wishes.</FormDescription>
+                         <FormDescription>
+                           {userProfile.dateOfBirth
+                            ? "Your date of birth cannot be changed."
+                            : "Your date of birth is used to send you birthday wishes."
+                           }
+                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
