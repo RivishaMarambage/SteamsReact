@@ -94,11 +94,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
             const user = userCredential.user;
 
-            const userProfile = {
+            const userProfile: Omit<UserProfile, 'id'> & { id: string } = {
               id: user.uid,
               email: demoAccount.email,
               name: demoAccount.name,
-              role,
+              role: role, // Use the role from the props for the current form
               loyaltyPoints: role === 'customer' ? 125 : 0,
               loyaltyLevelId: role === 'customer' ? "standard" : "member",
             };
@@ -108,7 +108,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             // It's good practice to sign the user out immediately after creation
             // so the login form is fresh for the user to try.
-            await auth.signOut();
+            if (auth.currentUser) {
+              await auth.signOut();
+            }
           } catch (creationError: any) {
               if (creationError.code !== 'auth/email-already-in-use') {
                 console.error(`Failed to create demo user ${demoAccount.email}:`, creationError);
