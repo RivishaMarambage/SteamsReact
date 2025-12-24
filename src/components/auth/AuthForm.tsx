@@ -60,11 +60,10 @@ const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
 
 const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
     { name: 'Member', minimumPoints: 0 },
-    { name: 'Standard', minimumPoints: 100 },
-    { name: 'Bronze', minimumPoints: 300 },
+    { name: 'Bronze', minimumPoints: 100 },
     { name: 'Silver', minimumPoints: 500 },
-    { name: 'Gold', minimumPoints: 1000 },
-    { name: 'Platinum', minimumPoints: 2000 },
+    { name: 'Gold', minimumPoints: 2000 },
+    { name: 'Platinum', minimumPoints: 5000 },
 ]
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -100,7 +99,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               name: demoAccount.name,
               role: role, // Use the role from the props for the current form
               loyaltyPoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: role === 'customer' ? "standard" : "member",
+              loyaltyLevelId: role === 'customer' ? "bronze" : "member",
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
@@ -469,5 +468,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-
-    

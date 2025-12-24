@@ -188,12 +188,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         batch.set(userOrderRef, orderData);
 
         let pointsToEarn = 0;
-        if (subtotal > 5000) {
-          pointsToEarn = 5;
-        } else if (subtotal > 1000) {
-          pointsToEarn = 2;
-        } else if (subtotal > 100) {
-          pointsToEarn = 1;
+        if (cartTotal > 10000) {
+            pointsToEarn = Math.floor(cartTotal / 100) * 2;
+        } else if (cartTotal >= 5000) {
+            pointsToEarn = Math.floor(cartTotal / 100);
+        } else if (cartTotal >= 1000) {
+            pointsToEarn = Math.floor(cartTotal / 200);
+        } else if (cartTotal > 0) {
+            pointsToEarn = Math.floor(cartTotal / 400);
         }
         
         const netPointChange = pointsToEarn - loyaltyDiscount;
