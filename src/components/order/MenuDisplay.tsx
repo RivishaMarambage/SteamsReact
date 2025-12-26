@@ -31,7 +31,7 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
   
     // Sort tiers from highest points to lowest
     const sortedTiers = [...loyaltyLevels].sort((a, b) => b.minimumPoints - a.minimumPoints);
-    const userPoints = userProfile?.loyaltyPoints ?? 0;
+    const userPoints = userProfile?.lifetimePoints ?? 0;
   
     // Find the best tier the user qualifies for that has a discount
     for (const tier of sortedTiers) {
@@ -200,7 +200,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         
         const netPointChange = pointsToEarn - loyaltyDiscount;
         const updates: any = {
-            loyaltyPoints: increment(netPointChange)
+            loyaltyPoints: increment(netPointChange),
+            lifetimePoints: increment(pointsToEarn)
         };
         
         if (birthdayCreditDiscount > 0) {

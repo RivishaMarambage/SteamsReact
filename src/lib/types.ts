@@ -8,6 +8,7 @@ export type UserProfile = {
   name: string;
   cafeNickname?: string;
   loyaltyPoints?: number;
+  lifetimePoints?: number;
   loyaltyLevelId?: string;
   role: 'customer' | 'admin' | 'staff';
   dateOfBirth?: string;
@@ -62,3 +63,4 @@ export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
+

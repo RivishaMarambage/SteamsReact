@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
-import { Medal, Shield, Gem, Crown, Minus, Star } from 'lucide-react';
+import { Medal, Shield, Gem, Crown, Minus, Star, Trophy } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -50,8 +50,9 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   
   const userPoints = user.loyaltyPoints ?? 0;
 
-  // Find the current tier
-  const currentTier = [...loyaltyTiers].reverse().find(tier => userPoints >= tier.minimumPoints) || loyaltyTiers[0];
+  // Find the current tier based on lifetime points
+  const lifetimePoints = user.lifetimePoints ?? 0;
+  const currentTier = [...loyaltyTiers].reverse().find(tier => lifetimePoints >= tier.minimumPoints) || loyaltyTiers[0];
   const currentTierIndex = loyaltyTiers.findIndex(tier => tier.id === currentTier.id);
 
   // Find the next tier
@@ -63,10 +64,10 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   let pointsToNext = 0;
 
   if (nextTier) {
-      const pointsInCurrentTier = userPoints - currentTier.minimumPoints;
+      const pointsInCurrentTier = lifetimePoints - currentTier.minimumPoints;
       const pointsForNextTier = nextTier.minimumPoints - currentTier.minimumPoints;
       progress = pointsForNextTier > 0 ? (pointsInCurrentTier / pointsForNextTier) * 100 : 100;
-      pointsToNext = nextTier.minimumPoints - userPoints;
+      pointsToNext = nextTier.minimumPoints - lifetimePoints;
   } else {
       // User is at the highest tier
       progress = 100;
@@ -81,15 +82,21 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
                 <CardTitle className="font-headline text-2xl">Your Loyalty Status</CardTitle>
                 <CardDescription>Earn points with every purchase.</CardDescription>
             </div>
-            <div className="flex items-center gap-2 text-lg font-semibold capitalize text-primary">
-                <Icon className="h-6 w-6" />
-                <span>{currentTier.name}</span>
+            <div className="text-right">
+              <div className="flex items-center justify-end gap-2 text-lg font-semibold capitalize text-primary">
+                  <Icon className="h-6 w-6" />
+                  <span>{currentTier.name}</span>
+              </div>
+              <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mt-1">
+                 <Trophy className="h-3 w-3" />
+                 <span>{user.lifetimePoints ?? 0} Lifetime Points</span>
+              </div>
             </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="text-3xl font-bold text-primary">{user.loyaltyPoints ?? 0} Points</div>
+          <div className="text-3xl font-bold text-primary">{userPoints} Redeemable Points</div>
           
           <div>
             <Progress value={progress} className="h-3" />

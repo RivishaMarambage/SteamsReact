@@ -120,7 +120,8 @@ export default function UserManagementTable() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Loyalty Level</TableHead>
-                <TableHead className="text-right">Loyalty Points</TableHead>
+                <TableHead>Redeemable Points</TableHead>
+                <TableHead>Lifetime Points</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -138,6 +139,7 @@ export default function UserManagementTable() {
                     {user.role === 'customer' ? getLoyaltyLevelName(user.loyaltyLevelId) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">{user.loyaltyPoints ?? 0}</TableCell>
+                  <TableCell className="text-right">{user.lifetimePoints ?? 0}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

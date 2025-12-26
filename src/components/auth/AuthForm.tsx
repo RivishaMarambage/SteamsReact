@@ -99,6 +99,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               name: demoAccount.name,
               role: role, // Use the role from the props for the current form
               loyaltyPoints: role === 'customer' ? 125 : 0,
+              lifetimePoints: role === 'customer' ? 125 : 0,
               loyaltyLevelId: role === 'customer' ? "bronze" : "member",
             };
             
@@ -199,6 +200,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           cafeNickname: data.cafeNickname || '',
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
           loyaltyPoints: 0,
+          lifetimePoints: 0,
           loyaltyLevelId: "member", // Default loyalty level
         };
 
