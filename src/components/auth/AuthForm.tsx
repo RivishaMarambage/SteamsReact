@@ -17,14 +17,15 @@ import { CalendarIcon, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -34,6 +35,7 @@ const formSchema = z.object({
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
+  rememberMe: z.boolean().default(false),
 });
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -71,10 +73,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const [resetEmail, setResetEmail] = useState('');
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false },
+    defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -221,6 +224,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       
     } else { // Login
       try {
+        const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistence);
+        
         const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
         
         // After successful login, check the user's role from Firestore
@@ -259,6 +265,31 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           description: 'Invalid email or password. Please try again.',
         });
       }
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!auth) return;
+    if (!resetEmail) {
+        toast({
+            variant: 'destructive',
+            title: 'Email required',
+            description: 'Please enter your email address to reset your password.',
+        });
+        return;
+    }
+    try {
+        await sendPasswordResetEmail(auth, resetEmail);
+        toast({
+            title: 'Password Reset Email Sent',
+            description: 'Please check your inbox for instructions to reset your password.',
+        });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message,
+        });
     }
   };
 
@@ -414,6 +445,62 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   </FormItem>
                 )}
               />
+              {authType === 'login' && role === 'customer' && (
+                <div className="flex items-center justify-between">
+                    <FormField
+                    control={form.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                            <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>Remember me</FormLabel>
+                        </div>
+                        </FormItem>
+                    )}
+                    />
+                     <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-sm">Forgot password?</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogDescription>
+                                    Enter your email address and we will send you a link to reset your password.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                <Label htmlFor="reset-email">Email</Label>
+                                <Input
+                                    id="reset-email"
+                                    type="email"
+                                    placeholder="m@example.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancel
+                                </Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                <Button onClick={handlePasswordReset}>Send Reset Link</Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+              )}
                {authType === 'signup' && role === 'customer' && (
                 <FormField
                   control={form.control}
