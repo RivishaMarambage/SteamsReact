@@ -23,6 +23,7 @@ export type MenuItem = {
   price: number;
   categoryId: string;
   imageUrl?: string;
+  isOutOfStock?: boolean;
 };
 
 export type Category = {
@@ -63,4 +64,3 @@ export type CartItem = {
   menuItem: MenuItem;
   quantity: number;
 };
-

@@ -17,6 +17,7 @@ import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -295,7 +296,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         displayPrice = Math.max(0, displayPrice);
 
                         return (
-                          <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                          <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300", item.isOutOfStock && "opacity-60")}>
                              <div className="relative w-full h-40">
                                 <Image
                                     src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
@@ -304,7 +305,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                                     className="object-cover"
                                     data-ai-hint="food item"
                                 />
-                                {isOfferApplied && (
+                                {item.isOutOfStock && (
+                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                        <Badge variant="destructive">Out of Stock</Badge>
+                                    </div>
+                                )}
+                                {isOfferApplied && !item.isOutOfStock && (
                                     <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
                                     <Tag className="h-3 w-3"/> Daily Special
                                     </Badge>
@@ -319,8 +325,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                                 {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
                                 LKR {displayPrice.toFixed(2)}
                               </div>
-                              <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add
+                              <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })} disabled={item.isOutOfStock}>
+                                {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
                               </Button>
                             </CardFooter>
                           </Card>

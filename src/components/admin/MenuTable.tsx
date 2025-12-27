@@ -17,6 +17,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { Switch } from '../ui/switch';
+import { Badge } from '../ui/badge';
 
 type FormData = Omit<MenuItem, 'id' | 'price'> & { price: number | '' };
 
@@ -26,6 +28,7 @@ const INITIAL_FORM_DATA: FormData = {
   categoryId: '',
   description: '',
   imageUrl: '',
+  isOutOfStock: false,
 };
 
 export default function MenuTable() {
@@ -33,7 +36,7 @@ export default function MenuTable() {
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
 
-  const { data: menu, isLoading: isMenuLoading } = useCollection(menuItemsQuery);
+  const { data: menu, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection(categoriesQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
@@ -51,6 +54,7 @@ export default function MenuTable() {
           categoryId: selectedItem.categoryId,
           description: selectedItem.description,
           imageUrl: selectedItem.imageUrl || '',
+          isOutOfStock: selectedItem.isOutOfStock || false,
         });
       } else {
         setFormData({
@@ -69,6 +73,10 @@ export default function MenuTable() {
       [name]: name === 'price' ? (value === '' ? '' : parseFloat(value)) : value,
     }));
   };
+  
+  const handleStockChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, isOutOfStock: checked }));
+  }
 
   const handleEdit = (item: MenuItem) => {
     setSelectedItem(item);
@@ -197,6 +205,7 @@ export default function MenuTable() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -209,6 +218,11 @@ export default function MenuTable() {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{getCategoryName(item.categoryId)}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.isOutOfStock ? "destructive" : "secondary"}>
+                      {item.isOutOfStock ? "Out of Stock" : "In Stock"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -233,7 +247,7 @@ export default function MenuTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
               <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
@@ -273,6 +287,10 @@ export default function MenuTable() {
               <div className="grid gap-2">
                 <Label htmlFor="imageUrl">Image URL</Label>
                 <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
+              </div>
+               <div className="flex items-center space-x-2">
+                <Switch id="isOutOfStock" name="isOutOfStock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
+                <Label htmlFor="isOutOfStock">Mark as out of stock</Label>
               </div>
             </div>
             <DialogFooter>

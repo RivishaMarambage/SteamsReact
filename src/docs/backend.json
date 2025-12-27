@@ -12,6 +12,7 @@
         "mobileNumber": { "type": "string", "description": "User's mobile phone number." },
         "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
         "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
+        "lifetimePoints": { "type": "number", "description": "Total points accumulated over the user's lifetime, not reduced by redemptions." },
         "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
         "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
@@ -29,7 +30,9 @@
         "name": { "type": "string", "description": "Name of the menu item." },
         "description": { "type": "string", "description": "A brief description of the item." },
         "price": { "type": "number", "description": "Price of the item." },
-        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." }
+        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
+        "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
+        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." }
       },
       "required": ["id", "name", "price", "categoryId"]
     },

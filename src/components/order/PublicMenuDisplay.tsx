@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
+import { Badge } from "../ui/badge";
+import { cn } from "@/lib/utils";
 
 function PublicMenuDisplayContent() {
   const firestore = useFirestore();
@@ -55,7 +57,7 @@ function PublicMenuDisplayContent() {
                     <h2 className="text-2xl font-bold font-headline mb-4">{subCategory.name}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems?.filter(item => item.categoryId === subCategory.id).map(item => (
-                          <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg">
+                          <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg", item.isOutOfStock && "opacity-60")}>
                              <div className="relative w-full h-40">
                                 <Image
                                     src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
@@ -64,6 +66,11 @@ function PublicMenuDisplayContent() {
                                     className="object-cover"
                                     data-ai-hint="food item"
                                 />
+                                 {item.isOutOfStock && (
+                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                        <Badge variant="destructive">Out of Stock</Badge>
+                                    </div>
+                                )}
                             </div>
                             <CardContent className="p-4 flex-grow">
                               <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
