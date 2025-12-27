@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Label } from '../ui/label';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
