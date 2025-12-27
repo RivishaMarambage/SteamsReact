@@ -30,8 +30,9 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-black/60" />
           <div className="relative container mx-auto px-4 md:px-6 text-center text-white space-y-6">
             <h1 className="text-4xl font-headline font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-              Your Daily Dose of Delight
+              Welcome To Steamsburry 
             </h1>
+            <h3>Your Daily Dose of Delight </h3>  
             <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
               Join our loyalty program. Earn points, get rewards, and enjoy exclusive perks with every sip and bite.
             </p>
