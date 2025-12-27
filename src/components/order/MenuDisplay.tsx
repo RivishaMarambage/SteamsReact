@@ -179,22 +179,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
         const rootOrderRef = doc(collection(firestore, 'orders'));
 
-        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
-            customerId: authUser.uid,
-            orderDate: serverTimestamp(),
-            totalAmount: cartTotal,
-            status: "Placed" as const,
-            menuItemIds: cart.map(item => item.menuItem.id),
-            orderType: orderType,
-            pointsRedeemed: loyaltyDiscount,
-            discountApplied: totalDiscount,
-            serviceCharge: serviceCharge,
-        };
-
-        batch.set(rootOrderRef, orderData);
-        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
-        batch.set(userOrderRef, orderData);
-
         let pointsToEarn = 0;
         if (cartTotal > 10000) {
             pointsToEarn = Math.floor(cartTotal / 100) * 2;
@@ -205,11 +189,29 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         } else if (cartTotal > 0) {
             pointsToEarn = Math.floor(cartTotal / 400);
         }
+
+        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
+            customerId: authUser.uid,
+            orderDate: serverTimestamp(),
+            totalAmount: cartTotal,
+            status: "Placed" as const,
+            menuItemIds: cart.map(item => item.menuItem.id),
+            orderType: orderType,
+            pointsRedeemed: loyaltyDiscount,
+            discountApplied: totalDiscount,
+            serviceCharge: serviceCharge,
+            pointsToEarn: pointsToEarn,
+        };
+
+        batch.set(rootOrderRef, orderData);
+        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
+        batch.set(userOrderRef, orderData);
+
+        // Point spending logic
+        const netPointChange = -loyaltyDiscount;
         
-        const netPointChange = pointsToEarn - loyaltyDiscount;
         const updates: any = {
             loyaltyPoints: increment(netPointChange),
-            lifetimePoints: increment(pointsToEarn)
         };
         
         if (birthdayCreditDiscount > 0) {

@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, writeBatch, increment } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -29,13 +29,21 @@ export default function OrderManagement() {
     
     const batch = writeBatch(firestore);
 
-    // Reference to the order in the root /orders collection
     const rootOrderRef = doc(firestore, 'orders', order.id);
-    batch.update(rootOrderRef, { status });
-
-    // Reference to the order in the user's subcollection
     const userOrderRef = doc(firestore, `users/${order.customerId}/orders`, order.id);
+
+    // Update status in both locations
+    batch.update(rootOrderRef, { status });
     batch.update(userOrderRef, { status });
+
+    // If order is being marked as Completed, award the points
+    if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn) {
+        const userProfileRef = doc(firestore, 'users', order.customerId);
+        batch.update(userProfileRef, {
+            loyaltyPoints: increment(order.pointsToEarn),
+            lifetimePoints: increment(order.pointsToEarn)
+        });
+    }
     
     batch.commit()
       .then(() => {

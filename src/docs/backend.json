@@ -85,6 +85,14 @@
         "discountApplied": {
           "type": "number",
           "description": "The monetary discount applied to this order from redeemed points."
+        },
+        "serviceCharge": {
+            "type": "number",
+            "description": "The service charge applied to the order (e.g., for dine-in)."
+        },
+        "pointsToEarn": {
+          "type": "number",
+          "description": "The number of loyalty points to be awarded when the order is completed."
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]

@@ -49,6 +49,7 @@ export type Order = {
     pointsRedeemed?: number;
     discountApplied?: number;
     serviceCharge?: number;
+    pointsToEarn?: number;
 }
 
 export type DailyOffer = {
