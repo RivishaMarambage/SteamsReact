@@ -43,7 +43,7 @@ export type Order = {
     customerId: string;
     orderDate: Timestamp;
     totalAmount: number;
-    status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed';
+    status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed' | 'Rejected';
     menuItemIds: string[];
     orderType: 'Dine-in' | 'Pick up' | 'Takeway';
     pointsRedeemed?: number;

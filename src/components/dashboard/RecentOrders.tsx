@@ -32,6 +32,8 @@ export default function RecentOrders({ userId }: { userId: string }) {
         return 'default'; 
       case 'Completed':
         return 'secondary';
+      case 'Rejected':
+        return 'destructive';
       default:
         return 'secondary';
     }

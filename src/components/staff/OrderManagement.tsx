@@ -5,7 +5,7 @@ import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePe
 import { collection, doc, updateDoc, query, orderBy, writeBatch, increment } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ export default function OrderManagement() {
 
     const rootOrderRef = doc(firestore, 'orders', order.id);
     const userOrderRef = doc(firestore, `users/${order.customerId}/orders`, order.id);
+    const userProfileRef = doc(firestore, 'users', order.customerId);
 
     // Update status in both locations
     batch.update(rootOrderRef, { status });
@@ -38,11 +39,24 @@ export default function OrderManagement() {
 
     // If order is being marked as Completed, award the points
     if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn) {
-        const userProfileRef = doc(firestore, 'users', order.customerId);
         batch.update(userProfileRef, {
             loyaltyPoints: increment(order.pointsToEarn),
             lifetimePoints: increment(order.pointsToEarn)
         });
+    }
+
+    // If order is being rejected, refund any points or credits used
+    if (status === 'Rejected' && order.status !== 'Rejected') {
+        const pointsToRefund = order.pointsRedeemed || 0;
+        // Assuming discountApplied is the sum of pointsRedeemed and birthdayCredit
+        const birthdayCreditToRefund = (order.discountApplied || 0) - pointsToRefund;
+
+        if (pointsToRefund > 0) {
+            batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
+        }
+        if (birthdayCreditToRefund > 0) {
+            batch.update(userProfileRef, { birthdayCredit: increment(birthdayCreditToRefund) });
+        }
     }
     
     batch.commit()
@@ -76,6 +90,8 @@ export default function OrderManagement() {
       case 'Ready for Pickup':
         return 'default';
       case 'Completed':
+        return 'secondary';
+       case 'Rejected':
         return 'destructive';
       default:
         return 'secondary';
@@ -134,7 +150,7 @@ export default function OrderManagement() {
           </TableHeader>
           <TableBody>
             {orders?.map((order) => (
-              <TableRow key={order.id}>
+              <TableRow key={order.id} className={order.status === 'Completed' || order.status === 'Rejected' ? 'opacity-60' : ''}>
                 <TableCell className="font-medium">{order.id.substring(0, 7).toUpperCase()}</TableCell>
                 <TableCell>{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleString() : 'N/A'}</TableCell>
                 <TableCell>
@@ -145,24 +161,30 @@ export default function OrderManagement() {
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order, 'Processing')}>
-                        Mark as Processing
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order, 'Ready for Pickup')}>
-                        Mark as Ready
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(order, 'Completed')}>
-                        Mark as Completed
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    {order.status !== 'Completed' && order.status !== 'Rejected' && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Processing')}>
+                                Mark as Processing
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Ready for Pickup')}>
+                                Mark as Ready
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Completed')}>
+                                Mark as Completed
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange(order, 'Rejected')}>
+                                Reject Order
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </TableCell>
               </TableRow>
             ))}

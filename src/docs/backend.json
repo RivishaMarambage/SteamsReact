@@ -67,7 +67,7 @@
         "customerId": { "type": "string", "description": "The UID of the user who placed the order." },
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
-        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed"], "description": "Current status of the order." },
+        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
         "menuItemIds": {
           "type": "array",
           "items": { "type": "string" },
