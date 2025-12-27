@@ -13,7 +13,7 @@ import type { UserProfile } from '@/lib/types';
 export default function RedeemPoints() {
   const [searchTerm, setSearchTerm] = useState('');
   const [customer, setCustomer] = useState<UserProfile | null>(null);
-  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [pointsToRedeem, setPointsToRedeem] = useState<number | string>('');
   const [isLoading, setIsLoading] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -57,16 +57,17 @@ export default function RedeemPoints() {
   };
 
   const handleRedeem = async () => {
-    if (!customer || pointsToRedeem <= 0 || !firestore) {
+    const pointsToRedeemNumber = Number(pointsToRedeem);
+    if (!customer || isNaN(pointsToRedeemNumber) || pointsToRedeemNumber <= 0 || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Invalid Redemption',
-        description: 'Please find a customer and enter a valid number of points to redeem.',
+        description: 'Please find a customer and enter a valid positive number of points to redeem.',
       });
       return;
     }
     
-    if ((customer.loyaltyPoints ?? 0) < pointsToRedeem) {
+    if ((customer.loyaltyPoints ?? 0) < pointsToRedeemNumber) {
         toast({
             variant: 'destructive',
             title: 'Insufficient Points',
@@ -80,17 +81,17 @@ export default function RedeemPoints() {
     
     try {
       await updateDoc(userDocRef, {
-        loyaltyPoints: increment(-pointsToRedeem)
+        loyaltyPoints: increment(-pointsToRedeemNumber)
       });
       
       // Refresh customer data
-      setCustomer(prev => prev ? { ...prev, loyaltyPoints: (prev.loyaltyPoints ?? 0) - pointsToRedeem } : null);
+      setCustomer(prev => prev ? { ...prev, loyaltyPoints: (prev.loyaltyPoints ?? 0) - pointsToRedeemNumber } : null);
 
       toast({
         title: 'Points Redeemed!',
-        description: `${pointsToRedeem} points have been redeemed for ${customer.name}.`,
+        description: `${pointsToRedeemNumber} points have been redeemed for ${customer.name}.`,
       });
-      setPointsToRedeem(0);
+      setPointsToRedeem('');
 
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error redeeming points' });
@@ -141,12 +142,17 @@ export default function RedeemPoints() {
                     id="points"
                     type="number"
                     value={pointsToRedeem}
-                    onChange={(e) => setPointsToRedeem(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (Number(val) >= 0 && Number(val) <= (customer.loyaltyPoints ?? 0))) {
+                          setPointsToRedeem(val);
+                      }
+                    }}
                     max={customer.loyaltyPoints}
                     min={0}
                   />
                 </div>
-                <Button onClick={handleRedeem} disabled={isLoading || pointsToRedeem <= 0}>
+                <Button onClick={handleRedeem} disabled={isLoading || Number(pointsToRedeem) <= 0}>
                   {isLoading ? 'Redeeming...' : 'Redeem'}
                 </Button>
               </div>

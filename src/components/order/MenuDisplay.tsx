@@ -50,7 +50,9 @@ const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | nul
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
-  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
+  const [appliedPoints, setAppliedPoints] = useState(0);
+
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -129,18 +131,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     });
   };
 
+  const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
+
   const handleRedeemPoints = () => {
-    const redeemAmount = Number(pointsToRedeem);
-    if (!userProfile || !userProfile.loyaltyPoints) {
+    const availablePoints = userProfile?.loyaltyPoints ?? 0;
+    const redeemAmount = Number(pointsToRedeemInput);
+    
+    if (!userProfile || availablePoints <= 0) {
       toast({ variant: 'destructive', title: "No points available" });
       return;
     }
-    if (redeemAmount <= 0) {
+    if (isNaN(redeemAmount) || redeemAmount <= 0) {
       toast({ variant: 'destructive', title: "Invalid Amount", description: "Please enter a positive number of points." });
       return;
     }
-    if (redeemAmount > userProfile.loyaltyPoints) {
-      toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${userProfile.loyaltyPoints} points available.` });
+    if (redeemAmount > availablePoints) {
+      toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${availablePoints} points available.` });
       return;
     }
     if (redeemAmount > subtotal) {
@@ -148,13 +154,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         return;
     }
 
-    setPointsToRedeem(redeemAmount);
+    setAppliedPoints(redeemAmount);
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
   };
   
-
-  const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
-  const loyaltyDiscount = Math.min(subtotal, Number(pointsToRedeem) || 0);
+  const loyaltyDiscount = Math.min(subtotal, appliedPoints);
   const birthdayCreditDiscount = Math.min(subtotal - loyaltyDiscount, userProfile?.birthdayCredit || 0);
   const totalDiscount = loyaltyDiscount + birthdayCreditDiscount;
   const cartTotal = subtotal - totalDiscount;
@@ -218,7 +222,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             description: `Your ${orderType} order is confirmed.`,
         });
         setCart([]);
-        setPointsToRedeem(0);
+        setPointsToRedeemInput('');
+        setAppliedPoints(0);
 
     } catch (error) {
         console.error("Error placing order: ", error);
@@ -414,8 +419,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                               id="redeem-points"
                               type="number"
                               placeholder="Points to use"
-                              value={pointsToRedeem || ''}
-                              onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                              value={pointsToRedeemInput}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || (Number(val) >= 0 && Number(val) <= (userProfile?.loyaltyPoints ?? 0))) {
+                                    setPointsToRedeemInput(val);
+                                }
+                              }}
                               max={userProfile?.loyaltyPoints ?? 0}
                               min={0}
                           />
