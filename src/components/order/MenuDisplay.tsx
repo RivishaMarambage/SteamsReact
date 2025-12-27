@@ -132,6 +132,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   };
 
   const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
+  const serviceCharge = orderType === 'Dine-in' ? subtotal * 0.10 : 0;
+  const totalBeforeDiscount = subtotal + serviceCharge;
 
   const handleRedeemPoints = () => {
     const availablePoints = userProfile?.loyaltyPoints ?? 0;
@@ -149,8 +151,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
       toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${availablePoints} points available.` });
       return;
     }
-    if (redeemAmount > subtotal) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${subtotal.toFixed(2)}.` });
+    if (redeemAmount > totalBeforeDiscount) {
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${totalBeforeDiscount.toFixed(2)}.` });
         return;
     }
 
@@ -158,10 +160,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
   };
   
-  const loyaltyDiscount = Math.min(subtotal, appliedPoints);
-  const birthdayCreditDiscount = Math.min(subtotal - loyaltyDiscount, userProfile?.birthdayCredit || 0);
+  const loyaltyDiscount = Math.min(totalBeforeDiscount, appliedPoints);
+  const birthdayCreditDiscount = Math.min(totalBeforeDiscount - loyaltyDiscount, userProfile?.birthdayCredit || 0);
   const totalDiscount = loyaltyDiscount + birthdayCreditDiscount;
-  const cartTotal = subtotal - totalDiscount;
+  const cartTotal = totalBeforeDiscount - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handlePlaceOrder = async () => {
@@ -177,7 +179,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
         const rootOrderRef = doc(collection(firestore, 'orders'));
 
-        const orderData = {
+        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
@@ -185,7 +187,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             menuItemIds: cart.map(item => item.menuItem.id),
             orderType: orderType,
             pointsRedeemed: loyaltyDiscount,
-            discountApplied: totalDiscount
+            discountApplied: totalDiscount,
+            serviceCharge: serviceCharge,
         };
 
         batch.set(rootOrderRef, orderData);
@@ -438,6 +441,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                           <span>Subtotal</span>
                           <span>LKR {subtotal.toFixed(2)}</span>
                       </div>
+                      {serviceCharge > 0 && (
+                        <div className="flex justify-between">
+                            <span>Service Charge (10%)</span>
+                            <span>LKR {serviceCharge.toFixed(2)}</span>
+                        </div>
+                      )}
                       {totalDiscount > 0 && (
                         <div className="flex justify-between text-destructive">
                             <span>Discount</span>

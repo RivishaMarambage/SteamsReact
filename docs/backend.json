@@ -31,7 +31,8 @@
         "description": { "type": "string", "description": "A brief description of the item." },
         "price": { "type": "number", "description": "Price of the item." },
         "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
-        "imageUrl": { "type": "string", "description": "URL of an image for the menu item." }
+        "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
+        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." }
       },
       "required": ["id", "name", "price", "categoryId"]
     },
@@ -84,6 +85,10 @@
         "discountApplied": {
           "type": "number",
           "description": "The monetary discount applied to this order from redeemed points."
+        },
+        "serviceCharge": {
+            "type": "number",
+            "description": "The service charge applied to the order (e.g., for dine-in)."
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]

@@ -48,6 +48,7 @@ export type Order = {
     orderType: 'Dine-in' | 'Pick up' | 'Takeway';
     pointsRedeemed?: number;
     discountApplied?: number;
+    serviceCharge?: number;
 }
 
 export type DailyOffer = {
