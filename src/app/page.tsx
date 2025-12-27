@@ -49,10 +49,15 @@ export default function LandingPage() {
               Join our loyalty program. Earn points, get rewards, and enjoy exclusive perks with every sip and bite.
             </p>
             <div className="mt-8 flex justify-center gap-4">
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/dashboard/order">View Menu</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/signup/customer">Our Offers</Link>
+              </Button>
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
-             
             </div>
           </div>
         </section>
