@@ -1,5 +1,6 @@
 
 import PublicHeader from "./PublicHeader";
+import Footer from "./Footer";
 
 export default function PublicPageLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -10,6 +11,7 @@ export default function PublicPageLayout({ children }: { children: React.ReactNo
                     {children}
                 </div>
             </main>
+            <Footer />
         </div>
     );
 }
