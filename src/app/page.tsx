@@ -9,16 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import PublicMenuDisplay from "@/components/order/PublicMenuDisplay";
 import { Logo } from "@/components/Logo";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import Footer from "@/components/layout/Footer";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
 
   return (
-    <div className="flex flex-col min-h-dvh">
+    <div className="flex flex-col min-h-dvh bg-background">
        <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 transition-colors duration-300 bg-transparent text-white">
-        <Logo />
+        <Logo className="text-white" />
         <nav className="hidden lg:flex gap-6">
           <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
+          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About Us</Link>
+          <Link href="/news" className="text-sm font-medium hover:underline underline-offset-4">News</Link>
+          <Link href="/contact" className="text-sm font-medium hover:underline underline-offset-4">Contact</Link>
           <Dialog>
             <DialogTrigger asChild>
               <button className="text-sm font-medium hover:underline underline-offset-4">Menu</button>
@@ -67,9 +71,9 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-black/60" />
           <div className="relative container mx-auto px-4 md:px-6 text-center text-white space-y-6">
             <h1 className="text-4xl font-headline font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-              Welcome To Steamsburry 
+              Welcome To Steamsburry
             </h1>
-            <h3>Your Daily Dose of Delight </h3>  
+            <h3>Your Daily Dose of Delight </h3>
             <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
               Join our loyalty program. Earn points, get rewards, and enjoy exclusive perks with every sip and bite.
             </p>
@@ -94,13 +98,14 @@ export default function LandingPage() {
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="/signup/customer">Our Offers</Link>
+                <Link href="/dashboard/order">Our Offers</Link>
               </Button>
-              
+
             </div>
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

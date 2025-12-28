@@ -1,4 +1,5 @@
 
+
 import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function ContactPage() {
   return (
-    <PublicPageLayout>
+    <PublicPageLayout title="Get in Touch">
       <div className="grid md:grid-cols-2 gap-12">
         <div className="space-y-6">
-          <h1 className="text-4xl font-bold font-headline">Get in Touch</h1>
           <p className="text-lg text-muted-foreground">
             We'd love to hear from you! Whether you have a question about our menu, a suggestion, or just want to say hello, feel free to reach out.
           </p>

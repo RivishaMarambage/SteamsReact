@@ -1,105 +1,68 @@
-'use client';
 
+import PublicPageLayout from "@/components/layout/PublicPageLayout";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import PublicMenuDisplay from "@/components/order/PublicMenuDisplay";
-import { Logo } from "@/components/Logo";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-export default function LandingPage() {
-  const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
+const newsItems = [
+  {
+    id: 1,
+    title: "Announcing Our New Seasonal Drink: The Lavender Haze Latte",
+    date: "July 15, 2024",
+    excerpt: "Discover the floral and sweet notes of our latest creation, available for a limited time only. It's the perfect summer refreshment!",
+    imageUrl: "https://picsum.photos/seed/news1/600/400",
+    imageHint: "latte art"
+  },
+  {
+    id: 2,
+    title: "Steamsburry partners with local artists for in-house gallery",
+    date: "July 5, 2024",
+    excerpt: "We're excited to showcase the amazing talent from our community. Come enjoy a coffee and some beautiful art.",
+    imageUrl: "https://picsum.photos/seed/news2/600/400",
+    imageHint: "art gallery"
+  },
+  {
+    id: 3,
+    title: "Loyalty Program Update: Earn Double Points on Mondays!",
+    date: "June 28, 2024",
+    excerpt: "We're making Mondays a little brighter. All loyalty members will now earn double the points on all purchases every Monday.",
+    imageUrl: "https://picsum.photos/seed/news3/600/400",
+    imageHint: "coffee beans"
+  },
+];
 
+
+export default function NewsPage() {
   return (
-    <div className="flex flex-col min-h-dvh">
-       <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 transition-colors duration-300 bg-transparent text-white">
-        <Logo />
-        <nav className="hidden lg:flex gap-6">
-          <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
-          <Dialog>
-            <DialogTrigger asChild>
-              <button className="text-sm font-medium hover:underline underline-offset-4">Menu</button>
-            </DialogTrigger>
-            <DialogContent className="h-dvh w-screen max-w-full flex flex-col p-0 gap-0">
-                <DialogHeader className="p-4 border-b">
-                    <DialogTitle className="font-headline text-2xl">Our Menu</DialogTitle>
-                    <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                        <span className="sr-only">Close</span>
-                    </DialogClose>
-                </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    <PublicMenuDisplay />
-                </div>
-            </DialogContent>
-          </Dialog>
-        </nav>
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white/10 hover:text-white">Log In</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem asChild><Link href="/login/customer">Customer Login</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/login/staff">Staff Login</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/login/admin">Admin Login</Link></DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/signup/customer">Sign Up</Link>
-          </Button>
-        </nav>
-      </header>
-      <main className="flex-1">
-        <section className="relative w-full h-dvh flex items-center justify-center">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover"
-              data-ai-hint={heroImage.imageHint}
-              priority
-            />
-          )}
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative container mx-auto px-4 md:px-6 text-center text-white space-y-6">
-            <h1 className="text-4xl font-headline font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-              Welcome To Steamsburry 
-            </h1>
-            <h3>Your Daily Dose of Delight </h3>  
-            <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
-              Join our loyalty program. Earn points, get rewards, and enjoy exclusive perks with every sip and bite.
-            </p>
-            <div className="mt-8 flex justify-center gap-4">
-                <Dialog>
-                    <DialogTrigger asChild>
-                         <Button size="lg" variant="secondary">View Menu</Button>
-                    </DialogTrigger>
-                    <DialogContent className="h-dvh w-screen max-w-full flex flex-col p-0 gap-0">
-                         <DialogHeader className="p-4 border-b">
-                            <DialogTitle className="font-headline text-2xl">Our Menu</DialogTitle>
-                             <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                                <span className="sr-only">Close</span>
-                            </DialogClose>
-                        </DialogHeader>
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                             <PublicMenuDisplay />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/signup/customer">Become a Member</Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/signup/customer">Our Offers</Link>
-              </Button>
-              
+    <PublicPageLayout title="Latest News">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {newsItems.map(item => (
+          <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg">
+            <div className="relative h-56 w-full">
+              <Image 
+                src={item.imageUrl}
+                alt={item.title}
+                fill
+                className="object-cover"
+                data-ai-hint={item.imageHint}
+              />
             </div>
-          </div>
-        </section>
-      </main>
-    </div>
+            <CardHeader>
+              <CardTitle className="font-headline text-xl">{item.title}</CardTitle>
+              <CardDescription>{item.date}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-muted-foreground">{item.excerpt}</p>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="link" className="p-0">
+                <Link href="#">Read More</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </PublicPageLayout>
   );
 }
