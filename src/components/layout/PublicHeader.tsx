@@ -7,11 +7,16 @@ import { Logo } from "@/components/Logo";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import PublicMenuDisplay from "@/components/order/PublicMenuDisplay";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function PublicHeader() {
+  const pathname = usePathname();
+  const isLandingPage = pathname === '/';
+
   return (
-    <header className="px-4 lg:px-6 h-16 flex items-center justify-between bg-background/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-20">
-      <Logo />
+    <header className={cn("px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 transition-colors duration-300", isLandingPage ? "bg-transparent text-white" : "bg-background/80 text-foreground backdrop-blur-sm")}>
+      <Logo className={cn(isLandingPage && "text-white")} />
       <nav className="hidden lg:flex gap-6">
         <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
         <Dialog>
@@ -37,7 +42,7 @@ export default function PublicHeader() {
       <nav className="flex items-center gap-2 sm:gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost">Log In</Button>
+            <Button variant={isLandingPage ? "outline" : "ghost"} className={cn(isLandingPage && "bg-transparent border-white text-white hover:bg-white/10 hover:text-white")}>Log In</Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild><Link href="/login/customer">Customer Login</Link></DropdownMenuItem>
