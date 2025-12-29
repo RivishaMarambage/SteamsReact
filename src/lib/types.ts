@@ -45,7 +45,8 @@ export type Order = {
     totalAmount: number;
     status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed' | 'Rejected';
     menuItemIds: string[];
-    orderType: 'Dine-in' | 'Pick up' | 'Takeway';
+    orderType: 'Dine-in' | 'Takeaway';
+    tableNumber?: string;
     pointsRedeemed?: number;
     discountApplied?: number;
     serviceCharge?: number;
@@ -60,7 +61,7 @@ export type DailyOffer = {
   title: string;
   discountValue: number;
   discountType: 'fixed' | 'percentage'; // LKR amount or %
-  orderType: 'Dine-in' | 'Pick up' | 'Takeway';
+  orderType: 'Dine-in' | 'Takeaway';
 }
 
 export type CartItem = {

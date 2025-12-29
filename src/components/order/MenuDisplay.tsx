@@ -28,7 +28,8 @@ interface MenuDisplayProps {
 
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orderType, setOrderType] = useState<Order['orderType']>('Pick up');
+  const [orderType, setOrderType] = useState<Order['orderType']>('Takeaway');
+  const [tableNumber, setTableNumber] = useState('');
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
 
@@ -161,6 +162,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
         return;
     }
+
+    if (orderType === 'Dine-in' && !tableNumber) {
+        toast({ variant: 'destructive', title: "Table Number Required", description: "Please enter your table number for dine-in orders."});
+        return;
+    }
     
     try {
         const batch = writeBatch(firestore);
@@ -187,6 +193,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             status: "Placed" as const,
             menuItemIds: cart.map(item => item.menuItem.id),
             orderType: orderType,
+            tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
             pointsRedeemed: loyaltyDiscount,
             discountApplied: totalDiscount,
             serviceCharge: serviceCharge,
@@ -218,6 +225,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         });
         setCart([]);
         setPointsToRedeemInput('');
+        setTableNumber('');
         setAppliedPoints(0);
 
     } catch (error) {
@@ -240,20 +248,26 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 <CardDescription>Select how you'd like to receive your order.</CardDescription>
             </CardHeader>
             <CardContent>
-                <RadioGroup defaultValue="Pick up" value={orderType} onValueChange={(value: Order['orderType']) => setOrderType(value)} className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Dine-in" id="dine-in" />
-                        <Label htmlFor="dine-in">Dine-in</Label>
+                <RadioGroup value={orderType} onValueChange={(value: Order['orderType']) => setOrderType(value)} className="grid grid-cols-2 gap-4">
+                    <div>
+                        <RadioGroupItem value="Dine-in" id="dine-in" className="peer sr-only" />
+                        <Label htmlFor="dine-in" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            Dine-in
+                        </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Pick up" id="pick-up" />
-                        <Label htmlFor="pick-up">Pick up</Label>
-                    </div>
-                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Takeway" id="takeway" />
-                        <Label htmlFor="takeway">Takeway</Label>
+                     <div>
+                        <RadioGroupItem value="Takeaway" id="takeaway" className="peer sr-only" />
+                        <Label htmlFor="takeaway" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            Takeaway
+                        </Label>
                     </div>
                 </RadioGroup>
+                {orderType === 'Dine-in' && (
+                    <div className="mt-4">
+                        <Label htmlFor="table-number">Table Number</Label>
+                        <Input id="table-number" placeholder="Enter your table number" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} />
+                    </div>
+                )}
             </CardContent>
         </Card>
       </div>

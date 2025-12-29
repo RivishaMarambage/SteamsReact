@@ -75,8 +75,12 @@
         },
         "orderType": {
             "type": "string",
-            "enum": ["Dine-in", "Pick up", "Takeway"],
+            "enum": ["Dine-in", "Takeaway"],
             "description": "The type of order."
+        },
+        "tableNumber": {
+            "type": "string",
+            "description": "The table number for dine-in orders."
         },
         "pointsRedeemed": {
           "type": "number",
@@ -110,6 +114,11 @@
             "type": "string",
             "enum": ["fixed", "percentage"],
             "description": "The type of discount (LKR or %)."
+        },
+        "orderType": {
+            "type": "string",
+            "enum": ["Dine-in", "Takeaway"],
+            "description": "The type of order the offer applies to."
         },
         "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
         "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }

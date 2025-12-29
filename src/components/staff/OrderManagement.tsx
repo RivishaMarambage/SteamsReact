@@ -102,9 +102,7 @@ export default function OrderManagement() {
     switch (orderType) {
       case 'Dine-in':
         return 'default';
-      case 'Pick up':
-        return 'secondary';
-      case 'Takeway':
+      case 'Takeaway':
         return 'outline';
       default:
         return 'secondary';
@@ -143,6 +141,7 @@ export default function OrderManagement() {
               <TableHead>Order ID</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Table</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -156,6 +155,7 @@ export default function OrderManagement() {
                 <TableCell>
                     <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
                 </TableCell>
+                <TableCell>{order.tableNumber || 'N/A'}</TableCell>
                 <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>

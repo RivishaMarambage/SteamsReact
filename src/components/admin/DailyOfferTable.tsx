@@ -33,7 +33,7 @@ const INITIAL_FORM_DATA: Omit<DailyOffer, 'id' | 'discountValue'> & { discountVa
   offerEndDate: format(addDays(today, 7), 'yyyy-MM-dd'),
   discountValue: '',
   discountType: 'fixed',
-  orderType: 'Pick up',
+  orderType: 'Takeaway',
 };
 
 export default function DailyOfferTable() {
@@ -319,13 +319,9 @@ export default function DailyOfferTable() {
                         <RadioGroupItem value="Dine-in" id="dine-in" />
                         <Label htmlFor="dine-in">Dine-in</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Pick up" id="pick-up" />
-                        <Label htmlFor="pick-up">Pick up</Label>
-                    </div>
                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Takeway" id="takeway" />
-                        <Label htmlFor="takeway">Takeway</Label>
+                        <RadioGroupItem value="Takeaway" id="takeway" />
+                        <Label htmlFor="takeway">Takeaway</Label>
                     </div>
                   </RadioGroup>
                 </div>
