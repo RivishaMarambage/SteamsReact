@@ -19,6 +19,7 @@ import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -268,7 +269,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 {orderType === 'Dine-in' && (
                     <div className="mt-4">
                         <Label htmlFor="table-number">Table Number</Label>
-                        <Input id="table-number" placeholder="Enter your table number" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} />
+                        <Select onValueChange={setTableNumber} value={tableNumber}>
+                            <SelectTrigger id="table-number">
+                                <SelectValue placeholder="Select your table" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                                    <SelectItem key={num} value={String(num)}>Table {num}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
             </CardContent>
@@ -484,5 +494,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
+    
 
     
