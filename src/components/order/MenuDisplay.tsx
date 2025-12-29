@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
@@ -19,7 +19,6 @@ import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -187,7 +186,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             pointsToEarn = Math.floor(cartTotal / 400);
         }
 
-        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
+        const orderData: Partial<Omit<Order, 'id' | 'orderDate'>> & { orderDate: any } = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
@@ -256,29 +255,31 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     <div>
                         <RadioGroupItem value="Dine-in" id="dine-in" className="peer sr-only" />
                         <Label htmlFor="dine-in" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            <Utensils className="mb-2 h-6 w-6" />
                             Dine-in
                         </Label>
                     </div>
                      <div>
                         <RadioGroupItem value="Takeaway" id="takeaway" className="peer sr-only" />
                         <Label htmlFor="takeaway" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                            <ShoppingBag className="mb-2 h-6 w-6" />
                             Takeaway
                         </Label>
                     </div>
                 </RadioGroup>
                 {orderType === 'Dine-in' && (
-                    <div className="mt-4">
-                        <Label htmlFor="table-number">Table Number</Label>
-                        <Select onValueChange={setTableNumber} value={tableNumber}>
-                            <SelectTrigger id="table-number">
-                                <SelectValue placeholder="Select your table" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                                    <SelectItem key={num} value={String(num)}>Table {num}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="mt-6">
+                        <Label className="text-lg font-semibold mb-4 block">Select Table Number</Label>
+                        <RadioGroup value={tableNumber} onValueChange={setTableNumber} className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                             {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                                <div key={num}>
+                                    <RadioGroupItem value={String(num)} id={`table-${num}`} className="peer sr-only" />
+                                    <Label htmlFor={`table-${num}`} className="flex h-12 w-full items-center justify-center rounded-md border-2 border-muted bg-popover text-lg font-semibold hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                        {num}
+                                    </Label>
+                                </div>
+                             ))}
+                        </RadioGroup>
                     </div>
                 )}
             </CardContent>
