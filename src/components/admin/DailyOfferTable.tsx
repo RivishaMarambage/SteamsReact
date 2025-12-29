@@ -209,7 +209,7 @@ export default function DailyOfferTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {offers?.sort((a,b) => b.offerStartDate.localeCompare(a.offerStartDate)).map(offer => {
+            {offers?.sort((a,b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || '')).map(offer => {
               return (
                 <TableRow key={offer.id}>
                   <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
