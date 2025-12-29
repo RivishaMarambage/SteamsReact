@@ -193,12 +193,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             status: "Placed" as const,
             menuItemIds: cart.map(item => item.menuItem.id),
             orderType: orderType,
-            tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
             pointsRedeemed: loyaltyDiscount,
             discountApplied: totalDiscount,
             serviceCharge: serviceCharge,
             pointsToEarn: pointsToEarn,
         };
+        
+        if (orderType === 'Dine-in') {
+            orderData.tableNumber = tableNumber;
+        }
 
         batch.set(rootOrderRef, orderData);
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
@@ -481,3 +484,5 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
+    
