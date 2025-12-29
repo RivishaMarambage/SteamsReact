@@ -241,7 +241,7 @@ export default function DailyOfferTable() {
                   <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      {loyaltyLevels?.map(level => {
+                      {loyaltyLevels?.filter(level => level.name.toLowerCase() !== 'standard').map(level => {
                         const discount = offer.tierDiscounts?.[level.id];
                         if (discount > 0) {
                           return (
@@ -377,7 +377,7 @@ export default function DailyOfferTable() {
                 <div className='grid gap-4'>
                   <Label>Tier Discounts</Label>
                   <div className='grid grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {loyaltyLevels?.map(level => (
+                    {loyaltyLevels?.filter(level => level.name.toLowerCase() !== 'standard').map(level => (
                       <div className="grid gap-2" key={level.id}>
                         <Label htmlFor={`tier-${level.id}`} className='capitalize'>{level.name}</Label>
                         <Input
