@@ -120,7 +120,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
   const serviceCharge = orderType === 'Dine-in' ? subtotal * 0.10 : 0;
-  const totalBeforeDiscount = subtotal + serviceCharge;
+  
+  const calculateBirthdayDiscount = () => {
+    if (!userProfile?.birthdayDiscountValue || userProfile.birthdayDiscountValue <= 0) {
+        return 0;
+    }
+
+    if (userProfile.birthdayDiscountType === 'percentage') {
+        return subtotal * (userProfile.birthdayDiscountValue / 100);
+    }
+    // 'fixed'
+    return userProfile.birthdayDiscountValue;
+  }
+  
+  const birthdayDiscountAmount = calculateBirthdayDiscount();
+  
+  const totalBeforeDiscounts = subtotal + serviceCharge;
 
   const handleRedeemPoints = () => {
     const availablePoints = userProfile?.loyaltyPoints ?? 0;
@@ -142,8 +157,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
       toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${availablePoints} points available.` });
       return;
     }
-    if (redeemAmount > totalBeforeDiscount) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${totalBeforeDiscount.toFixed(2)}.` });
+    if (redeemAmount > (totalBeforeDiscounts - birthdayDiscountAmount)) {
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total after other discounts is LKR ${(totalBeforeDiscounts - birthdayDiscountAmount).toFixed(2)}.` });
         return;
     }
 
@@ -151,10 +166,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
   };
   
-  const loyaltyDiscount = Math.min(totalBeforeDiscount, appliedPoints);
-  const birthdayCreditDiscount = Math.min(totalBeforeDiscount - loyaltyDiscount, userProfile?.birthdayCredit || 0);
-  const totalDiscount = loyaltyDiscount + birthdayCreditDiscount;
-  const cartTotal = totalBeforeDiscount - totalDiscount;
+  const loyaltyDiscount = Math.min(totalBeforeDiscounts - birthdayDiscountAmount, appliedPoints);
+  const totalDiscount = loyaltyDiscount + birthdayDiscountAmount;
+  const cartTotal = totalBeforeDiscounts - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handlePlaceOrder = async () => {
@@ -214,8 +228,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             loyaltyPoints: increment(netPointChange),
         };
         
-        if (birthdayCreditDiscount > 0) {
-            updates.birthdayCredit = increment(-birthdayCreditDiscount);
+        if (birthdayDiscountAmount > 0) {
+            updates.birthdayDiscountValue = 0;
+            updates.birthdayDiscountType = null;
         }
 
         batch.update(userDocRef, updates);
@@ -433,10 +448,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
                   
-                  {birthdayCreditDiscount > 0 && (
+                  {birthdayDiscountAmount > 0 && (
                      <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
-                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Credit Applied!</h3>
-                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayCreditDiscount.toFixed(2)}</span> credit has been automatically applied.</p>
+                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Discount Applied!</h3>
+                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayDiscountAmount.toFixed(2)}</span> discount has been automatically applied.</p>
                     </div>
                   )}
 

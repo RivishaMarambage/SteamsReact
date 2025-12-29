@@ -16,7 +16,8 @@
         "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
         "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
-        "birthdayCredit": { "type": "number", "description": "Store credit awarded for a birthday." },
+        "birthdayDiscountValue": { "type": "number", "description": "The value of the birthday discount (fixed amount or percentage)." },
+        "birthdayDiscountType": { "type": "string", "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
         "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." }
       },
       "required": ["id", "email", "name", "role"]
@@ -75,8 +76,12 @@
         },
         "orderType": {
             "type": "string",
-            "enum": ["Dine-in", "Pick up", "Takeway"],
+            "enum": ["Dine-in", "Takeaway"],
             "description": "The type of order."
+        },
+        "tableNumber": {
+            "type": "string",
+            "description": "The table number for dine-in orders."
         },
         "pointsRedeemed": {
           "type": "number",
@@ -117,9 +122,15 @@
             "enum": ["fixed", "percentage"],
             "description": "The type of discount (LKR or %)."
         },
-        "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
+        "orderType": {
+            "type": "string",
+            "enum": ["Dine-in", "Takeaway"],
+            "description": "The type of order the offer applies to."
+        },
+        "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
+        "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerDate"]
+      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
     }
   },
   "auth": {

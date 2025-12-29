@@ -15,10 +15,10 @@ interface BirthdayRewardProps {
 export default function BirthdayReward({ user }: BirthdayRewardProps) {
     const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>('menu_items');
 
-    const hasCredit = user.birthdayCredit && user.birthdayCredit > 0;
+    const hasDiscount = user.birthdayDiscountValue && user.birthdayDiscountValue > 0;
     const hasFreebie = user.birthdayFreebieMenuItemIds && user.birthdayFreebieMenuItemIds.length > 0;
 
-    if (!hasCredit && !hasFreebie) {
+    if (!hasDiscount && !hasFreebie) {
         return null;
     }
 
@@ -36,9 +36,13 @@ export default function BirthdayReward({ user }: BirthdayRewardProps) {
                 <CardDescription>You have a special birthday reward from us. Enjoy!</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {hasCredit && (
+                {hasDiscount && (
                     <div>
-                        <p className="font-semibold">LKR {user.birthdayCredit?.toFixed(2)} Store Credit</p>
+                        <p className="font-semibold">
+                            {user.birthdayDiscountType === 'percentage' 
+                                ? `${user.birthdayDiscountValue}% Discount` 
+                                : `LKR ${user.birthdayDiscountValue?.toFixed(2)} Store Credit`}
+                        </p>
                         <p className="text-sm text-muted-foreground">This will be automatically applied to your next order.</p>
                     </div>
                 )}

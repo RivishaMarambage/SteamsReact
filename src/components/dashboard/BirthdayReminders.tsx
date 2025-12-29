@@ -6,7 +6,7 @@ import { MenuItem, UserProfile } from "@/lib/types";
 import { isWithinInterval, addDays, parseISO, format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
-import { Gift, PlusCircle, Ticket, Utensils } from "lucide-react";
+import { Gift, Percent, Tag, Ticket, Utensils } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -16,8 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { doc, updateDoc, collection } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 type RewardType = 'credit' | 'free-item';
+type DiscountType = 'fixed' | 'percentage';
 
 export default function BirthdayReminders() {
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
@@ -27,7 +29,7 @@ export default function BirthdayReminders() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
   const userRole = userProfile?.role;
-  const canFetchUsers = userRole === 'admin'; // Only admin can list all users
+  const canFetchUsers = userRole === 'admin';
 
   const usersQuery = useMemoFirebase(() => canFetchUsers ? collection(firestore, "users") : null, [firestore, canFetchUsers]);
   const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
@@ -39,7 +41,8 @@ export default function BirthdayReminders() {
   const [isRewardDialogOpen, setRewardDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [rewardType, setRewardType] = useState<RewardType>('credit');
-  const [creditAmount, setCreditAmount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<DiscountType>('fixed');
+  const [discountValue, setDiscountValue] = useState<number>(0);
   const [selectedFreebieId, setSelectedFreebieId] = useState<string>('');
 
   const isLoading = isAuthLoading || isProfileLoading || (canFetchUsers && usersLoading) || menuLoading;
@@ -48,31 +51,44 @@ export default function BirthdayReminders() {
     setSelectedUser(user);
     setRewardDialogOpen(true);
     // Reset form
-    setCreditAmount(0);
+    setDiscountValue(0);
     setSelectedFreebieId(menuItems?.[0]?.id || '');
     setRewardType('credit');
+    setDiscountType('fixed');
   };
 
   const handleGiveReward = async () => {
     if (!selectedUser || !firestore) return;
 
     const userRef = doc(firestore, 'users', selectedUser.id);
-    let rewardData = {};
+    let rewardData: Partial<UserProfile> = {
+        birthdayDiscountType: undefined,
+        birthdayDiscountValue: undefined,
+        birthdayFreebieMenuItemIds: undefined,
+    };
     let toastDescription = '';
 
     if (rewardType === 'credit') {
-        if (creditAmount <= 0) {
-            toast({ variant: 'destructive', title: 'Invalid amount', description: 'Credit must be greater than zero.' });
+        if (discountValue <= 0) {
+            toast({ variant: 'destructive', title: 'Invalid value', description: 'Discount value must be greater than zero.' });
             return;
         }
-        rewardData = { birthdayCredit: creditAmount };
-        toastDescription = `A credit of LKR ${creditAmount} has been added to their account.`;
+        rewardData = { 
+            birthdayDiscountType: discountType,
+            birthdayDiscountValue: discountValue,
+            birthdayFreebieMenuItemIds: [], // Clear freebies
+        };
+        toastDescription = `A ${discountType === 'fixed' ? `LKR ${discountValue}` : `${discountValue}%`} discount has been added to their account.`;
     } else {
         if (!selectedFreebieId) {
             toast({ variant: 'destructive', title: 'No item selected', description: 'Please select a menu item to give.' });
             return;
         }
-        rewardData = { birthdayFreebieMenuItemIds: [selectedFreebieId] };
+        rewardData = { 
+            birthdayFreebieMenuItemIds: [selectedFreebieId],
+            birthdayDiscountType: undefined, // Clear discounts
+            birthdayDiscountValue: undefined,
+        };
         const itemName = menuItems?.find(item => item.id === selectedFreebieId)?.name;
         toastDescription = `${itemName} has been added to their account as a freebie.`;
     }
@@ -94,7 +110,6 @@ export default function BirthdayReminders() {
     setRewardDialogOpen(false);
   };
 
-  // Don't render anything if the user isn't staff or admin
   if (!userRole || (userRole !== 'staff' && userRole !== 'admin')) {
       return null;
   }
@@ -124,11 +139,9 @@ export default function BirthdayReminders() {
     try {
         const dob = parseISO(user.dateOfBirth);
         
-        // Set the year to the current year to check for the upcoming birthday
         const thisYearBirthday = new Date(dob);
         thisYearBirthday.setFullYear(today.getFullYear());
 
-        // If birthday has already passed this year, check for next year's birthday
         const nextYearBirthday = new Date(dob);
         nextYearBirthday.setFullYear(today.getFullYear() + 1);
 
@@ -141,7 +154,6 @@ export default function BirthdayReminders() {
     const dateB = parseISO(b.dateOfBirth!);
     dateA.setFullYear(today.getFullYear());
     dateB.setFullYear(today.getFullYear());
-    // Basic sort, doesn't handle year wrap around perfectly but good enough for 7 days
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -159,7 +171,7 @@ export default function BirthdayReminders() {
             {upcomingBirthdays.map(user => {
                 const dob = parseISO(user.dateOfBirth!);
                 const birthdayString = format(dob, "MMMM d");
-                const hasReward = user.birthdayCredit || (user.birthdayFreebieMenuItemIds && user.birthdayFreebieMenuItemIds.length > 0);
+                const hasReward = user.birthdayDiscountValue || (user.birthdayFreebieMenuItemIds && user.birthdayFreebieMenuItemIds.length > 0);
 
                 return (
                     <li key={user.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
@@ -193,14 +205,26 @@ export default function BirthdayReminders() {
                     <TabsTrigger value="credit"><Ticket className="mr-2"/> Credit / Discount</TabsTrigger>
                     <TabsTrigger value="free-item"><Utensils className="mr-2"/> Free Item</TabsTrigger>
                 </TabsList>
-                <TabsContent value="credit" className="pt-4">
+                <TabsContent value="credit" className="pt-4 space-y-4">
+                     <RadioGroup value={discountType} onValueChange={(value) => setDiscountType(value as DiscountType)} className="flex gap-4">
+                        <Label htmlFor="fixed" className='flex items-center gap-2 p-3 border rounded-md has-[:checked]:border-primary'>
+                            <RadioGroupItem value="fixed" id="fixed" />
+                            <span className="font-bold">LKR</span> Fixed
+                        </Label>
+                        <Label htmlFor="percentage" className='flex items-center gap-2 p-3 border rounded-md has-[:checked]:border-primary'>
+                            <RadioGroupItem value="percentage" id="percentage" />
+                            <Percent className="h-4 w-4"/> Percentage
+                        </Label>
+                    </RadioGroup>
                     <div className="space-y-2">
-                        <Label htmlFor="credit-amount">Credit Amount (LKR)</Label>
+                        <Label htmlFor="discount-value">
+                            {discountType === 'fixed' ? 'Credit Amount (LKR)' : 'Discount Percentage (%)'}
+                        </Label>
                         <Input 
-                            id="credit-amount" 
+                            id="discount-value" 
                             type="number"
-                            value={creditAmount}
-                            onChange={(e) => setCreditAmount(Number(e.target.value))}
+                            value={discountValue}
+                            onChange={(e) => setDiscountValue(Number(e.target.value))}
                         />
                     </div>
                 </TabsContent>
@@ -232,5 +256,3 @@ export default function BirthdayReminders() {
     </>
   );
 }
-
-    

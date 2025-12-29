@@ -12,7 +12,8 @@ export type UserProfile = {
   loyaltyLevelId?: string;
   role: 'customer' | 'admin' | 'staff';
   dateOfBirth?: string;
-  birthdayCredit?: number;
+  birthdayDiscountValue?: number;
+  birthdayDiscountType?: 'fixed' | 'percentage';
   birthdayFreebieMenuItemIds?: string[];
 };
 
