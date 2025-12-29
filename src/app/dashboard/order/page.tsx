@@ -8,12 +8,12 @@ import { collection, query, where } from "firebase/firestore";
 import { DailyOffer, MenuItem } from "@/lib/types";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 
 
 function OrderPageContent() {
   const firestore = useFirestore();
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
