@@ -109,7 +109,13 @@
         "id": { "type": "string", "description": "Unique ID for the offer." },
         "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
         "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
-        "discountValue": { "type": "number", "description": "The value of the discount." },
+        "tierDiscounts": {
+          "type": "object",
+          "description": "A map of loyalty tier IDs to their specific discount value.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
         "discountType": {
             "type": "string",
             "enum": ["fixed", "percentage"],
@@ -123,7 +129,7 @@
         "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
         "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "discountValue", "discountType", "offerStartDate", "offerEndDate"]
+      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
     }
   },
   "auth": {

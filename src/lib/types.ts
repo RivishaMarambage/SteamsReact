@@ -59,7 +59,7 @@ export type DailyOffer = {
   offerStartDate: string; // Stored as YYYY-MM-DD string
   offerEndDate: string; // Stored as YYYY-MM-DD string
   title: string;
-  discountValue: number;
+  tierDiscounts: Record<string, number>; // Map of loyaltyLevelId to discount value
   discountType: 'fixed' | 'percentage'; // LKR amount or %
   orderType: 'Dine-in' | 'Takeaway';
 }

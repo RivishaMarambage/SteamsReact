@@ -315,13 +315,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         let displayPrice = originalPrice;
                         let isOfferApplied = false;
                         
-                        if (offer) {
-                            if (offer.discountType === 'percentage') {
-                                displayPrice = originalPrice - (originalPrice * offer.discountValue / 100);
-                            } else { // fixed
-                                displayPrice = originalPrice - offer.discountValue;
+                        if (offer && userProfile?.loyaltyLevelId) {
+                            const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
+                            if (userTierDiscount > 0) {
+                                if (offer.discountType === 'percentage') {
+                                    displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
+                                } else { // fixed
+                                    displayPrice = originalPrice - userTierDiscount;
+                                }
+                                isOfferApplied = true;
                             }
-                            isOfferApplied = true;
                         }
 
                         // Ensure price is not negative
@@ -495,7 +498,3 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
-
-    
-
-    

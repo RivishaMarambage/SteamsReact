@@ -34,7 +34,7 @@ export default function DailyOffersPreview() {
     
     const filteredOffers = dailyOffers?.map(offer => {
         const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
-        if (!menuItem) return null;
+        if (!menuItem || !userProfile?.loyaltyLevelId) return null;
 
         // Client-side check for the end date
         const isOfferActive = isWithinInterval(today, {
@@ -43,13 +43,18 @@ export default function DailyOffersPreview() {
         });
 
         if (!isOfferActive) return null;
+
+        const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
+        if (userTierDiscount === undefined || userTierDiscount <= 0) {
+            return null; // No discount for this user's tier
+        }
         
         const originalPrice = menuItem.price;
         let displayPrice;
         if (offer.discountType === 'percentage') {
-            displayPrice = originalPrice - (originalPrice * offer.discountValue / 100);
+            displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
         } else { // fixed
-            displayPrice = originalPrice - offer.discountValue;
+            displayPrice = originalPrice - userTierDiscount;
         }
         displayPrice = Math.max(0, displayPrice);
 
@@ -83,8 +88,8 @@ export default function DailyOffersPreview() {
     return (
         <Card className="shadow-lg border-primary/20 bg-primary/5">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2 text-primary"><Tag/> Today's Special Offers</CardTitle>
-                <CardDescription>Don't miss out on these exclusive deals available now!</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2 text-primary"><Tag/> Today's Special Offers For You</CardTitle>
+                <CardDescription>Exclusive deals based on your loyalty tier!</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {filteredOffers.map(offer => {
