@@ -55,9 +55,10 @@ export type Order = {
 export type DailyOffer = {
   id: string;
   menuItemId: string;
-  tierDiscounts: { [key: string]: number }; // e.g., { standard: 50, gold: 15 } (value is LKR or %)
-  offerDate: string; // Stored as YYYY-MM-DD string
+  offerStartDate: string; // Stored as YYYY-MM-DD string
+  offerEndDate: string; // Stored as YYYY-MM-DD string
   title: string;
+  discountValue: number;
   discountType: 'fixed' | 'percentage'; // LKR amount or %
   orderType: 'Dine-in' | 'Pick up' | 'Takeway';
 }

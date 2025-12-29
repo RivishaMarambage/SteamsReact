@@ -67,7 +67,7 @@
         "customerId": { "type": "string", "description": "The UID of the user who placed the order." },
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
-        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed"], "description": "Current status of the order." },
+        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
         "menuItemIds": {
           "type": "array",
           "items": { "type": "string" },
@@ -89,6 +89,10 @@
         "serviceCharge": {
             "type": "number",
             "description": "The service charge applied to the order (e.g., for dine-in)."
+        },
+        "pointsToEarn": {
+          "type": "number",
+          "description": "The number of loyalty points to be awarded when the order is completed."
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]
@@ -101,21 +105,16 @@
         "id": { "type": "string", "description": "Unique ID for the offer." },
         "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
         "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
-        "tierDiscounts": {
-          "type": "object",
-          "description": "A map of loyalty tier IDs to their specific discount value.",
-          "additionalProperties": {
-            "type": "number"
-          }
-        },
+        "discountValue": { "type": "number", "description": "The value of the discount." },
         "discountType": {
             "type": "string",
             "enum": ["fixed", "percentage"],
             "description": "The type of discount (LKR or %)."
         },
-        "offerDate": { "type": "string", "description": "The date the offer is valid for, in YYYY-MM-DD format." }
+        "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
+        "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerDate"]
+      "required": ["id", "title", "menuItemId", "discountValue", "discountType", "offerStartDate", "offerEndDate"]
     }
   },
   "auth": {

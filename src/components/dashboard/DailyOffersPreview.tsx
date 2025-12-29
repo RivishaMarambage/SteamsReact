@@ -2,42 +2,23 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel, Order } from "@/lib/types";
-import { collection, query, where, doc, orderBy } from "firebase/firestore";
-import { format } from 'date-fns';
+import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel } from "@/lib/types";
+import { collection, query, where, doc } from "firebase/firestore";
+import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Tag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 
-const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[] | null): number | undefined => {
-    if (!offer.tierDiscounts || !userProfile || !loyaltyLevels) {
-      return undefined;
-    }
-  
-    // Sort tiers from highest points to lowest
-    const sortedTiers = [...loyaltyLevels].sort((a, b) => b.minimumPoints - a.minimumPoints);
-    const userPoints = userProfile?.loyaltyPoints ?? 0;
-  
-    // Find the best tier the user qualifies for that has a discount
-    for (const tier of sortedTiers) {
-      if (userPoints >= tier.minimumPoints) {
-        if (offer.tierDiscounts[tier.id] !== undefined && offer.tierDiscounts[tier.id] !== null) {
-          return offer.tierDiscounts[tier.id];
-        }
-      }
-    }
-  
-    return undefined;
-};
-
 export default function DailyOffersPreview() {
     const firestore = useFirestore();
     const { user: authUser } = useUser();
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const today = new Date();
     
-    const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerDate', '==', todayStr)) : null, [firestore, todayStr]);
+    // Firestore queries can't do date range checks on different fields.
+    // So we fetch offers where the start date is today or earlier.
+    const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerStartDate', '<=', format(today, 'yyyy-MM-dd'))) : null, [firestore, today]);
     const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(dailyOffersQuery);
 
     const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
@@ -46,7 +27,7 @@ export default function DailyOffersPreview() {
     const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
     const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userDocRef);
 
-    const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
+    const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
     const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
     const isLoading = offersLoading || menuLoading || profileLoading || areLevelsLoading;
@@ -55,17 +36,20 @@ export default function DailyOffersPreview() {
         const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
         if (!menuItem) return null;
 
-        const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
-        if (discountValue === undefined) {
-            return null; // Don't show the offer if there's no discount for this user's tier
-        }
+        // Client-side check for the end date
+        const isOfferActive = isWithinInterval(today, {
+            start: parseISO(offer.offerStartDate),
+            end: parseISO(offer.offerEndDate),
+        });
+
+        if (!isOfferActive) return null;
         
         const originalPrice = menuItem.price;
         let displayPrice;
         if (offer.discountType === 'percentage') {
-            displayPrice = originalPrice - (originalPrice * discountValue / 100);
+            displayPrice = originalPrice - (originalPrice * offer.discountValue / 100);
         } else { // fixed
-            displayPrice = originalPrice - discountValue;
+            displayPrice = originalPrice - offer.discountValue;
         }
         displayPrice = Math.max(0, displayPrice);
 
@@ -100,7 +84,7 @@ export default function DailyOffersPreview() {
         <Card className="shadow-lg border-primary/20 bg-primary/5">
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2 text-primary"><Tag/> Today's Special Offers</CardTitle>
-                <CardDescription>Don't miss out on these exclusive deals for today!</CardDescription>
+                <CardDescription>Don't miss out on these exclusive deals available now!</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {filteredOffers.map(offer => {

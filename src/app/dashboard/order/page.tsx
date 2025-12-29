@@ -1,3 +1,4 @@
+
 'use client';
 
 import MenuDisplay from "@/components/order/MenuDisplay";
@@ -12,12 +13,12 @@ import { Suspense } from "react";
 
 function OrderPageContent() {
   const firestore = useFirestore();
+  const today = new Date();
   
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
   
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerDate', '==', todayStr)) : null, [firestore, todayStr]);
+  const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerStartDate', '<=', format(today, 'yyyy-MM-dd'))) : null, [firestore, today]);
   const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(dailyOffersQuery);
 
   const searchParams = useSearchParams();

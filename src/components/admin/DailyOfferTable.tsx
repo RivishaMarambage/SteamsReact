@@ -9,28 +9,29 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { DailyOffer, MenuItem, LoyaltyLevel, Order } from '@/lib/types';
+import type { DailyOffer, MenuItem, Order } from '@/lib/types';
 import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, addDoc, orderBy, query } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { format, parseISO } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Calendar } from '../ui/calendar';
+import { DateRange } from 'react-day-picker';
 
-type TierDiscounts = { [key: string]: number | '' };
-type FormData = Omit<DailyOffer, 'id' | 'tierDiscounts'> & { tierDiscounts: TierDiscounts };
+const today = new Date();
 
-const INITIAL_FORM_DATA: Omit<DailyOffer, 'id'> = {
+const INITIAL_FORM_DATA: Omit<DailyOffer, 'id' | 'discountValue'> & { discountValue: number | '' } = {
   title: '',
   menuItemId: '',
-  offerDate: format(new Date(), 'yyyy-MM-dd'),
-  tierDiscounts: {},
+  offerStartDate: format(today, 'yyyy-MM-dd'),
+  offerEndDate: format(addDays(today, 7), 'yyyy-MM-dd'),
+  discountValue: '',
   discountType: 'fixed',
   orderType: 'Pick up',
 };
@@ -39,60 +40,64 @@ export default function DailyOfferTable() {
   const firestore = useFirestore();
   const offersQuery = useMemoFirebase(() => firestore ? collection(firestore, "daily_offers") : null, [firestore]);
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
-  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
 
   const { data: offers, isLoading: areOffersLoading } = useCollection<DailyOffer>(offersQuery);
   const { data: menuItems, isLoading: areMenuItemsLoading } = useCollection<MenuItem>(menuItemsQuery);
-  const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
-  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, tierDiscounts: {} });
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: today,
+    to: addDays(today, 7),
+  });
   const { toast } = useToast();
 
-  const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading;
+  const isLoading = areOffersLoading || areMenuItemsLoading;
 
   useEffect(() => {
     if (isFormOpen) {
-      const initialTierDiscounts = loyaltyLevels?.reduce((acc, level) => {
-        acc[level.id] = '';
-        return acc;
-      }, {} as TierDiscounts) || {};
-
       if (selectedOffer) {
+        const fromDate = parseISO(selectedOffer.offerStartDate);
+        const toDate = parseISO(selectedOffer.offerEndDate);
         setFormData({
           title: selectedOffer.title,
           menuItemId: selectedOffer.menuItemId,
-          offerDate: selectedOffer.offerDate,
+          offerStartDate: selectedOffer.offerStartDate,
+          offerEndDate: selectedOffer.offerEndDate,
           discountType: selectedOffer.discountType,
+          discountValue: selectedOffer.discountValue,
           orderType: selectedOffer.orderType,
-          tierDiscounts: { ...initialTierDiscounts, ...selectedOffer.tierDiscounts },
         });
+        setDateRange({ from: fromDate, to: toDate });
       } else {
         setFormData({
           ...INITIAL_FORM_DATA,
           menuItemId: menuItems && menuItems.length > 0 ? menuItems[0].id : '',
-          tierDiscounts: initialTierDiscounts,
         });
+        setDateRange({ from: today, to: addDays(today, 7) });
       }
     }
-  }, [isFormOpen, selectedOffer, menuItems, loyaltyLevels]);
+  }, [isFormOpen, selectedOffer, menuItems]);
 
+  useEffect(() => {
+    if (dateRange?.from && dateRange?.to) {
+        setFormData(prev => ({
+            ...prev,
+            offerStartDate: format(dateRange.from!, 'yyyy-MM-dd'),
+            offerEndDate: format(dateRange.to!, 'yyyy-MM-dd'),
+        }));
+    }
+  }, [dateRange]);
 
-  const handleTierDiscountChange = (tierId: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tierDiscounts: {
-        ...prev.tierDiscounts,
-        [tierId]: value === '' ? '' : parseFloat(value)
-      }
-    }));
-  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+     setFormData(prev => ({
+      ...prev,
+      [name]: name === 'discountValue' ? (value === '' ? '' : parseFloat(value)) : value,
+    }));
   };
 
    const handleDiscountTypeChange = (value: 'fixed' | 'percentage') => {
@@ -102,15 +107,6 @@ export default function DailyOfferTable() {
   const handleOrderTypeChange = (value: Order['orderType']) => {
     setFormData(prev => ({ ...prev, orderType: value }));
   };
-  
-  const handleDateSelect = (date?: Date) => {
-    if (date) {
-      setFormData(prev => ({
-        ...prev,
-        offerDate: format(date, 'yyyy-MM-dd'),
-      }));
-    }
-  }
 
   const handleEdit = (offer: DailyOffer) => {
     setSelectedOffer(offer);
@@ -140,39 +136,25 @@ export default function DailyOfferTable() {
     e.preventDefault();
     if (!firestore) return;
 
-    if (!formData.title || !formData.menuItemId || !formData.offerDate) {
-        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out title, item, and date." });
-        return;
-    }
-
-    const finalTierDiscounts: { [key: string]: number } = {};
-    for (const tierId in formData.tierDiscounts) {
-        const discount = formData.tierDiscounts[tierId];
-        if (discount !== '' && !isNaN(Number(discount))) {
-            finalTierDiscounts[tierId] = Number(discount);
-        }
-    }
-
-    if (Object.keys(finalTierDiscounts).length === 0) {
-        toast({ variant: "destructive", title: "No Discounts Set", description: "Please set a discount for at least one loyalty tier." });
+    if (!formData.title || !formData.menuItemId || !formData.offerStartDate || !formData.offerEndDate || formData.discountValue === '') {
+        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all fields." });
         return;
     }
 
     const finalData: Omit<DailyOffer, 'id'> = {
         title: formData.title,
         menuItemId: formData.menuItemId,
-        offerDate: formData.offerDate,
+        offerStartDate: formData.offerStartDate,
+        offerEndDate: formData.offerEndDate,
         discountType: formData.discountType,
         orderType: formData.orderType,
-        tierDiscounts: finalTierDiscounts,
+        discountValue: Number(formData.discountValue),
     };
 
     if (selectedOffer) {
-      // Update existing item
       await setDoc(doc(firestore, "daily_offers", selectedOffer.id), finalData, { merge: true });
       toast({ title: "Offer Updated", description: `The offer "${finalData.title}" has been updated.`});
     } else {
-      // Add new item
       await addDoc(collection(firestore, "daily_offers"), finalData);
       toast({ title: "Offer Added", description: `The offer "${finalData.title}" has been created.`});
     }
@@ -216,32 +198,26 @@ export default function DailyOfferTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>Date Range</TableHead>
               <TableHead>Offer Title</TableHead>
               <TableHead>Menu Item</TableHead>
               <TableHead>Order Type</TableHead>
-              <TableHead>Tier Discounts</TableHead>
+              <TableHead>Discount</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {offers?.sort((a,b) => b.offerDate.localeCompare(a.offerDate)).map(offer => {
+            {offers?.sort((a,b) => b.offerStartDate.localeCompare(a.offerStartDate)).map(offer => {
               return (
                 <TableRow key={offer.id}>
-                  <TableCell><Badge variant="outline">{offer.offerDate}</Badge></TableCell>
+                  <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
                   <TableCell className="font-medium">{offer.title}</TableCell>
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
                   <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
                   <TableCell>
-                    <div className="flex flex-col text-xs">
-                        {offer.tierDiscounts && Object.entries(offer.tierDiscounts).map(([tierId, discount]) => (
-                            <div key={tierId} className='capitalize'>
-                                <span className='font-semibold'>{tierId}:</span> {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
-                            </div>
-                        ))}
-                    </div>
+                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `LKR ${offer.discountValue.toFixed(2)}`}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -297,26 +273,40 @@ export default function DailyOfferTable() {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label>Offer Date</Label>
+                    <Label>Offer Date Range</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                             <Button
+                              id="date"
                               variant={"outline"}
                               className={cn(
                                 "w-full justify-start text-left font-normal",
-                                !formData.offerDate && "text-muted-foreground"
+                                !dateRange && "text-muted-foreground"
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {formData.offerDate ? format(parseISO(formData.offerDate), "PPP") : <span>Pick a date</span>}
+                              {dateRange?.from ? (
+                                dateRange.to ? (
+                                  <>
+                                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                                    {format(dateRange.to, "LLL dd, y")}
+                                  </>
+                                ) : (
+                                  format(dateRange.from, "LLL dd, y")
+                                )
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
+                        <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
-                            mode="single"
-                            selected={parseISO(formData.offerDate)}
-                            onSelect={handleDateSelect}
                             initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={2}
                           />
                         </PopoverContent>
                       </Popover>
@@ -339,36 +329,32 @@ export default function DailyOfferTable() {
                     </div>
                   </RadioGroup>
                 </div>
-                <div className="grid gap-2">
-                    <Label>Discount Type</Label>
-                     <RadioGroup value={formData.discountType} onValueChange={handleDiscountTypeChange} className="flex gap-4">
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="fixed" id="fixed" />
-                            <Label htmlFor="fixed" className='flex items-center gap-1'><span className="font-bold">LKR</span> Fixed Amount</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="percentage" id="percentage" />
-                            <Label htmlFor="percentage" className='flex items-center gap-1'><Percent className="h-4 w-4"/> Percentage (%)</Label>
-                        </div>
-                    </RadioGroup>
-                </div>
-
-                <div className="grid gap-2">
-                    <Label>Tier Discounts</Label>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border p-4">
-                        {loyaltyLevels?.map(level => (
-                            <div key={level.id} className="grid grid-cols-2 items-center gap-2">
-                                <Label htmlFor={`price-${level.id}`} className='capitalize text-muted-foreground'>{level.name}</Label>
-                                <Input 
-                                    id={`price-${level.id}`}
-                                    type="number"
-                                    step="0.01"
-                                    placeholder={formData.discountType === 'fixed' ? 'LKR' : '%'}
-                                    value={formData.tierDiscounts[level.id] ?? ''}
-                                    onChange={(e) => handleTierDiscountChange(level.id, e.target.value)}
-                                />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label>Discount Type</Label>
+                         <RadioGroup value={formData.discountType} onValueChange={handleDiscountTypeChange} className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="fixed" id="fixed" />
+                                <Label htmlFor="fixed" className='flex items-center gap-1'><span className="font-bold">LKR</span> Fixed</Label>
                             </div>
-                        ))}
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="percentage" id="percentage" />
+                                <Label htmlFor="percentage" className='flex items-center gap-1'><Percent className="h-4 w-4"/> %</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="discountValue">Discount Value</Label>
+                        <Input 
+                            id="discountValue"
+                            name="discountValue"
+                            type="number"
+                            step="0.01"
+                            placeholder={formData.discountType === 'fixed' ? 'e.g., 50' : 'e.g., 10'}
+                            value={formData.discountValue}
+                            onChange={handleFormChange}
+                            required
+                        />
                     </div>
                 </div>
             </div>
@@ -397,6 +383,3 @@ export default function DailyOfferTable() {
     </Card>
   );
 }
-
-    
-    

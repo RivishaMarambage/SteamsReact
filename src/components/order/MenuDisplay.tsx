@@ -10,7 +10,7 @@ import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, Loya
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, orderBy } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -18,34 +18,13 @@ import { Separator } from '../ui/separator';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { format, isWithinInterval, parseISO } from 'date-fns';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
   dailyOffers: DailyOffer[];
   freebieToClaim: string | null;
 }
-
-const getApplicableDiscount = (offer: DailyOffer, userProfile: UserProfile | null, loyaltyLevels: LoyaltyLevel[] | null): number | undefined => {
-    if (!offer.tierDiscounts || !userProfile || !loyaltyLevels) {
-      return undefined;
-    }
-  
-    // Sort tiers from highest points to lowest
-    const sortedTiers = [...loyaltyLevels].sort((a, b) => b.minimumPoints - a.minimumPoints);
-    const userPoints = userProfile?.lifetimePoints ?? 0;
-  
-    // Find the best tier the user qualifies for that has a discount
-    for (const tier of sortedTiers) {
-      if (userPoints >= tier.minimumPoints) {
-        if (offer.tierDiscounts[tier.id] !== undefined && offer.tierDiscounts[tier.id] !== null) {
-          return offer.tierDiscounts[tier.id];
-        }
-      }
-    }
-  
-    return undefined;
-};
-
 
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -63,8 +42,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   
-  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
+  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
+  const canRedeemPoints = useMemo(() => {
+    if (!userProfile || !loyaltyLevels) return false;
+    const bronzeTier = loyaltyLevels.find(l => l.id === 'bronze');
+    if (!bronzeTier) return false;
+    return (userProfile.lifetimePoints ?? 0) >= bronzeTier.minimumPoints;
+  }, [userProfile, loyaltyLevels]);
 
 
   const getCategoryName = (categoryId: string) => {
@@ -139,7 +125,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     const availablePoints = userProfile?.loyaltyPoints ?? 0;
     const redeemAmount = Number(pointsToRedeemInput);
     
-    if (!userProfile || availablePoints <= 0) {
+    if (!userProfile || !canRedeemPoints) {
+      toast({ variant: 'destructive', title: "Redemption Not Allowed", description: "You must be in the Bronze tier or higher to redeem points." });
+      return;
+    }
+    if (availablePoints <= 0) {
       toast({ variant: 'destructive', title: "No points available" });
       return;
     }
@@ -284,22 +274,26 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     <h2 className="text-2xl font-bold font-headline mb-4">{subCategory.name}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
-                        const offer = dailyOffers.find(o => o.menuItemId === item.id && o.orderType === orderType);
+                        const today = new Date();
+                        const offer = dailyOffers.find(o => {
+                            const isOfferActive = isWithinInterval(today, {
+                                start: parseISO(o.offerStartDate),
+                                end: parseISO(o.offerEndDate),
+                            });
+                            return o.menuItemId === item.id && o.orderType === orderType && isOfferActive;
+                        });
                         
                         const originalPrice = item.price;
                         let displayPrice = originalPrice;
                         let isOfferApplied = false;
                         
                         if (offer) {
-                            const discountValue = getApplicableDiscount(offer, userProfile, loyaltyLevels);
-                            if (discountValue !== undefined) {
-                                if (offer.discountType === 'percentage') {
-                                    displayPrice = originalPrice - (originalPrice * discountValue / 100);
-                                } else { // fixed
-                                    displayPrice = originalPrice - discountValue;
-                                }
-                                isOfferApplied = true;
+                            if (offer.discountType === 'percentage') {
+                                displayPrice = originalPrice - (originalPrice * offer.discountValue / 100);
+                            } else { // fixed
+                                displayPrice = originalPrice - offer.discountValue;
                             }
+                            isOfferApplied = true;
                         }
 
                         // Ensure price is not negative
@@ -417,6 +411,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
                   <div className="space-y-2">
                       <h3 className="font-headline text-lg">Redeem Points</h3>
+                       {!canRedeemPoints && userProfile && (
+                        <p className="text-xs text-destructive">You must be in the Bronze tier or higher to redeem points.</p>
+                       )}
                       <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
                       <div className="flex items-center gap-2">
                           <Label htmlFor='redeem-points' className='sr-only'>Points to redeem</Label>
@@ -433,8 +430,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                               }}
                               max={userProfile?.loyaltyPoints ?? 0}
                               min={0}
+                              disabled={!canRedeemPoints}
                           />
-                          <Button variant="secondary" onClick={handleRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
+                          <Button variant="secondary" onClick={handleRedeemPoints} disabled={!canRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
                       </div>
                   </div>
                   <Separator />
