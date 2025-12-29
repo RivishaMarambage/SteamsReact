@@ -11,7 +11,6 @@ import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
     "member": Star,
-    "standard": Medal,
     "bronze": Shield,
     "silver": Gem,
     "gold": Crown,
