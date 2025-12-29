@@ -8,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarRail,
 } from '@/components/ui/sidebar';
 import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -67,7 +68,8 @@ export default function AppSidebar() {
 
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
+      <SidebarRail />
       <SidebarHeader>
         <Logo link="/dashboard"/>
       </SidebarHeader>
