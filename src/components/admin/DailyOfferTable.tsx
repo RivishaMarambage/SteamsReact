@@ -217,7 +217,7 @@ export default function DailyOfferTable() {
                   <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
                   <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
                   <TableCell>
-                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `LKR ${offer.discountValue.toFixed(2)}`}
+                    {offer.discountType === 'percentage' ? `${offer.discountValue || 0}%` : `LKR ${(offer.discountValue || 0).toFixed(2)}`}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
