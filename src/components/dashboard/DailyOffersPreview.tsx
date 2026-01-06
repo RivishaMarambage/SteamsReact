@@ -36,6 +36,8 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         if (!dailyOffers || !menuItems || !userProfile?.loyaltyLevelId) {
             return [];
         }
+        
+        const redeemedToday = userProfile.dailyOffersRedeemed || {};
 
         return dailyOffers.map(offer => {
             const isOfferActive = isWithinInterval(today, {
@@ -44,6 +46,11 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             });
 
             if (!isOfferActive) return null;
+            
+            // Check if user has already redeemed this offer today
+            if (redeemedToday[offer.id] === todayString) {
+                return null;
+            }
 
             const menuItem = menuItems.find(item => item.id === offer.menuItemId);
             if (!menuItem) return null;
@@ -72,7 +79,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                 hasDiscount: userTierDiscount > 0,
             };
         }).filter((o): o is NonNullable<typeof o> => o !== null);
-    }, [dailyOffers, menuItems, userProfile, today]);
+    }, [dailyOffers, menuItems, userProfile, today, todayString]);
 
 
     if (isLoading) {

@@ -20,6 +20,7 @@ export type UserProfile = {
   referralCode?: string;
   hasLinkedSocials?: boolean;
   hasLeftReview?: boolean;
+  dailyOffersRedeemed?: Record<string, string>; // e.g. { "offerId": "YYYY-MM-DD" }
 };
 
 export type Addon = {
@@ -62,6 +63,7 @@ export type OrderItem = {
         addonPrice: number;
     }[];
     totalPrice: number;
+    appliedDailyOfferId?: string;
 }
 
 export type Order = {
@@ -109,4 +111,5 @@ export type CartItem = {
   quantity: number;
   addons: CartItemAddon[];
   totalPrice: number;
+  appliedDailyOfferId?: string;
 };

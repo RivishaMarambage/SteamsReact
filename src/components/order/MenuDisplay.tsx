@@ -43,7 +43,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
 
   const [isCustomizationOpen, setCustomizationOpen] = useState(false);
-  const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number} | null>(null);
+  const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
 
   const { toast } = useToast();
@@ -85,8 +85,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     return categories?.find(c => c.id === categoryId)?.name;
   }
   
-  const handleOpenCustomization = (item: MenuItem, displayPrice: number) => {
-    setCustomizingItem({menuItem: item, displayPrice});
+  const handleOpenCustomization = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
+    setCustomizingItem({menuItem: item, displayPrice, appliedDailyOfferId});
     setSelectedAddons([]);
     setCustomizationOpen(true);
   }
@@ -112,7 +112,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         menuItem: customizingItem.menuItem,
         addons: selectedAddons,
         quantity: 1,
-        totalPrice: finalPrice
+        totalPrice: finalPrice,
+        appliedDailyOfferId: customizingItem.appliedDailyOfferId,
     };
 
     setCart(prev => [...prev, newCartItem]);
@@ -126,7 +127,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     setSelectedAddons([]);
   };
 
-  const addToCart = (item: MenuItem, displayPrice: number) => {
+  const addToCart = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
     // If no addons, add directly to cart
     if(!item.addonIds || item.addonIds.length === 0) {
         const cartId = `${item.id}-${Date.now()}`;
@@ -135,7 +136,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             menuItem: item,
             addons: [],
             quantity: 1,
-            totalPrice: displayPrice
+            totalPrice: displayPrice,
+            appliedDailyOfferId: appliedDailyOfferId,
         };
         setCart(prev => [...prev, newCartItem]);
         toast({
@@ -145,7 +147,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         return;
     }
     // Otherwise, open customization dialog
-    handleOpenCustomization(item, displayPrice);
+    handleOpenCustomization(item, displayPrice, appliedDailyOfferId);
   };
 
 
@@ -307,7 +309,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 addonName: addon.name,
                 addonPrice: addon.price
             })),
-            totalPrice: cartItem.totalPrice
+            totalPrice: cartItem.totalPrice,
+            appliedDailyOfferId: cartItem.appliedDailyOfferId,
         }));
         
         let birthdayDiscountApplied: Order['birthdayDiscountApplied'] = null;
@@ -346,11 +349,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
         batch.set(userOrderRef, orderData);
 
-        // Point spending logic
-        const netPointChange = -loyaltyDiscount;
-        
+        // Point spending and offer redemption logic
         const updates: any = {
-            loyaltyPoints: increment(netPointChange),
+            loyaltyPoints: increment(-loyaltyDiscount),
         };
         
         if (birthdayDiscountAmount > 0) {
@@ -361,6 +362,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         if (welcomeOfferApplied && canClaimWelcomeOffer) {
             updates.welcomeOfferRedeemed = true;
         }
+        
+        const redeemedDailyOffers = orderItems
+            .map(item => item.appliedDailyOfferId)
+            .filter((id): id is string => !!id);
+        
+        if (redeemedDailyOffers.length > 0) {
+            const todayString = format(new Date(), 'yyyy-MM-dd');
+            redeemedDailyOffers.forEach(offerId => {
+                updates[`dailyOffersRedeemed.${offerId}`] = todayString;
+            });
+        }
+
 
         batch.update(userDocRef, updates);
         
@@ -446,8 +459,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
+                        const todayString = format(today, 'yyyy-MM-dd');
+                        
+                        const alreadyRedeemed = userProfile?.dailyOffersRedeemed?.[dailyOffers.find(o => o.menuItemId === item.id)?.id || ''] === todayString;
+
                         const offer = dailyOffers.find(o => {
-                            if (!o.offerStartDate || !o.offerEndDate) return false;
+                            if (!o.offerStartDate || !o.offerEndDate || alreadyRedeemed) return false;
                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
@@ -458,6 +475,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         const originalPrice = item.price;
                         let displayPrice = originalPrice;
                         let isOfferApplied = false;
+                        let appliedOfferId;
                         
                         if (offer && userProfile?.loyaltyLevelId) {
                             const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
@@ -468,6 +486,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                                     displayPrice = originalPrice - userTierDiscount;
                                 }
                                 isOfferApplied = true;
+                                appliedOfferId = offer.id;
                             }
                         }
 
@@ -504,7 +523,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                                 {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
                                 LKR {displayPrice.toFixed(2)}
                               </div>
-                              <Button size="sm" onClick={() => addToCart(item, displayPrice)} disabled={item.isOutOfStock}>
+                              <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
                                 {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
                               </Button>
                             </CardFooter>

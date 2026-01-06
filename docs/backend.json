@@ -23,7 +23,12 @@
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
-        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." }
+        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." },
+        "dailyOffersRedeemed": {
+          "type": "object",
+          "description": "A map of daily offer IDs to the date (YYYY-MM-DD) they were redeemed.",
+          "additionalProperties": { "type": "string" }
+        }
       },
       "required": ["id", "email", "name", "role"]
     },
@@ -96,6 +101,10 @@
               "addonPrice": { "type": "number" }
             }
           }
+        },
+        "appliedDailyOfferId": {
+          "type": "string",
+          "description": "The ID of the daily offer applied to this item, if any."
         }
       },
       "required": ["menuItemId", "menuItemName", "quantity", "basePrice", "totalPrice"]
