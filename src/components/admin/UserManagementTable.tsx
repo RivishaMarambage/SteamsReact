@@ -118,11 +118,10 @@ export default function UserManagementTable() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Mobile Number</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Loyalty Level</TableHead>
+                <TableHead>Welcome Offer Redeemed</TableHead>
                 <TableHead>Redeemable Points</TableHead>
-                <TableHead>Lifetime Points</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -133,15 +132,20 @@ export default function UserManagementTable() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.mobileNumber || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
                   </TableCell>
                   <TableCell className="capitalize">
                     {user.role === 'customer' ? getLoyaltyLevelName(user.loyaltyLevelId) : 'N/A'}
                   </TableCell>
+                  <TableCell>
+                    {user.role === 'customer' ? (
+                      <Badge variant={user.welcomeOfferRedeemed ? "secondary" : "outline"}>
+                        {user.welcomeOfferRedeemed ? 'Yes' : 'No'}
+                      </Badge>
+                    ) : 'N/A'}
+                  </TableCell>
                   <TableCell className="text-right">{user.loyaltyPoints ?? 0}</TableCell>
-                  <TableCell className="text-right">{user.lifetimePoints ?? 0}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
