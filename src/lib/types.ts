@@ -17,6 +17,9 @@ export type UserProfile = {
   birthdayFreebieMenuItemIds?: string[];
   welcomeOfferRedeemed?: boolean;
   emailVerified?: boolean;
+  referralCode?: string;
+  hasLinkedSocials?: boolean;
+  hasLeftReview?: boolean;
 };
 
 export type MenuItem = {
@@ -30,7 +33,7 @@ export type MenuItem = {
 };
 
 export type Category = {
-  id: string;
+  id:string;
   name: string;
   type: 'breakfast' | 'lunch' | 'snacks' | 'dinner' | 'beverage' | 'main food' | 'deserts' | 'match' | 'coffee';
 };
