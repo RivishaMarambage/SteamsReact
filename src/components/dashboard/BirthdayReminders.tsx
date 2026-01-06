@@ -61,11 +61,7 @@ export default function BirthdayReminders() {
     if (!selectedUser || !firestore) return;
 
     const userRef = doc(firestore, 'users', selectedUser.id);
-    let rewardData: Partial<UserProfile> = {
-        birthdayDiscountType: undefined,
-        birthdayDiscountValue: undefined,
-        birthdayFreebieMenuItemIds: undefined,
-    };
+    let rewardData: Partial<UserProfile> = {};
     let toastDescription = '';
 
     if (rewardType === 'credit') {
@@ -79,15 +75,15 @@ export default function BirthdayReminders() {
             birthdayFreebieMenuItemIds: [], // Clear freebies
         };
         toastDescription = `A ${discountType === 'fixed' ? `LKR ${discountValue}` : `${discountValue}%`} discount has been added to their account.`;
-    } else {
+    } else { // rewardType === 'free-item'
         if (!selectedFreebieId) {
             toast({ variant: 'destructive', title: 'No item selected', description: 'Please select a menu item to give.' });
             return;
         }
         rewardData = { 
             birthdayFreebieMenuItemIds: [selectedFreebieId],
-            birthdayDiscountType: undefined, // Clear discounts
-            birthdayDiscountValue: undefined,
+            birthdayDiscountType: null, // Clear discounts with null
+            birthdayDiscountValue: null, // Clear discounts with null
         };
         const itemName = menuItems?.find(item => item.id === selectedFreebieId)?.name;
         toastDescription = `${itemName} has been added to their account as a freebie.`;
