@@ -1,6 +1,7 @@
 
 import BirthdayOfferConfig from "@/components/admin/BirthdayOfferConfig";
 import DailyOfferTable from "@/components/admin/DailyOfferTable";
+import BirthdayReminders from "@/components/dashboard/BirthdayReminders";
 
 export default function AdminOffersPage() {
   return (
@@ -11,6 +12,7 @@ export default function AdminOffersPage() {
       </div>
       <BirthdayOfferConfig />
       <DailyOfferTable />
+      <BirthdayReminders />
     </div>
   );
 }
