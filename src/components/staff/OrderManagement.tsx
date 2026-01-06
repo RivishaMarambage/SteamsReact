@@ -2,7 +2,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, writeBatch, increment } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, writeBatch, increment, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { Order } from '@/lib/types';
+import type { Order, UserProfile } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
 export default function OrderManagement() {
@@ -38,7 +38,7 @@ export default function OrderManagement() {
     batch.update(userOrderRef, { status });
 
     // If order is being marked as Completed, award the points
-    if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn) {
+    if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn && order.pointsToEarn > 0) {
         batch.update(userProfileRef, {
             loyaltyPoints: increment(order.pointsToEarn),
             lifetimePoints: increment(order.pointsToEarn)
@@ -48,14 +48,35 @@ export default function OrderManagement() {
     // If order is being rejected, refund any points or credits used
     if (status === 'Rejected' && order.status !== 'Rejected') {
         const pointsToRefund = order.pointsRedeemed || 0;
-        // Assuming discountApplied is the sum of pointsRedeemed and birthdayCredit
-        const birthdayCreditToRefund = (order.discountApplied || 0) - pointsToRefund;
-
         if (pointsToRefund > 0) {
             batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
         }
-        if (birthdayCreditToRefund > 0) {
-            batch.update(userProfileRef, { birthdayCredit: increment(birthdayCreditToRefund) });
+        
+        // Check if a birthday discount was part of the total discount
+        const birthdayDiscountAmount = (order.discountApplied || 0) - pointsToRefund;
+        if (birthdayDiscountAmount > 0) {
+             try {
+                const userDoc = await getDoc(userProfileRef);
+                if (userDoc.exists()) {
+                    const userData = userDoc.data() as UserProfile;
+                    // This is an approximation. A more robust solution would be to store
+                    // the exact reward that was consumed with the order.
+                    // For now, we assume if a birthday discount was applied, we can restore it.
+                    // We can't know for sure if it was a freebie or a discount, so we restore the one with value.
+                    if(userData.birthdayDiscountValue) {
+                         batch.update(userProfileRef, {
+                            birthdayDiscountValue: userData.birthdayDiscountValue,
+                            birthdayDiscountType: userData.birthdayDiscountType,
+                         });
+                    } else if (userData.birthdayFreebieMenuItemIds) {
+                        batch.update(userProfileRef, {
+                            birthdayFreebieMenuItemIds: userData.birthdayFreebieMenuItemIds
+                        })
+                    }
+                }
+            } catch (e) {
+                console.error("Could not get user profile to refund birthday reward", e);
+            }
         }
     }
     
