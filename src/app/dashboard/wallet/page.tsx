@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Clipboard, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import type { UserProfile } from '@/lib/types';
+
 
 const POINT_REWARDS = {
     REFERRAL: 50,
@@ -24,12 +26,12 @@ export default function WalletPage() {
     const [isCopied, setIsCopied] = useState(false);
 
     const userDocRef = useMemoFirebase(() => (authUser ? doc(firestore, 'users', authUser.uid) : null), [authUser, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
     const isLoading = isUserLoading || isProfileLoading;
 
     // Generate a referral code if it doesn't exist
-    const referralCode = useMemoFirebase(() => {
+    const referralCode = useMemo(() => {
         if (userProfile && !userProfile.referralCode) {
             const newCode = `STM-${authUser?.uid.substring(0, 5).toUpperCase()}`;
             if(userDocRef) {
@@ -170,7 +172,7 @@ export default function WalletPage() {
                                 onClick={() => handleClaimPoints('linkSocials')}
                                 disabled={userProfile.hasLinkedSocials}
                             >
-                                {userProfile.hasLinkedSocials ? <Check /> : 'Claim'}
+                                {userProfile.hasLinkedSocials ? 'Claimed' : 'Claim'}
                             </Button>
                         </div>
                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3 bg-muted/50 rounded-md">
@@ -183,7 +185,7 @@ export default function WalletPage() {
                                 onClick={() => handleClaimPoints('leaveReview')}
                                 disabled={userProfile.hasLeftReview}
                             >
-                                {userProfile.hasLeftReview ? <Check /> : 'Claim'}
+                                {userProfile.hasLeftReview ? 'Claimed' : 'Claim'}
                             </Button>
                         </div>
                     </div>

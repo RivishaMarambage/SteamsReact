@@ -23,7 +23,12 @@
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
-        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." }
+        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." },
+        "dailyOffersRedeemed": {
+          "type": "object",
+          "description": "A map of daily offer IDs to the date (YYYY-MM-DD) they were redeemed.",
+          "additionalProperties": { "type": "string" }
+        }
       },
       "required": ["id", "email", "name", "role"]
     },
@@ -76,6 +81,34 @@
       },
       "required": ["id", "name", "minimumPoints"]
     },
+     "OrderItem": {
+      "title": "Order Item",
+      "type": "object",
+      "description": "Represents a single item within an order, including customizations.",
+      "properties": {
+        "menuItemId": { "type": "string" },
+        "menuItemName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "basePrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "addons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "addonId": { "type": "string" },
+              "addonName": { "type": "string" },
+              "addonPrice": { "type": "number" }
+            }
+          }
+        },
+        "appliedDailyOfferId": {
+          "type": "string",
+          "description": "The ID of the daily offer applied to this item, if any."
+        }
+      },
+      "required": ["menuItemId", "menuItemName", "quantity", "basePrice", "totalPrice"]
+    },
     "Order": {
       "title": "Order",
       "type": "object",
@@ -86,10 +119,10 @@
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
         "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
-        "menuItemIds": {
+        "orderItems": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "List of IDs of the menu items in the order."
+          "items": { "$ref": "#/entities/OrderItem" },
+          "description": "List of items included in the order."
         },
         "orderType": {
             "type": "string",
@@ -117,7 +150,7 @@
           "description": "The number of loyalty points to be awarded when the order is completed."
         }
       },
-      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]
+      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]
     },
     "DailyOffer": {
       "title": "Daily Offer",

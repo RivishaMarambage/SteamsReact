@@ -120,7 +120,9 @@ export default function UserManagementTable() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Loyalty Level</TableHead>
-                <TableHead>Welcome Offer Redeemed</TableHead>
+                <TableHead>Welcome Offer</TableHead>
+                <TableHead>Linked Socials</TableHead>
+                <TableHead>Left Review</TableHead>
                 <TableHead>Redeemable Points</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -142,6 +144,20 @@ export default function UserManagementTable() {
                     {user.role === 'customer' ? (
                       <Badge variant={user.welcomeOfferRedeemed ? "secondary" : "outline"}>
                         {user.welcomeOfferRedeemed ? 'Yes' : 'No'}
+                      </Badge>
+                    ) : 'N/A'}
+                  </TableCell>
+                   <TableCell>
+                    {user.role === 'customer' ? (
+                      <Badge variant={user.hasLinkedSocials ? "secondary" : "outline"}>
+                        {user.hasLinkedSocials ? 'Yes' : 'No'}
+                      </Badge>
+                    ) : 'N/A'}
+                  </TableCell>
+                   <TableCell>
+                    {user.role === 'customer' ? (
+                      <Badge variant={user.hasLeftReview ? "secondary" : "outline"}>
+                        {user.hasLeftReview ? 'Yes' : 'No'}
                       </Badge>
                     ) : 'N/A'}
                   </TableCell>
