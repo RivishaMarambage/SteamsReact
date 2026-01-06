@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
+import { Switch } from '../ui/switch';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -32,6 +33,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [tableNumber, setTableNumber] = useState('');
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
+  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
 
   const { toast } = useToast();
   const { user: authUser } = useUser();
@@ -53,6 +55,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     return (userProfile.lifetimePoints ?? 0) >= bronzeTier.minimumPoints;
   }, [userProfile, loyaltyLevels]);
 
+  const canClaimWelcomeOffer = useMemo(() => {
+    if (!userProfile || !authUser) return false;
+    return !userProfile.welcomeOfferRedeemed && authUser.emailVerified;
+  }, [userProfile, authUser]);
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
@@ -167,7 +173,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   };
   
   const loyaltyDiscount = Math.min(totalBeforeDiscounts - birthdayDiscountAmount, appliedPoints);
-  const totalDiscount = loyaltyDiscount + birthdayDiscountAmount;
+
+  const calculateWelcomeDiscount = () => {
+    if (!welcomeOfferApplied || !canClaimWelcomeOffer || cart.length === 0) {
+        return 0;
+    }
+    // Find the most expensive item in the cart that is not a freebie
+    const eligibleItems = cart.filter(item => item.menuItem.price > 0);
+    if (eligibleItems.length === 0) return 0;
+    
+    const mostExpensiveItem = eligibleItems.reduce((max, item) => item.menuItem.price > max.menuItem.price ? item : max);
+    
+    return mostExpensiveItem.menuItem.price * 0.10; // 10% discount
+  }
+
+  const welcomeDiscountAmount = calculateWelcomeDiscount();
+  const totalDiscount = loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount;
   const cartTotal = totalBeforeDiscounts - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -213,7 +234,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             pointsToEarn: pointsToEarn,
         };
         
-        if (orderType === 'Dine-in') {
+        if (orderType === 'Dine-in' && tableNumber) {
             orderData.tableNumber = tableNumber;
         }
 
@@ -233,6 +254,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             updates.birthdayDiscountType = null;
         }
 
+        if (welcomeOfferApplied) {
+            updates.welcomeOfferRedeemed = true;
+        }
+
         batch.update(userDocRef, updates);
         
         await batch.commit();
@@ -245,6 +270,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         setPointsToRedeemInput('');
         setTableNumber('');
         setAppliedPoints(0);
+        setWelcomeOfferApplied(false);
 
     } catch (error) {
         console.error("Error placing order: ", error);
@@ -319,6 +345,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
                         const offer = dailyOffers.find(o => {
+                            if (!o.offerStartDate || !o.offerEndDate) return false;
                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
@@ -455,6 +482,23 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     </div>
                   )}
 
+                  {canClaimWelcomeOffer && (
+                     <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="welcome-offer-switch" className="flex items-center gap-2">
+                                <Percent className="h-5 w-5 text-blue-500" />
+                                <span className="font-headline text-lg text-blue-600">Your Welcome Offer!</span>
+                            </Label>
+                            <Switch
+                                id="welcome-offer-switch"
+                                checked={welcomeOfferApplied}
+                                onCheckedChange={setWelcomeOfferApplied}
+                            />
+                        </div>
+                        <p className="text-sm text-blue-700/80">Apply a 10% discount to one item in your order.</p>
+                     </div>
+                  )}
+
                   <div className="space-y-2">
                       <h3 className="font-headline text-lg">Redeem Points</h3>
                        {!canRedeemPoints && userProfile && (
@@ -497,6 +541,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         <div className="flex justify-between text-destructive">
                             <span>Discount</span>
                             <span>- LKR {totalDiscount.toFixed(2)}</span>
+                        </div>
+                      )}
+                       {welcomeDiscountAmount > 0 && (
+                        <div className="flex justify-between text-xs pl-4 text-destructive">
+                            <span>(Welcome Offer)</span>
+                            <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-lg font-bold">

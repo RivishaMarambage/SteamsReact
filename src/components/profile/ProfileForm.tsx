@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
+import { sendEmailVerification } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile } from "@/lib/types";
-import { useFirestore } from "@/firebase";
+import { useAuth, useFirestore, useUser } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "../ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ShieldCheck, ShieldOff, MailCheck, MailWarning } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -39,6 +42,9 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user: authUser } = useUser();
+  const auth = useAuth();
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -53,11 +59,18 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
   });
 
   async function onSubmit(data: ProfileFormValues) {
+    if (!firestore || !userProfile) return;
     const userRef = doc(firestore, "users", userProfile.id);
+    
+    // Sync email verification status from auth to firestore
+    await authUser?.reload();
+    const isEmailVerified = authUser?.emailVerified ?? false;
+
     const profileData = {
         ...data,
         dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-    }
+        emailVerified: isEmailVerified,
+    };
     await setDoc(userRef, profileData, { merge: true });
     
     toast({
@@ -65,6 +78,28 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
       description: "Your information has been saved successfully.",
     });
   }
+
+  const handleSendVerificationEmail = async () => {
+    if (authUser && !authUser.emailVerified) {
+      try {
+        await sendEmailVerification(authUser);
+        toast({
+          title: "Verification Email Sent",
+          description: "Please check your inbox to verify your email address.",
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
+    }
+  };
+
+  const isEmailVerified = authUser?.emailVerified ?? false;
+  // Placeholder for mobile verification logic
+  const isMobileVerified = false;
 
   return (
     <Form {...form}>
@@ -197,6 +232,40 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                 />
             )}
         </div>
+
+        {userProfile.role === 'customer' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Verification</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant={isEmailVerified ? 'default' : 'destructive'} className={cn(isEmailVerified && "bg-green-50 border-green-200")}>
+                {isEmailVerified ? <MailCheck className="h-4 w-4 text-green-600" /> : <MailWarning className="h-4 w-4" />}
+                <AlertTitle className={cn(isEmailVerified && "text-green-800")}>{isEmailVerified ? 'Email Verified' : 'Email Not Verified'}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between">
+                  <span className={cn(isEmailVerified && "text-green-700")}>
+                    {isEmailVerified ? 'Your email is verified.' : 'Verify your email to unlock all features, including the welcome offer.'}
+                  </span>
+                  {!isEmailVerified && (
+                    <Button type="button" size="sm" onClick={handleSendVerificationEmail}>
+                      Resend Verification
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+              <Alert variant={isMobileVerified ? 'default' : 'destructive'} className={cn(isMobileVerified && "bg-green-50 border-green-200")}>
+                 {isMobileVerified ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldOff className="h-4 w-4" />}
+                <AlertTitle className={cn(isMobileVerified && "text-green-800")}>{isMobileVerified ? 'Mobile Verified' : 'Mobile Not Verified'}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between">
+                   <span className={cn(isMobileVerified && "text-green-700")}>
+                     {isMobileVerified ? 'Your mobile number is verified.' : 'Mobile verification is coming soon.'}
+                   </span>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
         <Button type="submit">Update Profile</Button>
       </form>
     </Form>

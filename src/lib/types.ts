@@ -15,6 +15,8 @@ export type UserProfile = {
   birthdayDiscountValue?: number;
   birthdayDiscountType?: 'fixed' | 'percentage';
   birthdayFreebieMenuItemIds?: string[];
+  welcomeOfferRedeemed?: boolean;
+  emailVerified?: boolean;
 };
 
 export type MenuItem = {

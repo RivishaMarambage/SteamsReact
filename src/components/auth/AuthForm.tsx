@@ -17,7 +17,7 @@ import { CalendarIcon, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile } from '@/lib/types';
@@ -105,6 +105,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyPoints: role === 'customer' ? 125 : 0,
               lifetimePoints: role === 'customer' ? 125 : 0,
               loyaltyLevelId: role === 'customer' ? "bronze" : "member",
+              welcomeOfferRedeemed: false,
+              emailVerified: true, // Demo users are pre-verified
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
@@ -195,6 +197,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         const user = userCredential.user;
 
+        // Send verification email
+        await sendEmailVerification(user);
+
         const userProfile = {
           id: user.uid,
           email: data.email,
@@ -206,13 +211,15 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           loyaltyPoints: 0,
           lifetimePoints: 0,
           loyaltyLevelId: "member", // Default loyalty level
+          welcomeOfferRedeemed: false,
+          emailVerified: user.emailVerified,
         };
 
         await setDoc(doc(firestore, "users", user.uid), userProfile);
         
         toast({
           title: 'Account Created!',
-          description: "Welcome! Please log in to continue.",
+          description: "Welcome! Please check your email to verify your account and then log in.",
         });
         router.push(`/login/${role}`);
       } catch (error: any) {

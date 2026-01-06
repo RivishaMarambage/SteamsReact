@@ -18,7 +18,9 @@
         "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
         "birthdayDiscountValue": { "type": "number", "description": "The value of the birthday discount (fixed amount or percentage)." },
         "birthdayDiscountType": { "type": "string", "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
-        "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." }
+        "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
+        "welcomeOfferRedeemed": { "type": "boolean", "description": "Whether the user has redeemed their one-time welcome offer." },
+        "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." }
       },
       "required": ["id", "email", "name", "role"]
     },
