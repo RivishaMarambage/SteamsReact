@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { UserProfile } from "@/lib/types";
@@ -15,7 +14,11 @@ interface WelcomeOfferProps {
 
 export default function WelcomeOffer({ user }: WelcomeOfferProps) {
     const { user: authUser } = useUser();
-    const canClaim = !user.welcomeOfferRedeemed && (user.emailVerified || authUser?.emailVerified);
+    
+    // Show if the offer has not been redeemed OR if the field doesn't exist yet (for older users)
+    const offerNotRedeemed = user.welcomeOfferRedeemed === false || user.welcomeOfferRedeemed === undefined;
+    const isVerified = user.emailVerified || authUser?.emailVerified;
+    const canClaim = offerNotRedeemed && isVerified;
 
     if (!canClaim) {
         return null;
@@ -41,4 +44,3 @@ export default function WelcomeOffer({ user }: WelcomeOfferProps) {
         </Card>
     )
 }
-
