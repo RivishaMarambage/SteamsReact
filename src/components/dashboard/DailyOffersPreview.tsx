@@ -41,7 +41,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         if (!isOfferActive) return null;
 
         const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
-        if (userTierDiscount === undefined || userTierDiscount <= 0) {
+        if (userTierDiscount === undefined) { // Allow offers with 0 discount
             return null; // No discount for this user's tier
         }
         
@@ -58,7 +58,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             ...offer,
             menuItem,
             originalPrice,
-            displayPrice
+            displayPrice,
         }
     }).filter((o): o is NonNullable<typeof o> => o !== null);
 
