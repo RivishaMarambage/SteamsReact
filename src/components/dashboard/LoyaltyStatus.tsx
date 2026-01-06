@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
-import { Medal, Shield, Gem, Crown, Minus, Star, Trophy } from 'lucide-react';
+import { Shield, Gem, Crown, Minus, Star, Trophy } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {

@@ -11,9 +11,8 @@ import { Tag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 
-export default function DailyOffersPreview() {
+export default function DailyOffersPreview({ userProfile }: { userProfile: UserProfile | null }) {
     const firestore = useFirestore();
-    const { user: authUser } = useUser();
     const today = new Date();
     
     // Firestore queries can't do date range checks on different fields.
@@ -24,13 +23,10 @@ export default function DailyOffersPreview() {
     const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
     const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
     
-    const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
-    const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userDocRef);
-
     const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
     const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
-    const isLoading = offersLoading || menuLoading || profileLoading || areLevelsLoading;
+    const isLoading = offersLoading || menuLoading || areLevelsLoading;
     
     const filteredOffers = dailyOffers?.map(offer => {
         const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
@@ -81,7 +77,7 @@ export default function DailyOffersPreview() {
         )
     }
 
-    if (!filteredOffers || filteredOffers.length === 0) {
+    if (!userProfile || !filteredOffers || filteredOffers.length === 0) {
         return null; // Don't show the card if there are no applicable offers
     }
 
