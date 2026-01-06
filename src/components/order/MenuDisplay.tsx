@@ -20,6 +20,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Switch } from '../ui/switch';
+import { useSearchParams } from 'next/navigation';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -33,7 +34,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [tableNumber, setTableNumber] = useState('');
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
-  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
+  
+  const searchParams = useSearchParams();
+  const claimWelcomeOffer = searchParams.get('claimWelcomeOffer') === 'true';
+
+  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(claimWelcomeOffer);
 
   const { toast } = useToast();
   const { user: authUser } = useUser();
@@ -57,8 +62,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const canClaimWelcomeOffer = useMemo(() => {
     if (!userProfile || !authUser) return false;
-    return !userProfile.welcomeOfferRedeemed && authUser.emailVerified;
+    return !userProfile.welcomeOfferRedeemed && (userProfile.emailVerified || authUser.emailVerified);
   }, [userProfile, authUser]);
+  
+  useEffect(() => {
+    setWelcomeOfferApplied(claimWelcomeOffer && canClaimWelcomeOffer);
+  }, [claimWelcomeOffer, canClaimWelcomeOffer]);
+
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
@@ -481,23 +491,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                       <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayDiscountAmount.toFixed(2)}</span> discount has been automatically applied.</p>
                     </div>
                   )}
-
-                  {canClaimWelcomeOffer && (
-                     <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="welcome-offer-switch" className="flex items-center gap-2">
-                                <Percent className="h-5 w-5 text-blue-500" />
-                                <span className="font-headline text-lg text-blue-600">Your Welcome Offer!</span>
-                            </Label>
-                            <Switch
-                                id="welcome-offer-switch"
-                                checked={welcomeOfferApplied}
-                                onCheckedChange={setWelcomeOfferApplied}
-                            />
-                        </div>
-                        <p className="text-sm text-blue-700/80">Apply a 10% discount to one item in your order.</p>
-                     </div>
+                  
+                  {welcomeOfferApplied && (
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Welcome Offer Applied!</h3>
+                      <p className="text-sm text-muted-foreground">Your 10% discount of <span className="font-bold">LKR {welcomeDiscountAmount.toFixed(2)}</span> has been automatically applied to one item.</p>
+                    </div>
                   )}
+
 
                   <div className="space-y-2">
                       <h3 className="font-headline text-lg">Redeem Points</h3>
