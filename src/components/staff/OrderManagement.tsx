@@ -140,8 +140,8 @@ export default function OrderManagement() {
             <TableRow>
               <TableHead>Order ID</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Table</TableHead>
+              <TableHead>Type / Table</TableHead>
+              <TableHead>Items</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -153,9 +153,25 @@ export default function OrderManagement() {
                 <TableCell className="font-medium">{order.id.substring(0, 7).toUpperCase()}</TableCell>
                 <TableCell>{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleString() : 'N/A'}</TableCell>
                 <TableCell>
-                    <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
+                    <div className="flex flex-col gap-1">
+                        <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
+                        {order.tableNumber && <span className='text-sm font-medium'>Table: {order.tableNumber}</span>}
+                    </div>
                 </TableCell>
-                <TableCell>{order.tableNumber || 'N/A'}</TableCell>
+                <TableCell>
+                    <div className="flex flex-col gap-1 text-xs">
+                        {order.orderItems?.map((item, index) => (
+                            <div key={index}>
+                                <span className="font-semibold">{item.quantity}x {item.menuItemName}</span>
+                                {item.addons && item.addons.length > 0 && (
+                                    <div className="pl-2 text-muted-foreground">
+                                        {item.addons.map(addon => `+ ${addon.addonName}`).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </TableCell>
                 <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>

@@ -51,13 +51,26 @@ export type LoyaltyLevel = {
     minimumPoints: number;
 };
 
+export type OrderItem = {
+    menuItemId: string;
+    menuItemName: string;
+    quantity: number;
+    basePrice: number;
+    addons: {
+        addonId: string;
+        addonName: string;
+        addonPrice: number;
+    }[];
+    totalPrice: number;
+}
+
 export type Order = {
     id: string;
     customerId: string;
     orderDate: Timestamp;
     totalAmount: number;
     status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed' | 'Rejected';
-    menuItemIds: string[];
+    orderItems: OrderItem[];
     orderType: 'Dine-in' | 'Takeaway';
     tableNumber?: string;
     pointsRedeemed?: number;

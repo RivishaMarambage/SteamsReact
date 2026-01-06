@@ -16,8 +16,8 @@
         "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
         "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
-        "birthdayDiscountValue": { "type": "number", "description": "The value of the birthday discount (fixed amount or percentage)." },
-        "birthdayDiscountType": { "type": "string", "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
+        "birthdayDiscountValue": { "type": ["number", "null"], "description": "The value of the birthday discount (fixed amount or percentage)." },
+        "birthdayDiscountType": { "type": ["string", "null"], "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
         "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
         "welcomeOfferRedeemed": { "type": "boolean", "description": "Whether the user has redeemed their one-time welcome offer." },
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
@@ -38,9 +38,21 @@
         "price": { "type": "number", "description": "Price of the item." },
         "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
         "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
-        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." }
+        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." },
+        "addonIds": { "type": "array", "items": { "type": "string" }, "description": "List of addon IDs applicable to this menu item." }
       },
       "required": ["id", "name", "price", "categoryId"]
+    },
+    "Addon": {
+      "title": "Addon",
+      "type": "object",
+      "description": "A customization option for a menu item, like 'Extra Shot' or 'Almond Milk'.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the addon." },
+        "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
+        "price": { "type": "number", "description": "Additional price for this addon." }
+      },
+      "required": ["id", "name", "price"]
     },
     "Category": {
       "title": "Category",
@@ -49,7 +61,7 @@
       "properties": {
         "id": { "type": "string", "description": "Unique ID for the category." },
         "name": { "type": "string", "description": "Name of the category (e.g., 'Coffee Classics')." },
-        "type": { "type": "string", "description": "A broader type for grouping categories (e.g., 'coffee')." }
+        "type": { "type": "string", "enum": ["Food", "Beverages"], "description": "The main group this category belongs to." }
       },
       "required": ["id", "name", "type"]
     },
@@ -64,6 +76,30 @@
       },
       "required": ["id", "name", "minimumPoints"]
     },
+     "OrderItem": {
+      "title": "Order Item",
+      "type": "object",
+      "description": "Represents a single item within an order, including customizations.",
+      "properties": {
+        "menuItemId": { "type": "string" },
+        "menuItemName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "basePrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "addons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "addonId": { "type": "string" },
+              "addonName": { "type": "string" },
+              "addonPrice": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["menuItemId", "menuItemName", "quantity", "basePrice", "totalPrice"]
+    },
     "Order": {
       "title": "Order",
       "type": "object",
@@ -74,10 +110,10 @@
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
         "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
-        "menuItemIds": {
+        "orderItems": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "List of IDs of the menu items in the order."
+          "items": { "$ref": "#/entities/OrderItem" },
+          "description": "List of items included in the order."
         },
         "orderType": {
             "type": "string",
@@ -105,7 +141,7 @@
           "description": "The number of loyalty points to be awarded when the order is completed."
         }
       },
-      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "menuItemIds", "orderType"]
+      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]
     },
     "DailyOffer": {
       "title": "Daily Offer",
@@ -149,6 +185,10 @@
     "/menu_items/{menuItemId}": {
       "schema": { "$ref": "#/entities/MenuItem" },
       "description": "Publicly readable list of all menu items."
+    },
+     "/addons/{addonId}": {
+      "schema": { "$ref": "#/entities/Addon" },
+      "description": "Publicly readable list of all addons."
     },
     "/categories/{categoryId}": {
       "schema": { "$ref": "#/entities/Category" },

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon } from '@/lib/types';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -297,12 +297,25 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             pointsToEarn = Math.floor(cartTotal / 400);
         }
 
+        const orderItems: OrderItem[] = cart.map(cartItem => ({
+            menuItemId: cartItem.menuItem.id,
+            menuItemName: cartItem.menuItem.name,
+            quantity: cartItem.quantity,
+            basePrice: cartItem.menuItem.price,
+            addons: cartItem.addons.map(addon => ({
+                addonId: addon.id,
+                addonName: addon.name,
+                addonPrice: addon.price
+            })),
+            totalPrice: cartItem.totalPrice
+        }));
+
         const orderData: Partial<Omit<Order, 'id' | 'orderDate'>> & { orderDate: any } = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
             status: "Placed" as const,
-            menuItemIds: cart.map(item => item.menuItem.id),
+            orderItems: orderItems,
             orderType: orderType,
             pointsRedeemed: loyaltyDiscount,
             discountApplied: totalDiscount,
