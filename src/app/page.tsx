@@ -75,7 +75,7 @@ export default function LandingPage() {
             </h1>
             <h3>Your Daily Dose of Delight </h3>
             <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
-              Join our loyalty program. Earn points, get rewards, and enjoy exclusive perks with every sip and bite.
+              Join our loyalty program to earn points, get rewards, and enjoy exclusive perks. New members get a one-time 10% discount on any item!
             </p>
             <div className="mt-8 flex justify-center gap-4">
                 <Dialog>
