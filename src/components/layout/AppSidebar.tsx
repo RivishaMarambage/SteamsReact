@@ -28,13 +28,13 @@ const customerMenuItems = [
 const staffMenuItems = [
     { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
     { href: '/dashboard/staff/redeem', label: 'Redeem Points', icon: ScanSearch },
+    { href: '/dashboard/admin/categories', label: 'Manage Categories', icon: FolderPlus },
+    { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
 ];
 
 const adminMenuItems = [
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: AreaChart },
   { href: '/dashboard/admin/offers', label: 'Daily Offers', icon: Tag },
-  { href: '/dashboard/admin/categories', label: 'Manage Categories', icon: FolderPlus },
-  { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
   { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
 ];
