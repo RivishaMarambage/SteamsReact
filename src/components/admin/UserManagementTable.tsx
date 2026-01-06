@@ -43,7 +43,7 @@ export default function UserManagementTable() {
   };
 
   const handleRoleChange = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !firestore) return;
 
     const userRef = doc(firestore, "users", selectedUser.id);
     await setDoc(userRef, { role: selectedRole }, { merge: true });
@@ -57,7 +57,7 @@ export default function UserManagementTable() {
   };
 
   const confirmDelete = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !firestore) return;
     
     // Note: This deletes the Firestore user document, but not the Firebase Auth user.
     // For a production app, you'd want a Cloud Function to handle full user deletion.
