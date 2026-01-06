@@ -8,7 +8,7 @@ import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User as UserIcon } from "lucide-react";
+import { ShoppingCart, User as UserIcon, Sparkles } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
@@ -54,7 +54,7 @@ export default function DashboardPage() {
         <WelcomeOffer user={user} />
         <BirthdayReward user={user} />
         <DailyOffersPreview userProfile={user} />
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
             <Card className="shadow-lg flex flex-col justify-between">
                 <CardHeader>
                     <CardTitle className="font-headline">Order Again</CardTitle>
@@ -63,6 +63,17 @@ export default function DashboardPage() {
                 <CardContent>
                     <Button asChild className="w-full sm:w-auto">
                         <Link href="/dashboard/order"><ShoppingCart /> Start New Order</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+             <Card className="shadow-lg flex flex-col justify-between bg-primary/5 border-primary/20">
+                <CardHeader>
+                    <CardTitle className="font-headline">Create Your Own</CardTitle>
+                    <CardDescription>Feeling creative? Build your perfect custom drink from scratch.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild className="w-full sm:w-auto">
+                        <Link href="/dashboard/creator"><Sparkles /> Build a Drink</Link>
                     </Button>
                 </CardContent>
             </Card>

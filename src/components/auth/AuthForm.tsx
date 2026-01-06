@@ -20,7 +20,7 @@ import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import type { Category, LoyaltyLevel, UserProfile } from '@/lib/types';
+import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -59,6 +59,7 @@ const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
     { name: 'Pastries & Bakes', type: 'Food' },
     { name: 'Savory Snacks', type: 'Food' },
     { name: 'Lunch Specials', type: 'Food' },
+    { name: 'Custom Creations', type: 'Beverages' },
 ];
 
 const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
@@ -68,6 +69,16 @@ const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
     { name: 'Gold', minimumPoints: 2000 },
     { name: 'Platinum', minimumPoints: 5000 },
 ]
+
+const SEED_ADDONS: Omit<Addon, 'id'>[] = [
+    { name: "Extra Espresso Shot", price: 100 },
+    { name: "Almond Milk", price: 80 },
+    { name: "Oat Milk", price: 80 },
+    { name: "Soy Milk", price: 70 },
+    { name: "Whipped Cream", price: 50 },
+    { name: "Caramel Drizzle", price: 60 },
+    { name: "Chocolate Syrup", price: 60 },
+];
 
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
@@ -136,19 +147,78 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     const seedDatabase = async () => {
         if (!firestore) return;
 
+        let customCreationsCategoryId = '';
+
         // Seed Categories
         const categoriesRef = collection(firestore, 'categories');
         const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
         if (categorySnapshot.empty) {
             console.log("Categories collection is empty. Seeding...");
             const categoryBatch = writeBatch(firestore);
-            SEED_CATEGORIES.forEach(category => {
+            for (const category of SEED_CATEGORIES) {
                 const docRef = doc(categoriesRef); // Create a new doc with a generated ID
                 categoryBatch.set(docRef, category);
-            });
+                 if (category.name === 'Custom Creations') {
+                  customCreationsCategoryId = docRef.id;
+                }
+            }
             await categoryBatch.commit();
             console.log("Seeded categories.");
+        } else {
+             const q = query(categoriesRef, where('name', '==', 'Custom Creations'), limit(1));
+             const snapshot = await getDocs(q);
+             if (!snapshot.empty) {
+                customCreationsCategoryId = snapshot.docs[0].id;
+             }
         }
+
+        // Seed Add-ons
+        const addonsRef = collection(firestore, 'addons');
+        const addonSnapshot = await getDocs(query(addonsRef, limit(1)));
+        const addonIds: string[] = [];
+        if (addonSnapshot.empty) {
+            console.log("Addons collection is empty. Seeding...");
+            const addonBatch = writeBatch(firestore);
+            SEED_ADDONS.forEach(addon => {
+                const docRef = doc(addonsRef);
+                addonBatch.set(docRef, addon);
+                addonIds.push(docRef.id);
+            });
+            await addonBatch.commit();
+            console.log("Seeded addons.");
+        } else {
+            const allAddons = await getDocs(addonsRef);
+            allAddons.forEach(doc => addonIds.push(doc.id));
+        }
+
+        // Seed Custom Menu Items
+        const menuItemsRef = collection(firestore, 'menu_items');
+        const customCoffeeDoc = await getDoc(doc(menuItemsRef, 'custom-coffee-base'));
+        if (!customCoffeeDoc.exists() && customCreationsCategoryId && addonIds.length > 0) {
+            console.log("Seeding custom menu items...");
+            const batch = writeBatch(firestore);
+            const coffeeBase: Omit<MenuItem, 'id'> = {
+                name: 'Custom Coffee Base',
+                description: 'Your own coffee creation.',
+                price: 250,
+                categoryId: customCreationsCategoryId,
+                isOutOfStock: false,
+                addonIds: addonIds,
+            };
+             const teaBase: Omit<MenuItem, 'id'> = {
+                name: 'Custom Tea Base',
+                description: 'Your own tea creation.',
+                price: 200,
+                categoryId: customCreationsCategoryId,
+                isOutOfStock: false,
+                addonIds: addonIds,
+            };
+            batch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
+            batch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
+            await batch.commit();
+            console.log("Seeded custom menu items.");
+        }
+
 
         // Seed Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
