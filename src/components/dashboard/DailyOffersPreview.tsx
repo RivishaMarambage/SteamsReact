@@ -40,10 +40,11 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
 
         if (!isOfferActive) return null;
 
-        const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
-        if (userTierDiscount === undefined) { // Allow offers with 0 discount
-            return null; // No discount for this user's tier
+        const userLoyaltyId = userProfile.loyaltyLevelId;
+        if (!offer.tierDiscounts || !(userLoyaltyId in offer.tierDiscounts)) {
+            return null; // No discount defined for this user's tier, even if it's 0.
         }
+        const userTierDiscount = offer.tierDiscounts[userLoyaltyId];
         
         const originalPrice = menuItem.price;
         let displayPrice;
