@@ -17,6 +17,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const CATEGORY_TYPES: Category['type'][] = ['Food', 'Beverages'];
 
@@ -30,7 +31,7 @@ export default function CategoryTable() {
   const firestore = useFirestore();
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
 
-  const { data: categories, isLoading } = useCollection(categoriesQuery);
+  const { data: categories, isLoading } = useCollection<Category>(categoriesQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -52,13 +53,20 @@ export default function CategoryTable() {
   }, [isFormOpen, selectedCategory]);
 
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
   };
+  
+  const handleTypeChange = (value: Category['type']) => {
+     setFormData(prev => ({
+      ...prev,
+      type: value,
+    }));
+  }
 
   const handleEdit = (category: Category) => {
     setSelectedCategory(category);
@@ -143,7 +151,7 @@ export default function CategoryTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Main Group</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -182,27 +190,27 @@ export default function CategoryTable() {
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
               <DialogTitle className="font-headline">{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
-              <DialogDescription>{selectedCategory ? 'Make changes to the category.' : 'Add a new category to your menu.'}</DialogDescription>
+              <DialogDescription>
+                Create a new sub-category for your menu, like "Pastries" or "Iced Teas", and assign it to a main group.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
+                <Label htmlFor="name">New Category Name</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required placeholder="e.g., Pastries & Bakes" />
               </div>
               <div className="grid gap-2">
-                  <Label htmlFor="type">Type</Label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleFormChange}
-                    required
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {CATEGORY_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
+                  <Label htmlFor="type">Main Group</Label>
+                   <Select onValueChange={handleTypeChange} value={formData.type} required>
+                    <SelectTrigger id="type">
+                        <SelectValue placeholder="Select a main group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {CATEGORY_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
             </div>
             <DialogFooter>

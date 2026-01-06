@@ -61,7 +61,7 @@
       "properties": {
         "id": { "type": "string", "description": "Unique ID for the category." },
         "name": { "type": "string", "description": "Name of the category (e.g., 'Coffee Classics')." },
-        "type": { "type": "string", "description": "A broader type for grouping categories (e.g., 'coffee')." }
+        "type": { "type": "string", "enum": ["Food", "Beverages"], "description": "The main group this category belongs to." }
       },
       "required": ["id", "name", "type"]
     },
