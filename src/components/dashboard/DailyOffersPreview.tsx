@@ -41,10 +41,12 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         if (!isOfferActive) return null;
 
         const userLoyaltyId = userProfile.loyaltyLevelId;
-        if (!offer.tierDiscounts || !(userLoyaltyId in offer.tierDiscounts)) {
-            return null; // No discount defined for this user's tier, even if it's 0.
+        const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId];
+        
+        // Ensure that a discount is explicitly defined for the user's tier and is a valid number.
+        if (typeof userTierDiscount !== 'number') {
+            return null;
         }
-        const userTierDiscount = offer.tierDiscounts[userLoyaltyId];
         
         const originalPrice = menuItem.price;
         let displayPrice;
