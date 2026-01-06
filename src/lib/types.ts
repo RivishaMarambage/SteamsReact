@@ -77,6 +77,13 @@ export type Order = {
     discountApplied?: number;
     serviceCharge?: number;
     pointsToEarn?: number;
+    birthdayDiscountApplied?: {
+      type: 'fixed' | 'percentage';
+      value: number;
+    } | {
+      type: 'free-item';
+      menuItemIds: string[];
+    } | null;
 }
 
 export type DailyOffer = {

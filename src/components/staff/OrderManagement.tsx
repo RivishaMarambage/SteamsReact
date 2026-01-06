@@ -52,31 +52,17 @@ export default function OrderManagement() {
             batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
         }
         
-        // Check if a birthday discount was part of the total discount
-        const birthdayDiscountAmount = (order.discountApplied || 0) - pointsToRefund;
-        if (birthdayDiscountAmount > 0) {
-             try {
-                const userDoc = await getDoc(userProfileRef);
-                if (userDoc.exists()) {
-                    const userData = userDoc.data() as UserProfile;
-                    // This is an approximation. A more robust solution would be to store
-                    // the exact reward that was consumed with the order.
-                    // For now, we assume if a birthday discount was applied, we can restore it.
-                    // We can't know for sure if it was a freebie or a discount, so we restore the one with value.
-                    if(userData.birthdayDiscountValue) {
-                         batch.update(userProfileRef, {
-                            birthdayDiscountValue: userData.birthdayDiscountValue,
-                            birthdayDiscountType: userData.birthdayDiscountType,
-                         });
-                    } else if (userData.birthdayFreebieMenuItemIds) {
-                        batch.update(userProfileRef, {
-                            birthdayFreebieMenuItemIds: userData.birthdayFreebieMenuItemIds
-                        })
-                    }
-                }
-            } catch (e) {
-                console.error("Could not get user profile to refund birthday reward", e);
+        // If a birthday reward was applied to this order, restore it.
+        if (order.birthdayDiscountApplied) {
+            const rewardToRestore = order.birthdayDiscountApplied;
+            let updates: Partial<UserProfile> = {};
+            if (rewardToRestore.type === 'free-item') {
+                updates.birthdayFreebieMenuItemIds = rewardToRestore.menuItemIds;
+            } else { // fixed or percentage
+                updates.birthdayDiscountType = rewardToRestore.type;
+                updates.birthdayDiscountValue = rewardToRestore.value;
             }
+             batch.update(userProfileRef, updates);
         }
     }
     

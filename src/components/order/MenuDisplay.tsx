@@ -309,6 +309,20 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             })),
             totalPrice: cartItem.totalPrice
         }));
+        
+        let birthdayDiscountApplied: Order['birthdayDiscountApplied'] = null;
+        if (birthdayDiscountAmount > 0) {
+           birthdayDiscountApplied = {
+             type: userProfile.birthdayDiscountType!,
+             value: userProfile.birthdayDiscountValue!,
+           }
+        } else if (freebieToClaim && userProfile.birthdayFreebieMenuItemIds?.includes(freebieToClaim)) {
+            birthdayDiscountApplied = {
+                type: 'free-item',
+                menuItemIds: userProfile.birthdayFreebieMenuItemIds,
+            }
+        }
+
 
         const orderData: Partial<Omit<Order, 'id' | 'orderDate'>> & { orderDate: any } = {
             customerId: authUser.uid,
@@ -321,6 +335,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             discountApplied: totalDiscount,
             serviceCharge: serviceCharge,
             pointsToEarn: pointsToEarn,
+            birthdayDiscountApplied,
         };
         
         if (orderType === 'Dine-in' && tableNumber) {
