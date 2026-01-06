@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -34,7 +34,7 @@ const staffMenuItems = [
 
 const adminMenuItems = [
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: AreaChart },
-  { href: '/dashboard/admin/offers', label: 'Daily Offers', icon: Tag },
+  { href: '/dashboard/admin/offers', label: 'Offers', icon: Gift },
   { href: '/dashboard/admin/addons', label: 'Add-ons', icon: Blocks },
   { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
@@ -137,3 +137,5 @@ export default function AppSidebar() {
     </Sidebar>
   );
 }
+
+    
