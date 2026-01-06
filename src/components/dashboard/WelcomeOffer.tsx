@@ -15,8 +15,9 @@ interface WelcomeOfferProps {
 export default function WelcomeOffer({ user }: WelcomeOfferProps) {
     const { user: authUser } = useUser();
     
-    // Show if the offer has not been redeemed OR if the field doesn't exist yet (for older users)
-    const offerNotRedeemed = user.welcomeOfferRedeemed === false || user.welcomeOfferRedeemed === undefined;
+    // Show if the offer has not been redeemed (i.e., the field is not explicitly true).
+    // This covers new users (where it's false/undefined) and existing users who haven't used it.
+    const offerNotRedeemed = user.welcomeOfferRedeemed !== true;
     const isVerified = user.emailVerified || authUser?.emailVerified;
     const canClaim = offerNotRedeemed && isVerified;
 
@@ -27,8 +28,8 @@ export default function WelcomeOffer({ user }: WelcomeOfferProps) {
     return (
         <Card className="bg-blue-500/10 border-blue-500/20 shadow-lg">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2 text-blue-600"><Percent /> Your Welcome Offer Awaits!</CardTitle>
-                <CardDescription>As a new member, you get 10% off any single item on your first order.</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2 text-blue-600"><Percent /> Your One-Time Offer Awaits!</CardTitle>
+                <CardDescription>As a valued member, you get 10% off any single item on your next order.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
