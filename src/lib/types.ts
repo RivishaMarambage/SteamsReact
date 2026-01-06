@@ -12,14 +12,20 @@ export type UserProfile = {
   loyaltyLevelId?: string;
   role: 'customer' | 'admin' | 'staff';
   dateOfBirth?: string;
-  birthdayDiscountValue?: number;
-  birthdayDiscountType?: 'fixed' | 'percentage';
+  birthdayDiscountValue?: number | null;
+  birthdayDiscountType?: 'fixed' | 'percentage' | null;
   birthdayFreebieMenuItemIds?: string[];
   welcomeOfferRedeemed?: boolean;
   emailVerified?: boolean;
   referralCode?: string;
   hasLinkedSocials?: boolean;
   hasLeftReview?: boolean;
+};
+
+export type Addon = {
+  id: string;
+  name: string;
+  price: number;
 };
 
 export type MenuItem = {
@@ -30,6 +36,7 @@ export type MenuItem = {
   categoryId: string;
   imageUrl?: string;
   isOutOfStock?: boolean;
+  addonIds?: string[];
 };
 
 export type Category = {
@@ -70,7 +77,16 @@ export type DailyOffer = {
   orderType: 'Dine-in' | 'Takeaway';
 }
 
+export type CartItemAddon = {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export type CartItem = {
+  id: string; // Unique ID for the cart item instance
   menuItem: MenuItem;
   quantity: number;
+  addons: CartItemAddon[];
+  totalPrice: number;
 };

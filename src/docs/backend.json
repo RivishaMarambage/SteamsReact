@@ -16,8 +16,8 @@
         "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
         "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
         "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
-        "birthdayDiscountValue": { "type": "number", "description": "The value of the birthday discount (fixed amount or percentage)." },
-        "birthdayDiscountType": { "type": "string", "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
+        "birthdayDiscountValue": { "type": ["number", "null"], "description": "The value of the birthday discount (fixed amount or percentage)." },
+        "birthdayDiscountType": { "type": ["string", "null"], "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
         "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
         "welcomeOfferRedeemed": { "type": "boolean", "description": "Whether the user has redeemed their one-time welcome offer." },
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
@@ -38,9 +38,21 @@
         "price": { "type": "number", "description": "Price of the item." },
         "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
         "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
-        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." }
+        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." },
+        "addonIds": { "type": "array", "items": { "type": "string" }, "description": "List of addon IDs applicable to this menu item." }
       },
       "required": ["id", "name", "price", "categoryId"]
+    },
+    "Addon": {
+      "title": "Addon",
+      "type": "object",
+      "description": "A customization option for a menu item, like 'Extra Shot' or 'Almond Milk'.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the addon." },
+        "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
+        "price": { "type": "number", "description": "Additional price for this addon." }
+      },
+      "required": ["id", "name", "price"]
     },
     "Category": {
       "title": "Category",
@@ -142,73 +154,37 @@
     "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": { "$ref": "#/entities/UserProfile" },
-          "description": "Stores user profile data. Secured by user ID.",
-          "params": [{ "name": "userId", "description": "The user's unique auth ID." }]
-        }
-      },
-      {
-        "path": "/menu_items/{menuItemId}",
-        "definition": {
-          "entityName": "MenuItem",
-          "schema": { "$ref": "#/entities/MenuItem" },
-          "description": "Publicly readable list of all menu items.",
-          "params": [{ "name": "menuItemId", "description": "Unique ID for the menu item." }]
-        }
-      },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": { "$ref": "#/entities/Category" },
-          "description": "Publicly readable list of all menu categories.",
-          "params": [{ "name": "categoryId", "description": "Unique ID for the category." }]
-        }
-      },
-      {
-        "path": "/loyalty_levels/{loyaltyLevelId}",
-        "definition": {
-          "entityName": "LoyaltyLevel",
-          "schema": { "$ref": "#/entities/LoyaltyLevel" },
-          "description": "Publicly readable list of all loyalty levels.",
-          "params": [{ "name": "loyaltyLevelId", "description": "Unique ID for the loyalty level." }]
-        }
-      },
-      {
-        "path": "/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": { "$ref": "#/entities/Order" },
-          "description": "Root collection for all orders. Used by staff and admins for management.",
-          "params": [{ "name": "orderId", "description": "Unique ID for the order." }]
-        }
-      },
-      {
-        "path": "/users/{userId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": { "$ref": "#/entities/Order" },
-          "description": "A customer's private copy of their order history. Path-based ownership.",
-          "params": [
-            { "name": "userId", "description": "The user's unique auth ID." },
-            { "name": "orderId", "description": "Unique ID for the order, matches the ID in the root /orders collection." }
-          ]
-        }
-      },
-      {
-        "path": "/daily_offers/{offerId}",
-        "definition": {
-          "entityName": "DailyOffer",
-          "schema": { "$ref": "#/entities/DailyOffer" },
-          "description": "Publicly readable list of daily offers. Writable only by admins.",
-          "params": [{ "name": "offerId", "description": "Unique ID for the daily offer." }]
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profile data. Secured by user ID."
+    },
+    "/menu_items/{menuItemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "Publicly readable list of all menu items."
+    },
+     "/addons/{addonId}": {
+      "schema": { "$ref": "#/entities/Addon" },
+      "description": "Publicly readable list of all addons."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Publicly readable list of all menu categories."
+    },
+    "/loyalty_levels/{loyaltyLevelId}": {
+      "schema": { "$ref": "#/entities/LoyaltyLevel" },
+      "description": "Publicly readable list of all loyalty levels."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Root collection for all orders. Used by staff and admins for management."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "A customer's private copy of their order history. Path-based ownership."
+    },
+    "/daily_offers/{offerId}": {
+      "schema": { "$ref": "#/entities/DailyOffer" },
+      "description": "Publicly readable list of daily offers. Writable only by admins."
+    }
   }
 }

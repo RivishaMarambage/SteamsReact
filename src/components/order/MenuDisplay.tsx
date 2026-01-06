@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent } from 'lucide-react';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon } from '@/lib/types';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
@@ -20,8 +20,9 @@ import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
-import { Switch } from '../ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { useSearchParams } from 'next/navigation';
+import { Checkbox } from '../ui/checkbox';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -41,6 +42,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
 
+  const [isCustomizationOpen, setCustomizationOpen] = useState(false);
+  const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number} | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -51,6 +56,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   
+  const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addons') : null, [firestore]);
+  const { data: allAddons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
+
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
@@ -83,37 +91,89 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   
   const mainCategories = Array.from(new Set(categories?.map(c => c.type).filter(Boolean) as string[]));
 
-  const addToCart = (item: MenuItem, quantity: number = 1) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem.menuItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map(cartItem =>
-          cartItem.menuItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + quantity }
-            : cartItem
-        );
-      }
-      return [...prevCart, { menuItem: { ...item }, quantity: quantity }];
-    });
-     if (quantity > 0) {
-      toast({
+  const handleOpenCustomization = (item: MenuItem, displayPrice: number) => {
+    setCustomizingItem({menuItem: item, displayPrice});
+    setSelectedAddons([]);
+    setCustomizationOpen(true);
+  }
+
+  const handleAddonToggle = (addon: Addon) => {
+    setSelectedAddons(prev => {
+        if(prev.find(a => a.id === addon.id)) {
+            return prev.filter(a => a.id !== addon.id);
+        }
+        return [...prev, addon];
+    })
+  }
+
+  const confirmAddToCart = () => {
+    if(!customizingItem) return;
+
+    const cartId = `${customizingItem.menuItem.id}-${Date.now()}`;
+    const addonPrice = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+    const finalPrice = customizingItem.displayPrice + addonPrice;
+
+    const newCartItem: CartItem = {
+        id: cartId,
+        menuItem: customizingItem.menuItem,
+        addons: selectedAddons,
+        quantity: 1,
+        totalPrice: finalPrice
+    };
+
+    setCart(prev => [...prev, newCartItem]);
+    toast({
         title: "Added to order",
-        description: `${item.name} is now in your cart.`,
-      });
-    }
+        description: `${customizingItem.menuItem.name} with customizations is now in your cart.`,
+    });
+
+    setCustomizationOpen(false);
+    setCustomizingItem(null);
+    setSelectedAddons([]);
   };
+
+  const addToCart = (item: MenuItem, displayPrice: number) => {
+    // If no addons, add directly to cart
+    if(!item.addonIds || item.addonIds.length === 0) {
+        const cartId = `${item.id}-${Date.now()}`;
+        const newCartItem: CartItem = {
+            id: cartId,
+            menuItem: item,
+            addons: [],
+            quantity: 1,
+            totalPrice: displayPrice
+        };
+        setCart(prev => [...prev, newCartItem]);
+        toast({
+            title: "Added to order",
+            description: `${item.name} is now in your cart.`,
+        });
+        return;
+    }
+    // Otherwise, open customization dialog
+    handleOpenCustomization(item, displayPrice);
+  };
+
 
   useEffect(() => {
     if (freebieToClaim && menuItems.length > 0 && userProfile && !isProfileLoading) {
         const freebieInProfile = userProfile.birthdayFreebieMenuItemIds?.includes(freebieToClaim);
         if (!freebieInProfile) return;
 
-        const alreadyInCart = cart.some(item => item.menuItem.id === freebieToClaim && item.menuItem.price === 0);
+        const alreadyInCart = cart.some(item => item.menuItem.id === freebieToClaim && item.totalPrice === 0);
         if (alreadyInCart) return;
         
         const freebieItem = menuItems.find(item => item.id === freebieToClaim);
         if (freebieItem) {
-            addToCart({ ...freebieItem, price: 0 }, 1);
+             const cartId = `${freebieItem.id}-${Date.now()}`;
+             const newCartItem: CartItem = {
+                id: cartId,
+                menuItem: freebieItem,
+                addons: [],
+                quantity: 1,
+                totalPrice: 0
+            };
+            setCart(prev => [...prev, newCartItem]);
             if (userDocRef) {
                 updateDoc(userDocRef, { birthdayFreebieMenuItemIds: [] });
             }
@@ -125,19 +185,28 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     }
   }, [freebieToClaim, menuItems, userProfile, isProfileLoading]);
 
-  const updateQuantity = (itemId: string, amount: number) => {
+  const updateQuantity = (cartItemId: string, amount: number) => {
     setCart(prevCart => {
-      return prevCart.map(item => {
-        if (item.menuItem.id === itemId) {
-          const newQuantity = item.quantity + amount;
-          return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
-        }
-        return item;
-      }).filter(Boolean) as CartItem[];
+      const existingItem = prevCart.find(item => item.id === cartItemId);
+      if (!existingItem) return prevCart;
+
+      const newQuantity = existingItem.quantity + amount;
+
+      if (newQuantity <= 0) {
+        // Remove item from cart if quantity is zero or less
+        return prevCart.filter(item => item.id !== cartItemId);
+      }
+      
+      // Update quantity
+      return prevCart.map(item =>
+        item.id === cartItemId
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
     });
   };
 
-  const subtotal = cart.reduce((total, item) => total + item.menuItem.price * item.quantity, 0);
+  const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
   const serviceCharge = orderType === 'Dine-in' ? subtotal * 0.10 : 0;
   
   const calculateBirthdayDiscount = () => {
@@ -192,12 +261,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         return 0;
     }
     // Find the most expensive item in the cart that is not a freebie
-    const eligibleItems = cart.filter(item => item.menuItem.price > 0);
+    const eligibleItems = cart.filter(item => item.totalPrice > 0);
     if (eligibleItems.length === 0) return 0;
     
-    const mostExpensiveItem = eligibleItems.reduce((max, item) => item.menuItem.price > max.menuItem.price ? item : max);
+    const mostExpensiveItem = eligibleItems.reduce((max, item) => item.totalPrice > max.totalPrice ? item : max);
     
-    return mostExpensiveItem.menuItem.price * 0.10; // 10% discount
+    return mostExpensiveItem.totalPrice * 0.10; // 10% discount
   }
 
   const welcomeDiscountAmount = calculateWelcomeDiscount();
@@ -267,7 +336,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             updates.birthdayDiscountType = null;
         }
 
-        if (welcomeOfferApplied) {
+        if (welcomeOfferApplied && canClaimWelcomeOffer) {
             updates.welcomeOfferRedeemed = true;
         }
 
@@ -372,7 +441,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         
                         if (offer && userProfile?.loyaltyLevelId) {
                             const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
-                            if (userTierDiscount > 0) {
+                            if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
                                 if (offer.discountType === 'percentage') {
                                     displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
                                 } else { // fixed
@@ -415,7 +484,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                                 {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
                                 LKR {displayPrice.toFixed(2)}
                               </div>
-                              <Button size="sm" onClick={() => addToCart({...item, price: displayPrice })} disabled={item.isOutOfStock}>
+                              <Button size="sm" onClick={() => addToCart(item, displayPrice)} disabled={item.isOutOfStock}>
                                 {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
                               </Button>
                             </CardFooter>
@@ -456,8 +525,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             ) : (
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.menuItem.id} className="flex items-center gap-4">
-                    <div className="relative w-16 h-16 rounded-md overflow-hidden">
+                  <div key={item.id} className="flex items-start gap-4">
+                    <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
                         <Image
                             src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
                             alt={item.menuItem.name}
@@ -468,14 +537,19 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     </div>
                     <div className="flex-grow grid gap-1">
                       <p className="font-semibold leading-tight">{item.menuItem.name}</p>
-                      <p className="text-sm text-muted-foreground">LKR {item.menuItem.price.toFixed(2)}</p>
+                       {item.addons.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                            {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground">LKR {item.totalPrice.toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.menuItem.id, -1)}>
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
                         {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
                       </Button>
                       <span className="w-6 text-center font-medium">{item.quantity}</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.menuItem.id, 1)}>
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, 1)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -495,10 +569,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                     </div>
                   )}
                   
-                  {welcomeOfferApplied && (
-                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                      <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Welcome Offer Applied!</h3>
-                      <p className="text-sm text-muted-foreground">Your 10% discount of <span className="font-bold">LKR {welcomeDiscountAmount.toFixed(2)}</span> has been automatically applied to one item.</p>
+                  {canClaimWelcomeOffer && (
+                     <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Apply Welcome Offer?</h3>
+                            <Switch 
+                                checked={welcomeOfferApplied}
+                                onCheckedChange={setWelcomeOfferApplied}
+                            />
+                        </div>
+                      <p className="text-sm text-muted-foreground">Get 10% off one item. This is a one-time offer!</p>
                     </div>
                   )}
 
@@ -576,7 +656,39 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">Customize {customizingItem?.menuItem.name}</DialogTitle>
+            <DialogDescription>
+                Make it just right. The final price will be calculated based on your selections.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <h4 className="font-semibold">Add-ons</h4>
+            <div className="space-y-2">
+                {allAddons?.filter(addon => customizingItem?.menuItem.addonIds?.includes(addon.id)).map(addon => (
+                    <div key={addon.id} className="flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50">
+                        <Checkbox
+                            id={`addon-check-${addon.id}`}
+                            checked={!!selectedAddons.find(a => a.id === addon.id)}
+                            onCheckedChange={() => handleAddonToggle(addon)}
+                        />
+                        <Label htmlFor={`addon-check-${addon.id}`} className="flex-grow text-base">
+                            {addon.name}
+                        </Label>
+                        <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
+                    </div>
+                ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomizationOpen(false)}>Cancel</Button>
+            <Button onClick={confirmAddToCart}>Add to Order</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-

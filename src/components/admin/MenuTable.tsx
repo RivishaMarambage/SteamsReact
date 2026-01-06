@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import type { MenuItem } from '@/lib/types';
+import type { MenuItem, Addon } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
@@ -19,6 +19,8 @@ import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePe
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 
 type FormData = Omit<MenuItem, 'id' | 'price'> & { price: number | '' };
 
@@ -29,21 +31,26 @@ const INITIAL_FORM_DATA: FormData = {
   description: '',
   imageUrl: '',
   isOutOfStock: false,
+  addonIds: [],
 };
 
 export default function MenuTable() {
   const firestore = useFirestore();
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
+  const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, "addons") : null, [firestore]);
 
   const { data: menu, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection(categoriesQuery);
+  const { data: addons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const { toast } = useToast();
+
+  const isLoading = isMenuLoading || areCategoriesLoading || areAddonsLoading;
 
   useEffect(() => {
     if (isFormOpen) {
@@ -55,6 +62,7 @@ export default function MenuTable() {
           description: selectedItem.description,
           imageUrl: selectedItem.imageUrl || '',
           isOutOfStock: selectedItem.isOutOfStock || false,
+          addonIds: selectedItem.addonIds || [],
         });
       } else {
         setFormData({
@@ -76,6 +84,17 @@ export default function MenuTable() {
   
   const handleStockChange = (checked: boolean) => {
     setFormData(prev => ({ ...prev, isOutOfStock: checked }));
+  }
+
+  const handleAddonToggle = (addonId: string) => {
+    setFormData(prev => {
+        const addonIds = prev.addonIds || [];
+        if (addonIds.includes(addonId)) {
+            return { ...prev, addonIds: addonIds.filter(id => id !== addonId) };
+        } else {
+            return { ...prev, addonIds: [...addonIds, addonId] };
+        }
+    });
   }
 
   const handleEdit = (item: MenuItem) => {
@@ -167,7 +186,7 @@ export default function MenuTable() {
     setSelectedItem(null);
   };
   
-  if (isMenuLoading || areCategoriesLoading) {
+  if (isLoading) {
     return (
         <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -206,6 +225,7 @@ export default function MenuTable() {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Add-ons</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -222,6 +242,9 @@ export default function MenuTable() {
                     <Badge variant={item.isOutOfStock ? "destructive" : "secondary"}>
                       {item.isOutOfStock ? "Out of Stock" : "In Stock"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {item.addonIds && item.addonIds.length > 0 ? `${item.addonIds.length}` : '0'}
                   </TableCell>
                   <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
                   <TableCell>
@@ -247,7 +270,7 @@ export default function MenuTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
               <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
@@ -288,10 +311,28 @@ export default function MenuTable() {
                 <Label htmlFor="imageUrl">Image URL</Label>
                 <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
               </div>
-               <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                 <Switch id="isOutOfStock" name="isOutOfStock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
                 <Label htmlFor="isOutOfStock">Mark as out of stock</Label>
               </div>
+
+               <div className="grid gap-2">
+                    <Label>Applicable Add-ons</Label>
+                    <ScrollArea className="h-40 rounded-md border p-4">
+                        <div className="space-y-2">
+                            {addons?.map(addon => (
+                                <div key={addon.id} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`addon-${addon.id}`}
+                                        checked={formData.addonIds?.includes(addon.id)}
+                                        onCheckedChange={() => handleAddonToggle(addon.id)}
+                                    />
+                                    <Label htmlFor={`addon-${addon.id}`} className="flex-grow">{addon.name} (+LKR {addon.price.toFixed(2)})</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
