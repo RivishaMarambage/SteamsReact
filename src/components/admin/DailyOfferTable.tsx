@@ -74,12 +74,12 @@ export default function DailyOfferTable() {
   useEffect(() => {
     if (isFormOpen) {
       if (selectedOffer && loyaltyLevels) {
-        const fromDate = parseISO(selectedOffer.offerStartDate);
-        const toDate = parseISO(selectedOffer.offerEndDate);
+        const fromDate = selectedOffer.offerStartDate ? parseISO(selectedOffer.offerStartDate) : new Date();
+        const toDate = selectedOffer.offerEndDate ? parseISO(selectedOffer.offerEndDate) : addDays(new Date(), 7);
         
         // Ensure all levels are present in the form data, even if not in the offer
         const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
-          acc[level.id] = selectedOffer.tierDiscounts[level.id] || 0;
+          acc[level.id] = selectedOffer.tierDiscounts?.[level.id] || 0;
           return acc;
         }, {} as Record<string, number>);
 
@@ -246,7 +246,7 @@ export default function DailyOfferTable() {
                         if (discount > 0) {
                           return (
                             <div key={level.id} className="text-xs">
-                              <span className="font-semibold capitalize">{level.name}: </span>
+                              <span className="font-semibold capitalize">{level.name}: </span> 
                               {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
                             </div>
                           )
@@ -419,3 +419,5 @@ export default function DailyOfferTable() {
     </Card>
   );
 }
+
+    
