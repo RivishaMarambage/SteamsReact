@@ -461,23 +461,23 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         const today = new Date();
                         const todayString = format(today, 'yyyy-MM-dd');
                         
-                        const alreadyRedeemed = userProfile?.dailyOffersRedeemed?.[dailyOffers.find(o => o.menuItemId === item.id)?.id || ''] === todayString;
-
                         const offer = dailyOffers.find(o => {
-                            if (!o.offerStartDate || !o.offerEndDate || alreadyRedeemed) return false;
+                            if (!o.offerStartDate || !o.offerEndDate) return false;
                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
                             });
                             return o.menuItemId === item.id && o.orderType === orderType && isOfferActive;
                         });
+
+                        const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
                         
                         const originalPrice = item.price;
                         let displayPrice = originalPrice;
                         let isOfferApplied = false;
                         let appliedOfferId;
                         
-                        if (offer && userProfile?.loyaltyLevelId) {
+                        if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
                             const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
                             if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
                                 if (offer.discountType === 'percentage') {
