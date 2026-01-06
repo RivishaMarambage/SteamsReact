@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,7 +39,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const searchParams = useSearchParams();
   const claimWelcomeOffer = searchParams.get('claimWelcomeOffer') === 'true';
 
-  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(claimWelcomeOffer);
+  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
 
   const { toast } = useToast();
   const { user: authUser } = useUser();
@@ -66,7 +67,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   }, [userProfile, authUser]);
   
   useEffect(() => {
-    setWelcomeOfferApplied(claimWelcomeOffer && canClaimWelcomeOffer);
+    if (claimWelcomeOffer && canClaimWelcomeOffer) {
+      setWelcomeOfferApplied(true);
+    }
   }, [claimWelcomeOffer, canClaimWelcomeOffer]);
 
 
@@ -544,10 +547,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                             <span>- LKR {totalDiscount.toFixed(2)}</span>
                         </div>
                       )}
+                      {loyaltyDiscount > 0 && (
+                        <div className="flex justify-between text-xs pl-4 text-destructive">
+                            <span>(Points Redemption)</span>
+                            <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
+                        </div>
+                      )}
                        {welcomeDiscountAmount > 0 && (
                         <div className="flex justify-between text-xs pl-4 text-destructive">
                             <span>(Welcome Offer)</span>
                             <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {birthdayDiscountAmount > 0 && (
+                        <div className="flex justify-between text-xs pl-4 text-destructive">
+                            <span>(Birthday Reward)</span>
+                            <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-lg font-bold">
@@ -564,3 +579,4 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+

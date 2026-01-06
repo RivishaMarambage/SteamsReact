@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { UserProfile } from "@/lib/types";
@@ -40,3 +41,4 @@ export default function WelcomeOffer({ user }: WelcomeOfferProps) {
         </Card>
     )
 }
+
