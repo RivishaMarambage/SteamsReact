@@ -53,12 +53,12 @@ const DEMO_ACCOUNTS = {
 }
 
 const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
-    { name: 'Coffee Classics', type: 'coffee' },
-    { name: 'Specialty Lattes', type: 'coffee' },
-    { name: 'Matcha & Tea', type: 'match' },
-    { name: 'Pastries & Bakes', type: 'breakfast' },
-    { name: 'Savory Snacks', type: 'snacks' },
-    { name: 'Lunch Specials', type: 'lunch' },
+    { name: 'Coffee Classics', type: 'Beverages' },
+    { name: 'Specialty Lattes', type: 'Beverages' },
+    { name: 'Matcha & Tea', type: 'Beverages' },
+    { name: 'Pastries & Bakes', type: 'Food' },
+    { name: 'Savory Snacks', type: 'Food' },
+    { name: 'Lunch Specials', type: 'Food' },
 ];
 
 const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
@@ -200,7 +200,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         // Send verification email
         await sendEmailVerification(user);
 
-        const userProfile = {
+        const userProfile: UserProfile = {
           id: user.uid,
           email: data.email,
           name: data.fullName,

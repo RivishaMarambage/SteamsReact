@@ -18,7 +18,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
 
-const CATEGORY_TYPES: Category['type'][] = ['breakfast', 'lunch', 'snacks', 'dinner', 'beverage', 'main food', 'deserts', 'match', 'coffee'];
+const CATEGORY_TYPES: Category['type'][] = ['Food', 'Beverages'];
 
 
 const INITIAL_FORM_DATA: Omit<Category, 'id'> = {

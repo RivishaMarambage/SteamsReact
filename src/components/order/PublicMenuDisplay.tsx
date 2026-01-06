@@ -11,6 +11,8 @@ import Image from 'next/image';
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 
+const MAIN_CATEGORIES: Category['type'][] = ['Food', 'Beverages'];
+
 function PublicMenuDisplayContent() {
   const firestore = useFirestore();
   
@@ -22,8 +24,6 @@ function PublicMenuDisplayContent() {
 
   const isLoading = menuLoading || areCategoriesLoading;
   
-  const mainCategories = Array.from(new Set(categories?.map(c => c.type).filter(Boolean) as string[]));
-
   if (isLoading) {
     return (
        <div className="space-y-8">
@@ -41,15 +41,15 @@ function PublicMenuDisplayContent() {
   }
   
   return (
-    <Tabs defaultValue={mainCategories[0]} className="w-full">
+    <Tabs defaultValue={MAIN_CATEGORIES[0]} className="w-full">
         <div className="flex justify-center mb-6">
           <TabsList>
-            {mainCategories.map(categoryType => (
+            {MAIN_CATEGORIES.map(categoryType => (
               <TabsTrigger key={categoryType} value={categoryType}>{categoryType}</TabsTrigger>
             ))}
           </TabsList>
         </div>
-        {mainCategories.map(categoryType => (
+        {MAIN_CATEGORIES.map(categoryType => (
           <TabsContent key={categoryType} value={categoryType}>
              <div className="space-y-8">
                {categories?.filter(c => c.type === categoryType).map(subCategory => (

@@ -42,7 +42,7 @@ export type MenuItem = {
 export type Category = {
   id:string;
   name: string;
-  type: 'breakfast' | 'lunch' | 'snacks' | 'dinner' | 'beverage' | 'main food' | 'deserts' | 'match' | 'coffee';
+  type: 'Food' | 'Beverages';
 };
 
 export type LoyaltyLevel = {

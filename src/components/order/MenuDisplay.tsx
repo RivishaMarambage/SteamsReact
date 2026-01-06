@@ -30,6 +30,10 @@ interface MenuDisplayProps {
   freebieToClaim: string | null;
 }
 
+const MAIN_CATEGORIES: Category['type'][] = ['Food', 'Beverages'];
+const FOOD_TYPES: Category['type'][] = ['Food'];
+const BEVERAGE_TYPES: Category['type'][] = ['Beverages'];
+
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Takeaway');
@@ -85,12 +89,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     return categories?.find(c => c.id === categoryId)?.name;
   }
 
-  const getCategoryType = (categoryId: string) => {
+  const getCategoryType = (categoryId: string): Category['type'] | undefined => {
     return categories?.find(c => c.id === categoryId)?.type;
   }
   
-  const mainCategories = Array.from(new Set(categories?.map(c => c.type).filter(Boolean) as string[]));
-
   const handleOpenCustomization = (item: MenuItem, displayPrice: number) => {
     setCustomizingItem({menuItem: item, displayPrice});
     setSelectedAddons([]);
@@ -332,7 +334,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         };
         
         if (birthdayDiscountAmount > 0) {
-            updates.birthdayDiscountValue = 0;
+            updates.birthdayDiscountValue = null;
             updates.birthdayDiscountType = null;
         }
 
@@ -409,15 +411,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         </Card>
       </div>
 
-      <Tabs defaultValue={mainCategories[0]} className="w-full">
+      <Tabs defaultValue={MAIN_CATEGORIES[0]} className="w-full">
         <div className="flex justify-center mb-6">
           <TabsList>
-            {mainCategories.map(categoryType => (
+            {MAIN_CATEGORIES.map(categoryType => (
               <TabsTrigger key={categoryType} value={categoryType}>{categoryType}</TabsTrigger>
             ))}
           </TabsList>
         </div>
-        {mainCategories.map(categoryType => (
+        {MAIN_CATEGORIES.map(categoryType => (
           <TabsContent key={categoryType} value={categoryType}>
              <div className="space-y-8">
                {categories?.filter(c => c.type === categoryType).map(subCategory => (
