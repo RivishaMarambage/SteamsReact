@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { DailyOffer, MenuItem, UserProfile, LoyaltyLevel } from "@/lib/types";
-import { collection, query, where, doc } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -13,57 +13,69 @@ import { Skeleton } from "../ui/skeleton";
 
 export default function DailyOffersPreview({ userProfile }: { userProfile: UserProfile | null }) {
     const firestore = useFirestore();
-    const today = new Date();
+    const today = format(new Date(), 'yyyy-MM-dd');
     
-    // Firestore queries can't do date range checks on different fields.
-    // So we fetch offers where the start date is today or earlier.
-    const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerStartDate', '<=', format(today, 'yyyy-MM-dd'))) : null, [firestore, today]);
+    // Correctly query for offers that are active today.
+    // An offer is active if its start date is on or before today AND its end date is on or after today.
+    const dailyOffersQuery = useMemoFirebase(() => firestore 
+        ? query(
+            collection(firestore, 'daily_offers'), 
+            where('offerStartDate', '<=', today)
+          ) 
+        : null, 
+    [firestore, today]);
+
     const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(dailyOffersQuery);
 
     const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
     const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
     
-    const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
-    const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
-
-    const isLoading = offersLoading || menuLoading || areLevelsLoading;
+    const isLoading = offersLoading || menuLoading;
     
-    const filteredOffers = dailyOffers?.map(offer => {
-        const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
-        if (!menuItem || !userProfile?.loyaltyLevelId) return null;
-
-        // Client-side check for the end date
-        const isOfferActive = isWithinInterval(today, {
-            start: parseISO(offer.offerStartDate),
-            end: parseISO(offer.offerEndDate),
-        });
-
-        if (!isOfferActive) return null;
-
-        const userLoyaltyId = userProfile.loyaltyLevelId;
-        const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId];
-        
-        // Ensure that a discount is explicitly defined for the user's tier and is a valid number.
-        if (typeof userTierDiscount !== 'number') {
-            return null;
+    const activeAndApplicableOffers = useMemo(() => {
+        if (!dailyOffers || !menuItems || !userProfile?.loyaltyLevelId) {
+            return [];
         }
         
-        const originalPrice = menuItem.price;
-        let displayPrice;
-        if (offer.discountType === 'percentage') {
-            displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
-        } else { // fixed
-            displayPrice = originalPrice - userTierDiscount;
-        }
-        displayPrice = Math.max(0, displayPrice);
+        const todayDate = new Date();
 
-        return {
-            ...offer,
-            menuItem,
-            originalPrice,
-            displayPrice,
-        }
-    }).filter((o): o is NonNullable<typeof o> => o !== null);
+        return dailyOffers.map(offer => {
+            // Client-side check for end date, as Firestore can't query on two different range fields.
+            const isOfferActive = isWithinInterval(todayDate, {
+                start: parseISO(offer.offerStartDate),
+                end: parseISO(offer.offerEndDate),
+            });
+
+            if (!isOfferActive) return null;
+
+            const menuItem = menuItems.find(item => item.id === offer.menuItemId);
+            if (!menuItem) return null;
+
+            const userLoyaltyId = userProfile.loyaltyLevelId;
+            const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId];
+            
+            // A discount is applicable if it's explicitly defined for the user's tier and is a valid number greater than 0.
+            if (typeof userTierDiscount !== 'number' || userTierDiscount <= 0) {
+                return null;
+            }
+            
+            const originalPrice = menuItem.price;
+            let displayPrice;
+            if (offer.discountType === 'percentage') {
+                displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
+            } else { // fixed
+                displayPrice = originalPrice - userTierDiscount;
+            }
+            displayPrice = Math.max(0, displayPrice);
+
+            return {
+                ...offer,
+                menuItem,
+                originalPrice,
+                displayPrice,
+            };
+        }).filter((o): o is NonNullable<typeof o> => o !== null);
+    }, [dailyOffers, menuItems, userProfile]);
 
 
     if (isLoading) {
@@ -80,7 +92,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         )
     }
 
-    if (!userProfile || !filteredOffers || filteredOffers.length === 0) {
+    if (!userProfile || activeAndApplicableOffers.length === 0) {
         return null; // Don't show the card if there are no applicable offers
     }
 
@@ -91,7 +103,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                 <CardDescription>Exclusive deals based on your loyalty tier!</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {filteredOffers.map(offer => {
+                {activeAndApplicableOffers.map(offer => {
                     return (
                         <div key={offer.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-background rounded-lg">
                            <div>
