@@ -124,6 +124,7 @@ export default function UserManagementTable() {
                 <TableHead>Linked Socials</TableHead>
                 <TableHead>Left Review</TableHead>
                 <TableHead>Redeemable Points</TableHead>
+                <TableHead>Lifetime Points</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -162,6 +163,7 @@ export default function UserManagementTable() {
                     ) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">{user.loyaltyPoints ?? 0}</TableCell>
+                  <TableCell className="text-right">{user.lifetimePoints ?? 0}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
