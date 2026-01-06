@@ -30,10 +30,6 @@ interface MenuDisplayProps {
   freebieToClaim: string | null;
 }
 
-const MAIN_CATEGORIES: Category['type'][] = ['Food', 'Beverages'];
-const FOOD_TYPES: Category['type'][] = ['Food'];
-const BEVERAGE_TYPES: Category['type'][] = ['Beverages'];
-
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Takeaway');
@@ -75,7 +71,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const canClaimWelcomeOffer = useMemo(() => {
     if (!userProfile || !authUser) return false;
-    return !userProfile.welcomeOfferRedeemed && (userProfile.emailVerified || authUser.emailVerified);
+    return userProfile.welcomeOfferRedeemed !== true && (userProfile.emailVerified || authUser.emailVerified);
   }, [userProfile, authUser]);
   
   useEffect(() => {
@@ -87,10 +83,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const getCategoryName = (categoryId: string) => {
     return categories?.find(c => c.id === categoryId)?.name;
-  }
-
-  const getCategoryType = (categoryId: string): Category['type'] | undefined => {
-    return categories?.find(c => c.id === categoryId)?.type;
   }
   
   const handleOpenCustomization = (item: MenuItem, displayPrice: number) => {
@@ -185,7 +177,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             });
         }
     }
-  }, [freebieToClaim, menuItems, userProfile, isProfileLoading]);
+  }, [freebieToClaim, menuItems, userProfile, isProfileLoading, cart, userDocRef]);
 
   const updateQuantity = (cartItemId: string, amount: number) => {
     setCart(prevCart => {
@@ -411,20 +403,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         </Card>
       </div>
 
-      <Tabs defaultValue={MAIN_CATEGORIES[0]} className="w-full">
-        <div className="flex justify-center mb-6">
+      <Tabs defaultValue={categories?.[0]?.id} className="w-full">
+        <div className="flex justify-center mb-6 overflow-x-auto">
           <TabsList>
-            {MAIN_CATEGORIES.map(categoryType => (
-              <TabsTrigger key={categoryType} value={categoryType}>{categoryType}</TabsTrigger>
+            {categories?.map(category => (
+              <TabsTrigger key={category.id} value={category.id}>{category.name}</TabsTrigger>
             ))}
           </TabsList>
         </div>
-        {MAIN_CATEGORIES.map(categoryType => (
-          <TabsContent key={categoryType} value={categoryType}>
+        {categories?.map(subCategory => (
+          <TabsContent key={subCategory.id} value={subCategory.id}>
              <div className="space-y-8">
-               {categories?.filter(c => c.type === categoryType).map(subCategory => (
-                <div key={subCategory.id}>
-                    <h2 className="text-2xl font-bold font-headline mb-4">{subCategory.name}</h2>
+                <div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
@@ -495,7 +485,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                       })}
                     </div>
                 </div>
-               ))}
             </div>
           </TabsContent>
         ))}
