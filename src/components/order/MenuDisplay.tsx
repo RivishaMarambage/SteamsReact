@@ -21,7 +21,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -39,6 +39,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [appliedPoints, setAppliedPoints] = useState(0);
   
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const claimWelcomeOffer = searchParams.get('claimWelcomeOffer') === 'true';
 
   const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
@@ -389,6 +391,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         setTableNumber('');
         setAppliedPoints(0);
         setWelcomeOfferApplied(false);
+        
+        // Reset URL params
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('claimFreebie');
+        params.delete('claimWelcomeOffer');
+        router.replace(`${pathname}?${params.toString()}`);
 
     } catch (error) {
         console.error("Error placing order: ", error);
@@ -476,11 +484,17 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         
                         const offer = dailyOffers.find(o => {
                             if (!o.offerStartDate || !o.offerEndDate) return false;
-                            const isOfferActive = isWithinInterval(today, {
+                            
+                            // Check if the current date is within the offer's date range
+                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
                             });
-                            return o.menuItemId === item.id && o.orderType === orderType && isOfferActive;
+                           
+                            if (!isOfferActive) return false;
+
+                             // Check if the item and order type match
+                            return o.menuItemId === item.id && o.orderType === orderType;
                         });
 
                         const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
