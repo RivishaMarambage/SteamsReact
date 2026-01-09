@@ -56,7 +56,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
-  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'categories') : null, [firestore]);
+  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   
   const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addons') : null, [firestore]);
@@ -396,7 +396,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         setAppliedPoints(0);
         setWelcomeOfferApplied(false);
         
-        // Reset URL params
         const params = new URLSearchParams(searchParams.toString());
         params.delete('claimFreebie');
         params.delete('claimWelcomeOffer');
@@ -770,3 +769,4 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
