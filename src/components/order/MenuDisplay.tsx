@@ -302,7 +302,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             pointsToEarn = Math.floor(cartTotal / 400);
         }
 
-        const orderItems: OrderItem[] = cart.map(cartItem => ({
+        const orderItems: OrderItem[] = cart.map(cartItem => {
+          const item: OrderItem = {
             menuItemId: cartItem.menuItem.id,
             menuItemName: cartItem.menuItem.name,
             quantity: cartItem.quantity,
@@ -313,8 +314,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 addonPrice: addon.price
             })),
             totalPrice: cartItem.totalPrice,
-            appliedDailyOfferId: cartItem.appliedDailyOfferId,
-        }));
+          };
+          if (cartItem.appliedDailyOfferId) {
+            item.appliedDailyOfferId = cartItem.appliedDailyOfferId;
+          }
+          return item;
+        });
         
         let birthdayDiscountAppliedValue: Order['birthdayDiscountApplied'] = null;
         if (birthdayDiscountAmount > 0) {
@@ -345,12 +350,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
         };
         
-        // Remove undefined keys to prevent Firestore errors
         Object.keys(orderData).forEach(key => {
             if (orderData[key as keyof typeof orderData] === undefined) {
                 delete orderData[key as keyof typeof orderData];
             }
         });
+
 
         batch.set(rootOrderRef, orderData);
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
@@ -769,4 +774,5 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
 
