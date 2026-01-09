@@ -330,7 +330,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         }
 
 
-        const orderData: Partial<Omit<Order, 'id' | 'orderDate'>> & { orderDate: any } = {
+        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
             totalAmount: cartTotal,
@@ -342,11 +342,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             serviceCharge: serviceCharge,
             pointsToEarn: pointsToEarn,
             birthdayDiscountApplied: birthdayDiscountAppliedValue,
+            tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
         };
         
-        if (orderType === 'Dine-in' && tableNumber) {
-            orderData.tableNumber = tableNumber;
-        }
+        // Remove undefined keys to prevent Firestore errors
+        Object.keys(orderData).forEach(key => {
+            if (orderData[key as keyof typeof orderData] === undefined) {
+                delete orderData[key as keyof typeof orderData];
+            }
+        });
 
         batch.set(rootOrderRef, orderData);
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
@@ -484,17 +488,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                         
                         const offer = dailyOffers.find(o => {
                             if (!o.offerStartDate || !o.offerEndDate) return false;
+                            if (o.menuItemId !== item.id) return false;
+                            if (o.orderType !== orderType) return false;
                             
-                            // Check if the current date is within the offer's date range
-                             const isOfferActive = isWithinInterval(today, {
+                            const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
                             });
                            
-                            if (!isOfferActive) return false;
-
-                             // Check if the item and order type match
-                            return o.menuItemId === item.id && o.orderType === orderType;
+                            return isOfferActive;
                         });
 
                         const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
