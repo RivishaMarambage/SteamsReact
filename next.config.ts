@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb', // Increase if you are sending large images
+    },
+  },
 };
 
 export default nextConfig;

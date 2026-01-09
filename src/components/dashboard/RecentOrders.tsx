@@ -7,9 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import type { Order } from "@/lib/types";
+import { useState, useEffect } from "react";
+import AudioNotifier from "../AudioNotifier";
 
 export default function RecentOrders({ userId }: { userId: string }) {
   const firestore = useFirestore();
+  const [previousOrderStatus, setPreviousOrderStatus] = useState<Record<string, Order['status']>>({});
+  const [playStatusChangeSound, setPlayStatusChangeSound] = useState(false);
   
   const recentOrdersQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -21,6 +25,35 @@ export default function RecentOrders({ userId }: { userId: string }) {
   }, [firestore, userId]);
 
   const { data: recentOrders, isLoading } = useCollection<Order>(recentOrdersQuery);
+
+  useEffect(() => {
+    if (recentOrders && recentOrders.length > 0) {
+      const latestOrder = recentOrders[0];
+      const previousStatus = previousOrderStatus[latestOrder.id];
+      const currentStatus = latestOrder.status;
+
+      if (previousStatus && currentStatus !== previousStatus) {
+        if (currentStatus === 'Ready for Pickup' || currentStatus === 'Rejected') {
+          setPlayStatusChangeSound(true);
+        }
+      }
+
+      // Update the status history
+      const newStatusHistory: Record<string, Order['status']> = {};
+      recentOrders.forEach(order => {
+        newStatusHistory[order.id] = order.status;
+      });
+      setPreviousOrderStatus(newStatusHistory);
+    }
+  }, [recentOrders]);
+
+  useEffect(() => {
+    if (playStatusChangeSound) {
+      const timer = setTimeout(() => setPlayStatusChangeSound(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [playStatusChangeSound]);
+
 
   const getStatusVariant = (status?: Order['status']) => {
     switch (status) {
@@ -68,36 +101,43 @@ export default function RecentOrders({ userId }: { userId: string }) {
   }
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-        <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recentOrders.map(order => (
-              <TableRow key={order.id}>
-                <TableCell>
-                  <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
-                  <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                </TableCell>
-                <TableCell className="text-right">LKR {order.totalAmount.toFixed(2)}</TableCell>
+    <>
+      <AudioNotifier
+        shouldPlay={playStatusChangeSound}
+        soundUrl="https://www.soundjay.com/button/sounds/button-3.mp3"
+        resetCondition={recentOrders?.[0]?.status}
+      />
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
+          <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {recentOrders.map(order => (
+                <TableRow key={order.id}>
+                  <TableCell>
+                    <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
+                    <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">LKR {order.totalAmount.toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
   );
 }
