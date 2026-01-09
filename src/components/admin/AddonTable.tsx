@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Addon } from '@/lib/types';
+import type { Addon, Category } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
@@ -20,13 +20,16 @@ import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 const INITIAL_FORM_DATA: Omit<Addon, 'id'> = {
   name: '',
   price: 0,
+  categoryId: ''
 };
 
 export default function AddonTable() {
   const firestore = useFirestore();
   const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, "addons") : null, [firestore]);
+  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
 
-  const { data: addons, isLoading } = useCollection<Addon>(addonsQuery);
+  const { data: addons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -34,21 +37,27 @@ export default function AddonTable() {
   const [formData, setFormData] = useState<Omit<Addon, 'id'>>(INITIAL_FORM_DATA);
   const { toast } = useToast();
 
+  const isLoading = areAddonsLoading || areCategoriesLoading;
+
   useEffect(() => {
     if (isFormOpen) {
       if (selectedAddon) {
         setFormData({
           name: selectedAddon.name,
           price: selectedAddon.price,
+          categoryId: selectedAddon.categoryId,
         });
       } else {
-        setFormData(INITIAL_FORM_DATA);
+        setFormData({
+          ...INITIAL_FORM_DATA,
+          categoryId: categories?.[0]?.id || ''
+        });
       }
     }
-  }, [isFormOpen, selectedAddon]);
+  }, [isFormOpen, selectedAddon, categories]);
 
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -89,11 +98,11 @@ export default function AddonTable() {
         price: Number(formData.price) || 0,
     };
 
-    if (!finalData.name || finalData.price < 0) {
+    if (!finalData.name || finalData.price < 0 || !finalData.categoryId) {
         toast({
             variant: "destructive",
             title: "Missing Information",
-            description: "Please fill out a valid name and price.",
+            description: "Please fill out a valid name, price, and category.",
         });
         return;
     }
@@ -130,6 +139,8 @@ export default function AddonTable() {
     )
   }
 
+  const getCategoryName = (categoryId: string) => categories?.find(c => c.id === categoryId)?.name || 'N/A';
+
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -144,6 +155,7 @@ export default function AddonTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -155,6 +167,7 @@ export default function AddonTable() {
               return (
                 <TableRow key={addon.id}>
                   <TableCell className="font-medium">{addon.name}</TableCell>
+                  <TableCell>{getCategoryName(addon.categoryId)}</TableCell>
                   <TableCell className="text-right">LKR {addon.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -193,6 +206,22 @@ export default function AddonTable() {
               <div className="grid gap-2">
                 <Label htmlFor="price">Price (LKR)</Label>
                 <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="categoryId">Category</Label>
+                <select
+                  id="categoryId"
+                  name="categoryId"
+                  value={formData.categoryId || ''}
+                  onChange={handleFormChange}
+                  required
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>Select a category</option>
+                  {categories?.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <DialogFooter>

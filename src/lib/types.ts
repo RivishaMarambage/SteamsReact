@@ -27,6 +27,7 @@ export type Addon = {
   id: string;
   name: string;
   price: number;
+  categoryId: string;
 };
 
 export type MenuItem = {

@@ -23,6 +23,7 @@ import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { useSearchParams } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -399,6 +400,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     }
 }
 
+  const groupedAddons = useMemo(() => {
+    if (!allAddons || !categories) return {};
+    return allAddons.reduce((acc, addon) => {
+        const categoryName = getCategoryName(addon.categoryId) || 'Other';
+        if (!acc[categoryName]) {
+            acc[categoryName] = [];
+        }
+        acc[categoryName].push(addon);
+        return acc;
+    }, {} as Record<string, Addon[]>);
+  }, [allAddons, categories]);
+
 
   return (
     <>
@@ -703,24 +716,35 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 Make it just right. The final price will be calculated based on your selections.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-            <h4 className="font-semibold">Add-ons</h4>
-            <div className="space-y-2">
-                {allAddons?.filter(addon => customizingItem?.menuItem.addonIds?.includes(addon.id)).map(addon => (
-                    <div key={addon.id} className="flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50">
-                        <Checkbox
-                            id={`addon-check-${addon.id}`}
-                            checked={!!selectedAddons.find(a => a.id === addon.id)}
-                            onCheckedChange={() => handleAddonToggle(addon)}
-                        />
-                        <Label htmlFor={`addon-check-${addon.id}`} className="flex-grow text-base">
-                            {addon.name}
-                        </Label>
-                        <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
-                    </div>
-                ))}
+          <ScrollArea className="max-h-[60vh] -mx-6 px-6">
+            <div className="py-4 space-y-6">
+                {Object.entries(groupedAddons).map(([categoryName, addons]) => {
+                    const availableAddons = addons.filter(addon => customizingItem?.menuItem.addonIds?.includes(addon.id));
+                    if (availableAddons.length === 0) return null;
+                    
+                    return (
+                        <div key={categoryName}>
+                            <h4 className="font-semibold text-lg mb-2 sticky top-0 bg-background py-2">{categoryName}</h4>
+                            <div className="space-y-2">
+                                {availableAddons.map(addon => (
+                                    <div key={addon.id} className="flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50">
+                                        <Checkbox
+                                            id={`addon-check-${addon.id}`}
+                                            checked={!!selectedAddons.find(a => a.id === addon.id)}
+                                            onCheckedChange={() => handleAddonToggle(addon)}
+                                        />
+                                        <Label htmlFor={`addon-check-${addon.id}`} className="flex-grow text-base">
+                                            {addon.name}
+                                        </Label>
+                                        <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                })}
             </div>
-          </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCustomizationOpen(false)}>Cancel</Button>
             <Button onClick={confirmAddToCart}>Add to Order</Button>

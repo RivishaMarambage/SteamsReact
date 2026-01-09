@@ -55,9 +55,10 @@
       "properties": {
         "id": { "type": "string", "description": "Unique ID for the addon." },
         "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
-        "price": { "type": "number", "description": "Additional price for this addon." }
+        "price": { "type": "number", "description": "Additional price for this addon." },
+        "categoryId": { "type": "string", "description": "The ID of the category this addon belongs to." }
       },
-      "required": ["id", "name", "price"]
+      "required": ["id", "name", "price", "categoryId"]
     },
     "Category": {
       "title": "Category",
