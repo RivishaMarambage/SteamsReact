@@ -117,6 +117,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Order</TableHead>
+                <TableHead>Items</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
@@ -127,6 +128,20 @@ export default function RecentOrders({ userId }: { userId: string }) {
                   <TableCell>
                     <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
                     <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
+                  </TableCell>
+                   <TableCell>
+                      <div className="flex flex-col gap-1 text-xs">
+                          {order.orderItems?.map((item, index) => (
+                              <div key={index}>
+                                  <span className="font-semibold">{item.quantity}x {item.menuItemName}</span>
+                                  {item.addons && item.addons.length > 0 && (
+                                      <div className="pl-2 text-muted-foreground">
+                                          {item.addons.map(addon => `+ ${addon.addonName}`).join(', ')}
+                                      </div>
+                                  )}
+                              </div>
+                          ))}
+                      </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
