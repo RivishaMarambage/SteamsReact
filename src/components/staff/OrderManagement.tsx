@@ -58,7 +58,7 @@ export default function OrderManagement() {
 
     // Update status in both locations
     batch.update(rootOrderRef, { status });
-    batch.update(userOrderRref, { status });
+    batch.update(userOrderRef, { status });
 
     // If order is being marked as Completed, award the points
     if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn && order.pointsToEarn > 0) {
