@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -60,12 +61,15 @@ export default function OrderManagement() {
     batch.update(rootOrderRef, { status });
     batch.update(userOrderRef, { status });
 
-    // If order is being marked as Completed, award the points
-    if (status === 'Completed' && order.status !== 'Completed' && order.pointsToEarn && order.pointsToEarn > 0) {
-        batch.update(userProfileRef, {
-            loyaltyPoints: increment(order.pointsToEarn),
-            lifetimePoints: increment(order.pointsToEarn)
-        });
+    // If order is being marked as Completed, award the points and increment order count
+    if (status === 'Completed' && order.status !== 'Completed') {
+        const pointsToAward = order.pointsToEarn || 0;
+        const updates: any = { orderCount: increment(1) };
+        if (pointsToAward > 0) {
+            updates.loyaltyPoints = increment(pointsToAward);
+            updates.lifetimePoints = increment(pointsToAward);
+        }
+        batch.update(userProfileRef, updates);
     }
 
     // If order is being rejected, refund any points or credits used

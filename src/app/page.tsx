@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from "next/image";
@@ -75,7 +76,7 @@ export default function LandingPage() {
             </h1>
             <h3>Your Daily Dose of Delight </h3>
             <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
-              Join our loyalty program to earn points, get rewards, and enjoy exclusive perks. New members get a one-time 10% discount on any item!
+              Join our loyalty program and get rewarded! Enjoy 10% off your first order, 5% off your second, and 15% off your third as a warm welcome from us.
             </p>
             <div className="mt-8 flex justify-center gap-4">
                 <Dialog>

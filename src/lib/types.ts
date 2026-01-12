@@ -1,4 +1,5 @@
 
+
 import { Timestamp } from "firebase/firestore";
 
 export type UserProfile = {
@@ -15,7 +16,7 @@ export type UserProfile = {
   birthdayDiscountValue?: number | null;
   birthdayDiscountType?: 'fixed' | 'percentage' | null;
   birthdayFreebieMenuItemIds?: string[];
-  welcomeOfferRedeemed?: boolean;
+  orderCount?: number;
   emailVerified?: boolean;
   referralCode?: string;
   hasLinkedSocials?: boolean;

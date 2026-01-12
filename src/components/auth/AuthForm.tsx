@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -71,13 +72,13 @@ const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
 ]
 
 const SEED_ADDONS: Omit<Addon, 'id'>[] = [
-    { name: "Extra Espresso Shot", price: 100 },
-    { name: "Almond Milk", price: 80 },
-    { name: "Oat Milk", price: 80 },
-    { name: "Soy Milk", price: 70 },
-    { name: "Whipped Cream", price: 50 },
-    { name: "Caramel Drizzle", price: 60 },
-    { name: "Chocolate Syrup", price: 60 },
+    { name: "Extra Espresso Shot", price: 100, categoryId: '' },
+    { name: "Almond Milk", price: 80, categoryId: '' },
+    { name: "Oat Milk", price: 80, categoryId: '' },
+    { name: "Soy Milk", price: 70, categoryId: '' },
+    { name: "Whipped Cream", price: 50, categoryId: '' },
+    { name: "Caramel Drizzle", price: 60, categoryId: '' },
+    { name: "Chocolate Syrup", price: 60, categoryId: '' },
 ];
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -116,7 +117,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               loyaltyPoints: role === 'customer' ? 125 : 0,
               lifetimePoints: role === 'customer' ? 125 : 0,
               loyaltyLevelId: role === 'customer' ? "bronze" : "member",
-              welcomeOfferRedeemed: false,
+              orderCount: role === 'customer' ? 1 : 0,
               emailVerified: true, // Demo users are pre-verified
             };
             
@@ -181,7 +182,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             const addonBatch = writeBatch(firestore);
             SEED_ADDONS.forEach(addon => {
                 const docRef = doc(addonsRef);
-                addonBatch.set(docRef, addon);
+                const addonData = { ...addon, categoryId: customCreationsCategoryId };
+                addonBatch.set(docRef, addonData);
                 addonIds.push(docRef.id);
             });
             await addonBatch.commit();
@@ -281,7 +283,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           loyaltyPoints: 0,
           lifetimePoints: 0,
           loyaltyLevelId: "member", // Default loyalty level
-          welcomeOfferRedeemed: false,
+          orderCount: 0,
           emailVerified: user.emailVerified,
         };
 

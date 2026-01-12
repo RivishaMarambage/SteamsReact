@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import LoyaltyStatus from "@/components/dashboard/LoyaltyStatus";
@@ -14,7 +15,6 @@ import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
 import DailyOffersPreview from "@/components/dashboard/DailyOffersPreview";
 import type { UserProfile } from "@/lib/types";
-import WelcomeOffer from "@/components/dashboard/WelcomeOffer";
 
 export default function DashboardPage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -51,7 +51,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-8">
-        <WelcomeOffer user={user} />
         <BirthdayReward user={user} />
         <DailyOffersPreview userProfile={user} />
         <div className="grid md:grid-cols-3 gap-8">

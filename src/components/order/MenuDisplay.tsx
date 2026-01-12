@@ -31,6 +31,13 @@ interface MenuDisplayProps {
   freebieToClaim: string | null;
 }
 
+const WELCOME_OFFERS = [
+    { order: 0, discount: 10 }, // 1st order (orderCount is 0)
+    { order: 1, discount: 5 },  // 2nd order (orderCount is 1)
+    { order: 2, discount: 15 }, // 3rd order (orderCount is 2)
+];
+
+
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType']>('Takeaway');
@@ -38,12 +45,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
   
-  const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const claimWelcomeOffer = searchParams.get('claimWelcomeOffer') === 'true';
-
-  const [welcomeOfferApplied, setWelcomeOfferApplied] = useState(false);
 
   const [isCustomizationOpen, setCustomizationOpen] = useState(false);
   const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
@@ -71,17 +74,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     if (!bronzeTier) return false;
     return (userProfile.lifetimePoints ?? 0) >= bronzeTier.minimumPoints;
   }, [userProfile, loyaltyLevels]);
-
-  const canClaimWelcomeOffer = useMemo(() => {
-    if (!userProfile || !authUser) return false;
-    return userProfile.welcomeOfferRedeemed !== true && (userProfile.emailVerified || authUser.emailVerified);
-  }, [userProfile, authUser]);
   
-  useEffect(() => {
-    if (claimWelcomeOffer && canClaimWelcomeOffer) {
-      setWelcomeOfferApplied(true);
+  const applicableWelcomeOffer = useMemo(() => {
+    if (!userProfile || !authUser || !authUser.emailVerified || (userProfile.orderCount ?? 0) >= 3) {
+      return null;
     }
-  }, [claimWelcomeOffer, canClaimWelcomeOffer]);
+    return WELCOME_OFFERS.find(offer => offer.order === (userProfile.orderCount ?? 0)) || null;
+  }, [userProfile, authUser]);
 
 
   const getCategoryName = (categoryId: string) => {
@@ -256,18 +255,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const loyaltyDiscount = Math.min(totalBeforeDiscounts - birthdayDiscountAmount, appliedPoints);
 
   const calculateWelcomeDiscount = () => {
-    if (!welcomeOfferApplied || !canClaimWelcomeOffer || cart.length === 0) {
-        return 0;
-    }
-    // Find the most expensive item in the cart that is not a freebie
-    const eligibleItems = cart.filter(item => item.totalPrice > 0);
-    if (eligibleItems.length === 0) return 0;
-    
-    const mostExpensiveItem = eligibleItems.reduce((max, item) => item.totalPrice > max.totalPrice ? item : max);
-    
-    return mostExpensiveItem.totalPrice * 0.10; // 10% discount
-  }
-
+    if (!applicableWelcomeOffer) return 0;
+    return (subtotal + serviceCharge) * (applicableWelcomeOffer.discount / 100);
+  };
+  
   const welcomeDiscountAmount = calculateWelcomeDiscount();
   const totalDiscount = loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount;
   const cartTotal = totalBeforeDiscounts - totalDiscount;
@@ -350,9 +341,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
         };
         
-        Object.keys(orderData).forEach(key => {
-            if (orderData[key as keyof typeof orderData] === undefined) {
-                delete orderData[key as keyof typeof orderData];
+        // This loop removes any keys with `undefined` values from the top level of orderData
+        Object.keys(orderData).forEach(keyStr => {
+            const key = keyStr as keyof typeof orderData;
+            if (orderData[key] === undefined) {
+                delete orderData[key];
             }
         });
 
@@ -371,8 +364,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             updates.birthdayDiscountType = null;
         }
 
-        if (welcomeOfferApplied && canClaimWelcomeOffer) {
-            updates.welcomeOfferRedeemed = true;
+        if (applicableWelcomeOffer) {
+            updates.orderCount = increment(1);
         }
         
         const redeemedDailyOffers = orderItems
@@ -399,11 +392,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         setPointsToRedeemInput('');
         setTableNumber('');
         setAppliedPoints(0);
-        setWelcomeOfferApplied(false);
         
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete('claimFreebie');
-        params.delete('claimWelcomeOffer');
+        const params = new URLSearchParams();
         router.replace(`${pathname}?${params.toString()}`);
 
     } catch (error) {
@@ -632,6 +622,19 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
           {cart.length > 0 && (
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
+
+                  {applicableWelcomeOffer && (
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Welcome Offer Applied!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Your <span className='font-bold'>{applicableWelcomeOffer.discount}%</span> discount for your{' '}
+                        {
+                            {0: 'first', 1: 'second', 2: 'third'}[applicableWelcomeOffer.order]
+                        }{' '}
+                        order has been automatically applied.
+                      </p>
+                    </div>
+                  )}
                   
                   {birthdayDiscountAmount > 0 && (
                      <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
@@ -639,20 +642,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                       <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayDiscountAmount.toFixed(2)}</span> discount has been automatically applied.</p>
                     </div>
                   )}
-                  
-                  {canClaimWelcomeOffer && (
-                     <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Apply Welcome Offer?</h3>
-                            <Switch 
-                                checked={welcomeOfferApplied}
-                                onCheckedChange={setWelcomeOfferApplied}
-                            />
-                        </div>
-                      <p className="text-sm text-muted-foreground">Get 10% off one item. This is a one-time offer!</p>
-                    </div>
-                  )}
-
 
                   <div className="space-y-2">
                       <h3 className="font-headline text-lg">Redeem Points</h3>
@@ -774,5 +763,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
 
 
