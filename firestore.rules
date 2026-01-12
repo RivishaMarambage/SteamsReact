@@ -26,6 +26,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      // Admins can read any profile. Users can read or update their own profile.
+      // A user can update their profile to link a new auth provider (e.g. Google)
       allow read, update: if isOwner(userId) || isAdmin();
       allow create: if isSignedIn(); // A user can create their own profile document after signing up
       allow list: if isAdmin(); // Only admins can list all users

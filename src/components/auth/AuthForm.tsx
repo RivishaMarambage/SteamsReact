@@ -18,8 +18,8 @@ import { CalendarIcon, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -28,6 +28,8 @@ import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
+import { FaGoogle } from "react-icons/fa";
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -71,14 +73,14 @@ const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
     { name: 'Platinum', minimumPoints: 5000 },
 ]
 
-const SEED_ADDONS: Omit<Addon, 'id'>[] = [
-    { name: "Extra Espresso Shot", price: 100, categoryId: '' },
-    { name: "Almond Milk", price: 80, categoryId: '' },
-    { name: "Oat Milk", price: 80, categoryId: '' },
-    { name: "Soy Milk", price: 70, categoryId: '' },
-    { name: "Whipped Cream", price: 50, categoryId: '' },
-    { name: "Caramel Drizzle", price: 60, categoryId: '' },
-    { name: "Chocolate Syrup", price: 60, categoryId: '' },
+const SEED_ADDONS: Omit<Addon, 'id' | 'categoryId'>[] = [
+    { name: "Extra Espresso Shot", price: 100 },
+    { name: "Almond Milk", price: 80 },
+    { name: "Oat Milk", price: 80 },
+    { name: "Soy Milk", price: 70 },
+    { name: "Whipped Cream", price: 50 },
+    { name: "Caramel Drizzle", price: 60 },
+    { name: "Chocolate Syrup", price: 60 },
 ];
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -373,6 +375,87 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    const provider = new GoogleAuthProvider();
+
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const additionalUserInfo = getAdditionalUserInfo(result);
+
+        const userDocRef = doc(firestore, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (additionalUserInfo?.isNewUser || !userDocSnap.exists()) {
+            // New user, create a profile
+            const userProfile: UserProfile = {
+                id: user.uid,
+                email: user.email!,
+                name: user.displayName!,
+                role,
+                loyaltyPoints: 0,
+                lifetimePoints: 0,
+                loyaltyLevelId: "member",
+                orderCount: 0,
+                emailVerified: user.emailVerified,
+            };
+            await setDoc(userDocRef, userProfile);
+             toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
+        } else {
+             // Existing user, just log them in and check role
+            const userProfile = userDocSnap.data() as UserProfile;
+             if (userProfile.role !== role) {
+                await auth.signOut();
+                toast({
+                    variant: 'destructive',
+                    title: 'Access Denied',
+                    description: `You are not authorized to log in as a ${role}.`,
+                });
+                return;
+            }
+             toast({ title: `Welcome back, ${user.displayName}!` });
+        }
+
+        const targetPath = getDashboardPathForRole(role);
+        router.push(targetPath);
+
+    } catch (error: any) {
+        // Handle specific errors, like account-exists-with-different-credential
+        if (error.code === 'auth/account-exists-with-different-credential' && error.customData.email) {
+            const email = error.customData.email;
+            const methods = await fetchSignInMethodsForEmail(auth, email);
+
+            if (methods[0] === 'password') {
+                // Prompt user to sign in with email/password to link accounts
+                const password = prompt('It looks like you already have an account with this email. Please enter your password to link your Google account.');
+                if (password) {
+                    try {
+                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                        const googleCredential = GoogleAuthProvider.credentialFromError(error);
+                        if (userCredential && googleCredential) {
+                            await linkWithCredential(userCredential.user, googleCredential);
+                            toast({ title: 'Accounts Linked!', description: 'You can now sign in with Google.' });
+                            const targetPath = getDashboardPathForRole(role);
+                            router.push(targetPath);
+                        }
+                    } catch (linkError: any) {
+                        toast({ variant: 'destructive', title: 'Linking Failed', description: linkError.message });
+                    }
+                }
+            } else {
+                toast({ variant: 'destructive', title: 'Sign-in Failed', description: `You have previously signed in with ${methods[0]}. Please use that method.` });
+            }
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Google Sign-In Failed',
+                description: error.message,
+            });
+        }
+    }
+  };
+
   const title = authType === 'login' ? 'Log In' : 'Sign Up';
   const description =
     authType === 'login'
@@ -606,10 +689,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               <Button type="submit" className="w-full">
                 {buttonText}
               </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/">Back to Home</Link>
-              </Button>
             </form>
+             <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                </div>
+            </div>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                <FaGoogle className="mr-2 h-4 w-4" />
+                Google
+            </Button>
           </Form>
           <div className="mt-4 text-center text-sm">
             {authType === 'login' ? (
