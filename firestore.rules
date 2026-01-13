@@ -73,6 +73,13 @@ service cloud.firestore {
       allow delete: if false; // Users should not be able to modify their past orders
     }
 
+    // A user's private history of point transactions
+    match /users/{userId}/point_transactions/{transactionId} {
+      allow read, list: if isOwner(userId) || isAdmin(); // User can read their own history, admins can read anyone's.
+      allow create: if isOwner(userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
+      allow update, delete: if false; // Transactions are immutable.
+    }
+
     match /daily_offers/{offerId} {
       allow read: if true; // Daily offers are public
       allow write: if isAdmin(); // Only admins can create, update, or delete daily offers
