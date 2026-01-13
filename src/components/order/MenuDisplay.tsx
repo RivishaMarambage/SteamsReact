@@ -52,6 +52,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
 
   const { toast } = useToast();
@@ -73,6 +74,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
+  useEffect(() => {
+    const checkVerification = async () => {
+        if (authUser) {
+            await authUser.reload();
+            setIsEmailVerified(authUser.emailVerified);
+        }
+    };
+    checkVerification();
+  }, [authUser]);
+
   const canRedeemPoints = useMemo(() => {
     if (!userProfile || !loyaltyLevels) return false;
     const bronzeTier = loyaltyLevels.find(l => l.id === 'bronze');
@@ -81,11 +92,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   }, [userProfile, loyaltyLevels]);
   
   const applicableWelcomeOffer = useMemo(() => {
-    if (!userProfile || !authUser || !authUser.emailVerified || (userProfile.orderCount ?? 0) >= 3) {
+    if (!userProfile || !isEmailVerified || (userProfile.orderCount ?? 0) >= 3) {
       return null;
     }
     return WELCOME_OFFERS.find(offer => offer.order === (userProfile.orderCount ?? 0)) || null;
-  }, [userProfile, authUser]);
+  }, [userProfile, isEmailVerified]);
 
 
   const getCategoryName = (categoryId: string, source: 'menu' | 'addon') => {
@@ -823,3 +834,5 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
+
+    
