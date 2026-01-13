@@ -15,13 +15,14 @@ import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type FormData = Omit<MenuItem, 'id' | 'price' | 'addonGroups'> & { 
     price: number | '',
@@ -71,7 +72,7 @@ export default function MenuTable() {
           description: selectedItem.description,
           imageUrl: selectedItem.imageUrl || '',
           isOutOfStock: selectedItem.isOutOfStock || false,
-          addonGroups: selectedItem.addonGroups?.map(g => ({...g})) || [],
+          addonGroups: selectedItem.addonGroups?.map(g => ({...g, minSelection: g.minSelection ?? 0, maxSelection: g.maxSelection ?? 0})) || [],
         });
       } else {
         setFormData({
@@ -311,8 +312,8 @@ export default function MenuTable() {
               <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
               <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your menu.'}</DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[70vh] -mx-6 px-6">
-                <div className="grid gap-4 py-4 px-1">
+            <ScrollArea className="max-h-[70vh]">
+              <div className="grid gap-4 py-4 pr-6">
                 <div className="grid gap-2">
                     <Label htmlFor="name">Name</Label>
                     <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
@@ -404,7 +405,7 @@ export default function MenuTable() {
                 </div>
                 </div>
             </ScrollArea>
-            <DialogFooter className="border-t pt-4">
+            <DialogFooter className="border-t pt-4 mt-4">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               <Button type="submit">Save changes</Button>
             </DialogFooter>
