@@ -43,6 +43,11 @@ service cloud.firestore {
       allow read: if true; // Addons are public
       allow write: if isAdmin(); // Only admins can manage addons
     }
+    
+    match /addon_categories/{addonCategoryId} {
+      allow read: if true; // Addon categories are public
+      allow write: if isAdmin(); // Only admins can manage addon categories
+    }
 
     match /categories/{categoryId} {
       allow read: if true; // Categories are public

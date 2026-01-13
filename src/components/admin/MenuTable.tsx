@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import type { MenuItem, Addon } from '@/lib/types';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import type { MenuItem, Category, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
+import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -19,10 +19,18 @@ import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePe
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
-import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
 
-type FormData = Omit<MenuItem, 'id' | 'price'> & { price: number | '' };
+type FormData = Omit<MenuItem, 'id' | 'price' | 'addonGroups'> & { 
+    price: number | '',
+    addonGroups: (Omit<MenuItemAddonGroup, 'minSelection' | 'maxSelection'> & {
+        minSelection: number | '',
+        maxSelection: number | '',
+    })[]
+};
+
 
 const INITIAL_FORM_DATA: FormData = {
   name: '',
@@ -31,18 +39,19 @@ const INITIAL_FORM_DATA: FormData = {
   description: '',
   imageUrl: '',
   isOutOfStock: false,
-  addonIds: [],
+  addonGroups: [],
 };
 
 export default function MenuTable() {
   const firestore = useFirestore();
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
-  const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, "addons") : null, [firestore]);
+  const addonCategoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "addon_categories") : null, [firestore]);
+
 
   const { data: menu, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection(categoriesQuery);
-  const { data: addons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+  const { data: addonCategories, isLoading: areAddonCategoriesLoading } = useCollection<AddonCategory>(addonCategoriesQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -50,7 +59,7 @@ export default function MenuTable() {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const { toast } = useToast();
 
-  const isLoading = isMenuLoading || areCategoriesLoading || areAddonsLoading;
+  const isLoading = isMenuLoading || areCategoriesLoading || areAddonCategoriesLoading;
 
   useEffect(() => {
     if (isFormOpen) {
@@ -62,7 +71,7 @@ export default function MenuTable() {
           description: selectedItem.description,
           imageUrl: selectedItem.imageUrl || '',
           isOutOfStock: selectedItem.isOutOfStock || false,
-          addonIds: selectedItem.addonIds || [],
+          addonGroups: selectedItem.addonGroups?.map(g => ({...g})) || [],
         });
       } else {
         setFormData({
@@ -81,20 +90,41 @@ export default function MenuTable() {
       [name]: name === 'price' ? (value === '' ? '' : parseFloat(value)) : value,
     }));
   };
+
+  const handleAddonGroupChange = <K extends keyof FormData['addonGroups'][number]>(index: number, field: K, value: FormData['addonGroups'][number][K]) => {
+     setFormData(prev => {
+        const newGroups = [...prev.addonGroups];
+        newGroups[index] = {
+            ...newGroups[index],
+            [field]: value
+        };
+        return { ...prev, addonGroups: newGroups };
+     })
+  }
+
+  const addNewAddonGroup = () => {
+    if (!addonCategories || addonCategories.length === 0) {
+        toast({ variant: 'destructive', title: "No Add-on Categories", description: "Please create an add-on category first."});
+        return;
+    }
+    setFormData(prev => ({
+        ...prev,
+        addonGroups: [
+            ...prev.addonGroups,
+            { addonCategoryId: addonCategories[0].id, isRequired: false, minSelection: 0, maxSelection: 1 }
+        ]
+    }));
+  }
+
+  const removeAddonGroup = (index: number) => {
+    setFormData(prev => ({
+        ...prev,
+        addonGroups: prev.addonGroups.filter((_, i) => i !== index),
+    }));
+  }
   
   const handleStockChange = (checked: boolean) => {
     setFormData(prev => ({ ...prev, isOutOfStock: checked }));
-  }
-
-  const handleAddonToggle = (addonId: string) => {
-    setFormData(prev => {
-        const addonIds = prev.addonIds || [];
-        if (addonIds.includes(addonId)) {
-            return { ...prev, addonIds: addonIds.filter(id => id !== addonId) };
-        } else {
-            return { ...prev, addonIds: [...addonIds, addonId] };
-        }
-    });
   }
 
   const handleEdit = (item: MenuItem) => {
@@ -147,6 +177,11 @@ export default function MenuTable() {
     const finalData = {
         ...formData,
         price: Number(formData.price) || 0,
+        addonGroups: formData.addonGroups.map(g => ({
+            ...g,
+            minSelection: Number(g.minSelection) || 0,
+            maxSelection: Number(g.maxSelection) || 0,
+        }))
     };
 
     if (selectedItem) {
@@ -225,7 +260,7 @@ export default function MenuTable() {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Add-ons</TableHead>
+              <TableHead>Add-on Groups</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -244,7 +279,7 @@ export default function MenuTable() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {item.addonIds && item.addonIds.length > 0 ? `${item.addonIds.length}` : '0'}
+                    {item.addonGroups && item.addonGroups.length > 0 ? `${item.addonGroups.length}` : '0'}
                   </TableCell>
                   <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
                   <TableCell>
@@ -270,71 +305,106 @@ export default function MenuTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-3xl">
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
               <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
               <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your menu.'}</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <ScrollArea className="max-h-[70vh] -mx-6 px-6">
+                <div className="grid gap-4 py-4 px-1">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Price (LKR)</Label>
-                  <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
                 </div>
-                 <div className="grid gap-2">
-                  <Label htmlFor="categoryId">Category</Label>
-                  <select
-                    id="categoryId"
-                    name="categoryId"
-                    value={formData.categoryId || ''}
-                    onChange={handleFormChange}
-                    required
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="" disabled>Select a category</option>
-                    {categories?.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                    <Label htmlFor="price">Price (LKR)</Label>
+                    <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
+                    </div>
+                    <div className="grid gap-2">
+                    <Label htmlFor="categoryId">Category</Label>
+                    <select
+                        id="categoryId"
+                        name="categoryId"
+                        value={formData.categoryId || ''}
+                        onChange={handleFormChange}
+                        required
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="" disabled>Select a category</option>
+                        {categories?.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                    </select>
+                    </div>
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
-                <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="isOutOfStock" name="isOutOfStock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
-                <Label htmlFor="isOutOfStock">Mark as out of stock</Label>
-              </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch id="isOutOfStock" name="isOutOfStock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
+                    <Label htmlFor="isOutOfStock">Mark as out of stock</Label>
+                </div>
 
-               <div className="grid gap-2">
-                    <Label>Applicable Add-ons</Label>
-                    <ScrollArea className="h-40 rounded-md border p-4">
-                        <div className="space-y-2">
-                            {addons?.map(addon => (
-                                <div key={addon.id} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={`addon-${addon.id}`}
-                                        checked={formData.addonIds?.includes(addon.id)}
-                                        onCheckedChange={() => handleAddonToggle(addon.id)}
-                                    />
-                                    <Label htmlFor={`addon-${addon.id}`} className="flex-grow">{addon.name} (+LKR {addon.price.toFixed(2)})</Label>
+                <div className="space-y-4 pt-4">
+                    <Label className="text-lg font-semibold">Add-on Groups</Label>
+                    <div className="space-y-4">
+                        {formData.addonGroups.map((group, index) => (
+                            <div key={index} className="p-4 border rounded-lg space-y-4 relative">
+                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => removeAddonGroup(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`addon-cat-${index}`}>Category</Label>
+                                        <Select value={group.addonCategoryId} onValueChange={(val) => handleAddonGroupChange(index, 'addonCategoryId', val)}>
+                                            <SelectTrigger id={`addon-cat-${index}`}>
+                                                <SelectValue placeholder="Select add-on category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {addonCategories?.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex items-end pb-2">
+                                         <div className="flex items-center space-x-2">
+                                            <Checkbox 
+                                                id={`is-required-${index}`} 
+                                                checked={group.isRequired}
+                                                onCheckedChange={(checked) => handleAddonGroupChange(index, 'isRequired', !!checked)}
+                                            />
+                                            <Label htmlFor={`is-required-${index}`}>Required</Label>
+                                        </div>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="grid gap-2">
+                                        <Label htmlFor={`min-sel-${index}`}>Min Selections</Label>
+                                        <Input id={`min-sel-${index}`} type="number" value={group.minSelection} onChange={(e) => handleAddonGroupChange(index, 'minSelection', e.target.value === '' ? '' : Number(e.target.value))} />
+                                     </div>
+                                      <div className="grid gap-2">
+                                        <Label htmlFor={`max-sel-${index}`}>Max Selections</Label>
+                                        <Input id={`max-sel-${index}`} type="number" value={group.maxSelection} onChange={(e) => handleAddonGroupChange(index, 'maxSelection', e.target.value === '' ? '' : Number(e.target.value))} />
+                                     </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                     <Button type="button" variant="outline" size="sm" onClick={addNewAddonGroup}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Group
+                    </Button>
                 </div>
-            </div>
-            <DialogFooter>
+                </div>
+            </ScrollArea>
+            <DialogFooter className="border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               <Button type="submit">Save changes</Button>
             </DialogFooter>

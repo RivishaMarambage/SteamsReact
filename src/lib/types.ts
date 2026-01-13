@@ -24,12 +24,25 @@ export type UserProfile = {
   dailyOffersRedeemed?: Record<string, string>; // e.g. { "offerId": "YYYY-MM-DD" }
 };
 
+export type AddonCategory = {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export type Addon = {
   id: string;
   name: string;
   price: number;
-  categoryId: string;
+  addonCategoryId: string;
 };
+
+export type MenuItemAddonGroup = {
+  addonCategoryId: string;
+  isRequired: boolean;
+  minSelection: number;
+  maxSelection: number;
+}
 
 export type MenuItem = {
   id: string;
@@ -39,7 +52,7 @@ export type MenuItem = {
   categoryId: string;
   imageUrl?: string;
   isOutOfStock?: boolean;
-  addonIds?: string[];
+  addonGroups?: MenuItemAddonGroup[];
 };
 
 export type Category = {

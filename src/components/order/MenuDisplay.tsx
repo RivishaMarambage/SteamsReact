@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem } from '@/lib/types';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -51,6 +51,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [isCustomizationOpen, setCustomizationOpen] = useState(false);
   const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
 
   const { toast } = useToast();
   const { user: authUser } = useUser();
@@ -64,6 +66,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   
   const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addons') : null, [firestore]);
   const { data: allAddons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
+
+  const addonCategoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addon_categories') : null, [firestore]);
+  const { data: addonCategories, isLoading: areAddonCategoriesLoading } = useCollection<AddonCategory>(addonCategoriesQuery);
 
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
@@ -83,13 +88,17 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   }, [userProfile, authUser]);
 
 
-  const getCategoryName = (categoryId: string) => {
-    return categories?.find(c => c.id === categoryId)?.name;
+  const getCategoryName = (categoryId: string, source: 'menu' | 'addon') => {
+    if (source === 'menu') {
+        return categories?.find(c => c.id === categoryId)?.name;
+    }
+    return addonCategories?.find(c => c.id === categoryId)?.name;
   }
   
   const handleOpenCustomization = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
     setCustomizingItem({menuItem: item, displayPrice, appliedDailyOfferId});
     setSelectedAddons([]);
+    setValidationErrors({});
     setCustomizationOpen(true);
   }
 
@@ -102,8 +111,45 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     })
   }
 
+  const validateAddonSelection = () => {
+    if (!customizingItem?.menuItem.addonGroups) {
+        return true;
+    }
+    
+    const errors: Record<string, string> = {};
+
+    for (const group of customizingItem.menuItem.addonGroups) {
+        const selectedInGroup = selectedAddons.filter(sa => sa.addonCategoryId === group.addonCategoryId).length;
+
+        if (group.isRequired && selectedInGroup === 0) {
+            errors[group.addonCategoryId] = "At least one selection is required.";
+        } else if (selectedInGroup < group.minSelection) {
+            errors[group.addonCategoryId] = `Please select at least ${group.minSelection} option(s).`;
+        }
+        
+        if (group.maxSelection > 0 && selectedInGroup > group.maxSelection) {
+            errors[group.addonCategoryId] = `You can select up to ${group.maxSelection} option(s).`;
+        }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  useEffect(() => {
+    validateAddonSelection();
+  }, [selectedAddons, customizingItem]);
+
+
   const confirmAddToCart = () => {
-    if(!customizingItem) return;
+    if(!customizingItem || !validateAddonSelection()) {
+        toast({
+            variant: "destructive",
+            title: "Customization Incomplete",
+            description: "Please check the requirements for each add-on group.",
+        });
+        return;
+    }
 
     const cartId = `${customizingItem.menuItem.id}-${Date.now()}`;
     const addonPrice = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
@@ -130,8 +176,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   };
 
   const addToCart = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
-    // If no addons, add directly to cart
-    if(!item.addonIds || item.addonIds.length === 0) {
+    // If no addon groups, add directly to cart
+    if(!item.addonGroups || item.addonGroups.length === 0) {
         const cartId = `${item.id}-${Date.now()}`;
         const newCartItem: CartItem = {
             id: cartId,
@@ -306,6 +352,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             })),
             totalPrice: cartItem.totalPrice,
           };
+          // Only add appliedDailyOfferId if it's not undefined
           if (cartItem.appliedDailyOfferId) {
             item.appliedDailyOfferId = cartItem.appliedDailyOfferId;
           }
@@ -345,7 +392,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         Object.keys(orderData).forEach(keyStr => {
             const key = keyStr as keyof typeof orderData;
             if (orderData[key] === undefined) {
-                delete orderData[key];
+                delete (orderData as any)[key];
             }
         });
 
@@ -393,7 +440,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         setTableNumber('');
         setAppliedPoints(0);
         
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(window.location.search);
+        params.delete('claimFreebie');
         router.replace(`${pathname}?${params.toString()}`);
 
     } catch (error) {
@@ -405,19 +453,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         });
     }
 }
-
-  const groupedAddons = useMemo(() => {
-    if (!allAddons || !categories) return {};
-    return allAddons.reduce((acc, addon) => {
-        const categoryName = getCategoryName(addon.categoryId) || 'Other';
-        if (!acc[categoryName]) {
-            acc[categoryName] = [];
-        }
-        acc[categoryName].push(addon);
-        return acc;
-    }, {} as Record<string, Addon[]>);
-  }, [allAddons, categories]);
-
 
   return (
     <>
@@ -718,7 +753,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
       </Sheet>
 
       <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">Customize {customizingItem?.menuItem.name}</DialogTitle>
             <DialogDescription>
@@ -727,27 +762,41 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] -mx-6 px-6">
             <div className="py-4 space-y-6">
-                {Object.entries(groupedAddons).map(([categoryName, addons]) => {
-                    const availableAddons = addons.filter(addon => customizingItem?.menuItem.addonIds?.includes(addon.id));
-                    if (availableAddons.length === 0) return null;
+                {customizingItem?.menuItem.addonGroups?.map((group) => {
+                    const categoryName = getCategoryName(group.addonCategoryId, 'addon');
+                    const availableAddons = allAddons?.filter(addon => addon.addonCategoryId === group.addonCategoryId);
+                    const selectedCount = selectedAddons.filter(sa => sa.addonCategoryId === group.addonCategoryId).length;
+
+                    if (!availableAddons || availableAddons.length === 0) return null;
                     
                     return (
-                        <div key={categoryName}>
-                            <h4 className="font-semibold text-lg mb-2 sticky top-0 bg-background py-2">{categoryName}</h4>
+                        <div key={group.addonCategoryId}>
+                            <h4 className="font-semibold text-lg mb-2 sticky top-0 bg-background py-2 flex justify-between items-center">
+                                <span>{categoryName}</span>
+                                <span className="text-sm font-normal text-muted-foreground">({selectedCount} / {group.maxSelection || 'any'})</span>
+                            </h4>
+                            {validationErrors[group.addonCategoryId] && (
+                                <p className="text-sm text-destructive mb-2">{validationErrors[group.addonCategoryId]}</p>
+                            )}
                             <div className="space-y-2">
-                                {availableAddons.map(addon => (
-                                    <div key={addon.id} className="flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50">
-                                        <Checkbox
-                                            id={`addon-check-${addon.id}`}
-                                            checked={!!selectedAddons.find(a => a.id === addon.id)}
-                                            onCheckedChange={() => handleAddonToggle(addon)}
-                                        />
-                                        <Label htmlFor={`addon-check-${addon.id}`} className="flex-grow text-base">
-                                            {addon.name}
-                                        </Label>
-                                        <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
-                                    </div>
-                                ))}
+                                {availableAddons.map(addon => {
+                                    const isChecked = !!selectedAddons.find(a => a.id === addon.id);
+                                    const isDisabled = !isChecked && group.maxSelection > 0 && selectedCount >= group.maxSelection;
+                                    return (
+                                        <div key={addon.id} className={cn("flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50", isDisabled && "opacity-50")}>
+                                            <Checkbox
+                                                id={`addon-check-${addon.id}`}
+                                                checked={isChecked}
+                                                onCheckedChange={() => handleAddonToggle(addon)}
+                                                disabled={isDisabled}
+                                            />
+                                            <Label htmlFor={`addon-check-${addon.id}`} className={cn("flex-grow text-base", isDisabled && "cursor-not-allowed")}>
+                                                {addon.name}
+                                            </Label>
+                                            <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                     )
@@ -763,6 +812,3 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
-
-
-

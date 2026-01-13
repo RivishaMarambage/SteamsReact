@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -28,13 +28,14 @@ const customerMenuItems = [
 const staffMenuItems = [
     { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
     { href: '/dashboard/staff/redeem', label: 'Redeem Points', icon: ScanSearch },
-    { href: '/dashboard/admin/categories', label: 'Manage Categories', icon: FolderPlus },
+    { href: '/dashboard/admin/categories', label: 'Menu Categories', icon: FolderPlus },
     { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
 ];
 
 const adminMenuItems = [
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: AreaChart },
   { href: '/dashboard/admin/offers', label: 'Offers', icon: Gift },
+  { href: '/dashboard/admin/addon-categories', label: 'Add-on Categories', icon: AppWindow },
   { href: '/dashboard/admin/addons', label: 'Add-ons', icon: Blocks },
   { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
@@ -137,5 +138,3 @@ export default function AppSidebar() {
     </Sidebar>
   );
 }
-
-    

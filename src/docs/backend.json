@@ -19,7 +19,7 @@
         "birthdayDiscountValue": { "type": ["number", "null"], "description": "The value of the birthday discount (fixed amount or percentage)." },
         "birthdayDiscountType": { "type": ["string", "null"], "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
         "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
-        "welcomeOfferRedeemed": { "type": "boolean", "description": "Whether the user has redeemed their one-time welcome offer." },
+        "orderCount": { "type": "number", "description": "The number of orders the user has placed, used for tiered welcome offers." },
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
@@ -31,6 +31,18 @@
         }
       },
       "required": ["id", "email", "name", "role"]
+    },
+    "MenuItemAddonGroup": {
+      "title": "Menu Item Add-on Group",
+      "type": "object",
+      "description": "Defines rules for an add-on category on a specific menu item.",
+      "properties": {
+        "addonCategoryId": { "type": "string", "description": "ID of the AddonCategory." },
+        "isRequired": { "type": "boolean", "description": "Whether a selection from this group is mandatory." },
+        "minSelection": { "type": "number", "description": "The minimum number of addons a user must select." },
+        "maxSelection": { "type": "number", "description": "The maximum number of addons a user can select." }
+      },
+      "required": ["addonCategoryId", "isRequired", "minSelection", "maxSelection"]
     },
     "MenuItem": {
       "title": "Menu Item",
@@ -44,9 +56,24 @@
         "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
         "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
         "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." },
-        "addonIds": { "type": "array", "items": { "type": "string" }, "description": "List of addon IDs applicable to this menu item." }
+        "addonGroups": {
+          "type": "array",
+          "items": { "$ref": "#/entities/MenuItemAddonGroup" },
+          "description": "Configuration for applicable addon groups and their rules."
+        }
       },
       "required": ["id", "name", "price", "categoryId"]
+    },
+    "AddonCategory": {
+        "title": "Add-on Category",
+        "type": "object",
+        "description": "A category for organizing add-ons (e.g., 'Milk Options', 'Syrups').",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the addon category." },
+            "name": { "type": "string", "description": "Name of the category." },
+            "description": { "type": "string", "description": "A brief description of the category." }
+        },
+        "required": ["id", "name"]
     },
     "Addon": {
       "title": "Addon",
@@ -55,9 +82,10 @@
       "properties": {
         "id": { "type": "string", "description": "Unique ID for the addon." },
         "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
-        "price": { "type": "number", "description": "Additional price for this addon." }
+        "price": { "type": "number", "description": "Additional price for this addon." },
+        "addonCategoryId": { "type": "string", "description": "The ID of the addon category this addon belongs to." }
       },
-      "required": ["id", "name", "price"]
+      "required": ["id", "name", "price", "addonCategoryId"]
     },
     "Category": {
       "title": "Category",
@@ -184,7 +212,7 @@
     }
   },
   "auth": {
-    "providers": ["password", "anonymous"]
+    "providers": ["password", "anonymous", "google.com"]
   },
   "firestore": {
     "/users/{userId}": {
@@ -198,6 +226,10 @@
      "/addons/{addonId}": {
       "schema": { "$ref": "#/entities/Addon" },
       "description": "Publicly readable list of all addons."
+    },
+    "/addon_categories/{addonCategoryId}": {
+      "schema": { "$ref": "#/entities/AddonCategory" },
+      "description": "Publicly readable list of all addon categories."
     },
     "/categories/{categoryId}": {
       "schema": { "$ref": "#/entities/Category" },

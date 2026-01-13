@@ -9,116 +9,103 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Addon, AddonCategory } from '@/lib/types';
+import type { AddonCategory } from '@/lib/types';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { Textarea } from '../ui/textarea';
 
-const INITIAL_FORM_DATA: Omit<Addon, 'id'> = {
+const INITIAL_FORM_DATA: Omit<AddonCategory, 'id'> = {
   name: '',
-  price: 0,
-  addonCategoryId: ''
+  description: '',
 };
 
-export default function AddonTable() {
+export default function AddonCategoryTable() {
   const firestore = useFirestore();
-  const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, "addons") : null, [firestore]);
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "addon_categories") : null, [firestore]);
 
-  const { data: addons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<AddonCategory>(categoriesQuery);
+  const { data: categories, isLoading } = useCollection<AddonCategory>(categoriesQuery);
   
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
-  const [selectedAddon, setSelectedAddon] = useState<Addon | null>(null);
-  const [formData, setFormData] = useState<Omit<Addon, 'id'>>(INITIAL_FORM_DATA);
+  const [selectedCategory, setSelectedCategory] = useState<AddonCategory | null>(null);
+  const [formData, setFormData] = useState<Omit<AddonCategory, 'id'>>(INITIAL_FORM_DATA);
   const { toast } = useToast();
-
-  const isLoading = areAddonsLoading || areCategoriesLoading;
 
   useEffect(() => {
     if (isFormOpen) {
-      if (selectedAddon) {
+      if (selectedCategory) {
         setFormData({
-          name: selectedAddon.name,
-          price: selectedAddon.price,
-          addonCategoryId: selectedAddon.addonCategoryId,
+          name: selectedCategory.name,
+          description: selectedCategory.description,
         });
       } else {
-        setFormData({
-          ...INITIAL_FORM_DATA,
-          addonCategoryId: categories?.[0]?.id || ''
-        });
+        setFormData(INITIAL_FORM_DATA);
       }
     }
-  }, [isFormOpen, selectedAddon, categories]);
+  }, [isFormOpen, selectedCategory]);
 
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' ? (value === '' ? '' : parseFloat(value)) : value,
+      [name]: value,
     }));
   };
 
-  const handleEdit = (addon: Addon) => {
-    setSelectedAddon(addon);
+  const handleEdit = (category: AddonCategory) => {
+    setSelectedCategory(category);
     setFormOpen(true);
   };
 
   const handleAddNew = () => {
-    setSelectedAddon(null);
+    setSelectedCategory(null);
     setFormOpen(true);
   };
   
-  const handleDelete = (addon: Addon) => {
-    setSelectedAddon(addon);
+  const handleDelete = (category: AddonCategory) => {
+    setSelectedCategory(category);
     setAlertOpen(true);
   }
   
   const confirmDelete = async () => {
-    if(!selectedAddon || !firestore) return;
-    await deleteDoc(doc(firestore, "addons", selectedAddon.id));
+    if(!selectedCategory || !firestore) return;
+    await deleteDoc(doc(firestore, "addon_categories", selectedCategory.id));
 
-    toast({ title: "Add-on Deleted", description: `${selectedAddon.name} has been removed.`});
+    toast({ title: "Category Deleted", description: `${selectedCategory.name} has been removed.`});
     setAlertOpen(false);
-    setSelectedAddon(null);
+    setSelectedCategory(null);
   }
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
 
-    const finalData = {
-        ...formData,
-        price: Number(formData.price) || 0,
-    };
-
-    if (!finalData.name || finalData.price < 0 || !finalData.addonCategoryId) {
+    if (!formData.name) {
         toast({
             variant: "destructive",
             title: "Missing Information",
-            description: "Please fill out a valid name, price, and category.",
+            description: "Please fill out the name field.",
         });
         return;
     }
 
-    if (selectedAddon) {
+    if (selectedCategory) {
       // Update existing item
-      await setDoc(doc(firestore, "addons", selectedAddon.id), finalData, { merge: true });
-      toast({ title: "Add-on Updated", description: `${finalData.name} has been updated.`});
+      await setDoc(doc(firestore, "addon_categories", selectedCategory.id), formData, { merge: true });
+      toast({ title: "Category Updated", description: `${formData.name} has been updated.`});
     } else {
       // Add new item
-      await addDoc(collection(firestore, "addons"), finalData);
-      toast({ title: "Add-on Added", description: `${finalData.name} has been added.`});
+      await addDoc(collection(firestore, "addon_categories"), formData);
+      toast({ title: "Category Added", description: `${formData.name} has been added.`});
     }
 
     setFormOpen(false);
-    setSelectedAddon(null);
+    setSelectedCategory(null);
   };
   
   if (isLoading) {
@@ -139,15 +126,13 @@ export default function AddonTable() {
     )
   }
 
-  const getCategoryName = (categoryId: string) => categories?.find(c => c.id === categoryId)?.name || 'N/A';
-
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="font-headline text-2xl">Add-ons</CardTitle>
+        <CardTitle className="font-headline text-2xl">Add-on Categories</CardTitle>
         <Button size="sm" onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Add-on
+          Add New Category
         </Button>
       </CardHeader>
       <CardContent>
@@ -155,20 +140,18 @@ export default function AddonTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Price</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {addons?.map(addon => {
+            {categories?.map(cat => {
               return (
-                <TableRow key={addon.id}>
-                  <TableCell className="font-medium">{addon.name}</TableCell>
-                  <TableCell>{getCategoryName(addon.addonCategoryId)}</TableCell>
-                  <TableCell className="text-right">LKR {addon.price.toFixed(2)}</TableCell>
+                <TableRow key={cat.id}>
+                  <TableCell className="font-medium">{cat.name}</TableCell>
+                  <TableCell>{cat.description}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -179,8 +162,8 @@ export default function AddonTable() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(addon)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(addon)}>Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(cat)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(cat)}>Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -195,33 +178,19 @@ export default function AddonTable() {
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={handleFormSubmit}>
             <DialogHeader>
-              <DialogTitle className="font-headline">{selectedAddon ? 'Edit Add-on' : 'Add New Add-on'}</DialogTitle>
-              <DialogDescription>{selectedAddon ? 'Make changes to the add-on.' : 'Add a new customization add-on.'}</DialogDescription>
+              <DialogTitle className="font-headline">{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+              <DialogDescription>
+                Create a new category for your add-ons, like "Syrups" or "Milk Options".
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
+                <Label htmlFor="name">Category Name</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required placeholder="e.g., Milk Options" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="price">Price (LKR)</Label>
-                <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="addonCategoryId">Category</Label>
-                <select
-                  id="addonCategoryId"
-                  name="addonCategoryId"
-                  value={formData.addonCategoryId || ''}
-                  onChange={handleFormChange}
-                  required
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="" disabled>Select a category</option>
-                  {categories?.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} placeholder="e.g., Choose your preferred milk" />
               </div>
             </div>
             <DialogFooter>
@@ -237,7 +206,7 @@ export default function AddonTable() {
             <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the add-on.
+                This action cannot be undone. This will permanently delete the category.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
