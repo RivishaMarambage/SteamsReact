@@ -306,14 +306,14 @@ export default function MenuTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <form onSubmit={handleFormSubmit}>
-            <DialogHeader>
-              <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
-              <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your menu.'}</DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="max-h-[70vh]">
-              <div className="grid gap-4 py-4 pr-6">
+        <DialogContent className="sm:max-w-3xl h-full flex flex-col sm:h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+            <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your menu.'}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit} className="flex-1 min-h-0 flex flex-col">
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="py-4 pr-1 space-y-4">
                 <div className="grid gap-2">
                     <Label htmlFor="name">Name</Label>
                     <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
@@ -405,7 +405,7 @@ export default function MenuTable() {
                 </div>
                 </div>
             </ScrollArea>
-            <DialogFooter className="border-t pt-4 mt-4">
+            <DialogFooter className="border-t pt-4 mt-auto -mx-6 px-6">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               <Button type="submit">Save changes</Button>
             </DialogFooter>
