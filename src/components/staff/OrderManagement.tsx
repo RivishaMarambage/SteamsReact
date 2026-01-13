@@ -1,9 +1,8 @@
 
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, writeBatch, increment, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, writeBatch, increment, getDoc, onSnapshot } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -20,7 +19,6 @@ import { serverTimestamp } from 'firebase/firestore';
 export default function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [previousOrderCount, setPreviousOrderCount] = useState<number | null>(null);
   const [playNewOrderSound, setPlayNewOrderSound] = useState(false);
   
   const ordersQuery = useMemoFirebase(() => {
@@ -31,20 +29,36 @@ export default function OrderManagement() {
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
   useEffect(() => {
-    if (orders) {
-      const currentOrderCount = orders.length;
-      // If we have a previous count and the new count is greater, play a sound.
-      if (previousOrderCount !== null && currentOrderCount > previousOrderCount) {
-        setPlayNewOrderSound(true);
-      }
-      setPreviousOrderCount(currentOrderCount);
-    }
-  }, [orders]);
+    if (!ordersQuery) return;
+    
+    let isInitialLoad = true;
+
+    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+        // We only want to play sounds for new orders, not the initial batch.
+        if (isInitialLoad) {
+            isInitialLoad = false;
+            return;
+        }
+
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+                const newOrder = change.doc.data() as Order;
+                // Only play sound for newly placed orders
+                if(newOrder.status === 'Placed') {
+                    setPlayNewOrderSound(true);
+                }
+            }
+        });
+    });
+
+    return () => unsubscribe();
+  }, [ordersQuery]);
+
 
   useEffect(() => {
     // Reset the sound trigger after it has been played
     if (playNewOrderSound) {
-      const timer = setTimeout(() => setPlayNewOrderSound(false), 500); // Reset after a short delay
+      const timer = setTimeout(() => setPlayNewOrderSound(false), 1000); // Reset after a second
       return () => clearTimeout(timer);
     }
   }, [playNewOrderSound]);

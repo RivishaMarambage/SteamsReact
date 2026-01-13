@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import type { Order } from "@/lib/types";
 import { useState, useEffect } from "react";
 import AudioNotifier from "../AudioNotifier";
@@ -26,30 +26,36 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   const { data: recentOrders, isLoading } = useCollection<Order>(recentOrdersQuery);
 
-  useEffect(() => {
-    if (recentOrders && recentOrders.length > 0) {
-      const latestOrder = recentOrders[0];
-      const previousStatus = previousOrderStatus[latestOrder.id];
-      const currentStatus = latestOrder.status;
-
-      if (previousStatus && currentStatus !== previousStatus) {
-        if (currentStatus === 'Ready for Pickup' || currentStatus === 'Rejected') {
-          setPlayStatusChangeSound(true);
+ useEffect(() => {
+    if (!recentOrdersQuery) return;
+    const unsubscribe = onSnapshot(recentOrdersQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'modified') {
+          const updatedOrder = change.doc.data() as Order;
+          const previousStatus = previousOrderStatus[change.doc.id];
+          if (previousStatus && updatedOrder.status !== previousStatus) {
+            if (updatedOrder.status === 'Ready for Pickup' || updatedOrder.status === 'Rejected') {
+              setPlayStatusChangeSound(true);
+            }
+          }
         }
-      }
+      });
 
-      // Update the status history
+      // Update the status history after processing changes
       const newStatusHistory: Record<string, Order['status']> = {};
-      recentOrders.forEach(order => {
-        newStatusHistory[order.id] = order.status;
+      snapshot.docs.forEach(doc => {
+        const order = doc.data() as Order;
+        newStatusHistory[doc.id] = order.status;
       });
       setPreviousOrderStatus(newStatusHistory);
-    }
-  }, [recentOrders]);
+
+    });
+    return () => unsubscribe();
+  }, [recentOrdersQuery, previousOrderStatus]);
 
   useEffect(() => {
     if (playStatusChangeSound) {
-      const timer = setTimeout(() => setPlayStatusChangeSound(false), 500);
+      const timer = setTimeout(() => setPlayStatusChangeSound(false), 1000);
       return () => clearTimeout(timer);
     }
   }, [playStatusChangeSound]);
