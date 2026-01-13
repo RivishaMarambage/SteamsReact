@@ -114,5 +114,3 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     </Card>
   );
 }
-
-    
