@@ -1,16 +1,19 @@
 
 'use client';
 
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { doc, updateDoc, increment, collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon } from 'lucide-react';
+import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { UserProfile } from '@/lib/types';
+import type { Order, PointTransaction, UserProfile } from '@/lib/types';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const POINT_REWARDS = {
@@ -18,6 +21,16 @@ const POINT_REWARDS = {
     LINK_SOCIALS: 25,
     LEAVE_REVIEW: 30,
 };
+
+function HistorySkeleton() {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+        </div>
+    )
+}
 
 export default function WalletPage() {
     const { user: authUser, isUserLoading } = useUser();
@@ -27,6 +40,12 @@ export default function WalletPage() {
 
     const userDocRef = useMemoFirebase(() => (authUser ? doc(firestore, 'users', authUser.uid) : null), [authUser, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+    const pointHistoryQuery = useMemoFirebase(() => authUser ? query(collection(firestore, `users/${authUser.uid}/point_transactions`), orderBy('date', 'desc')) : null, [authUser, firestore]);
+    const { data: pointHistory, isLoading: isPointHistoryLoading } = useCollection<PointTransaction>(pointHistoryQuery);
+
+    const orderHistoryQuery = useMemoFirebase(() => authUser ? query(collection(firestore, `users/${authUser.uid}/orders`), orderBy('orderDate', 'desc')) : null, [authUser, firestore]);
+    const { data: orderHistory, isLoading: isOrderHistoryLoading } = useCollection<Order>(orderHistoryQuery);
 
     const isLoading = isUserLoading || isProfileLoading;
 
@@ -52,10 +71,11 @@ export default function WalletPage() {
     };
 
     const handleClaimPoints = async (action: 'linkSocials' | 'leaveReview') => {
-        if (!userDocRef || !userProfile) return;
+        if (!userDocRef || !userProfile || !firestore) return;
 
         let fieldToUpdate: 'hasLinkedSocials' | 'hasLeftReview';
         let pointsToAward: number;
+        let description: string;
 
         if (action === 'linkSocials') {
             if (userProfile.hasLinkedSocials) {
@@ -64,6 +84,7 @@ export default function WalletPage() {
             }
             fieldToUpdate = 'hasLinkedSocials';
             pointsToAward = POINT_REWARDS.LINK_SOCIALS;
+            description = 'Linked Social Media Accounts';
         } else { // leaveReview
             if (userProfile.hasLeftReview) {
                 toast({ variant: 'destructive', title: 'Already Claimed', description: 'You have already claimed points for this action.' });
@@ -71,14 +92,30 @@ export default function WalletPage() {
             }
             fieldToUpdate = 'hasLeftReview';
             pointsToAward = POINT_REWARDS.LEAVE_REVIEW;
+            description = 'Left a Google Review';
         }
 
         try {
-            await updateDoc(userDocRef, {
+            // Use a batch to update profile and add transaction log
+            const batch = firestore.batch();
+
+            batch.update(userDocRef, {
                 [fieldToUpdate]: true,
                 loyaltyPoints: increment(pointsToAward),
                 lifetimePoints: increment(pointsToAward),
             });
+            
+            const transactionRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
+            const transactionData: Omit<PointTransaction, 'id'> = {
+                date: serverTimestamp() as any,
+                description,
+                amount: pointsToAward,
+                type: 'earn'
+            };
+            batch.set(transactionRef, transactionData);
+
+            await batch.commit();
+
             toast({
                 title: 'Points Awarded!',
                 description: `You've earned ${pointsToAward} points.`,
@@ -140,6 +177,81 @@ export default function WalletPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><History/> History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="points">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="points"><Receipt className="mr-2"/> Points History</TabsTrigger>
+                            <TabsTrigger value="transactions"><ShoppingBag className="mr-2"/> Transaction History</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="points" className="mt-4">
+                            <ScrollArea className="h-72">
+                                <div className="space-y-3 pr-4">
+                                {isPointHistoryLoading ? (
+                                    <HistorySkeleton />
+                                ) : pointHistory && pointHistory.length > 0 ? (
+                                    pointHistory.map(tx => (
+                                        <div key={tx.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                {tx.type === 'earn' ? (
+                                                     <div className="p-2 bg-green-500/20 rounded-full"><ArrowUp className="h-4 w-4 text-green-600"/></div>
+                                                ) : (
+                                                    <div className="p-2 bg-red-500/20 rounded-full"><ArrowDown className="h-4 w-4 text-red-600"/></div>
+                                                )}
+                                                <div>
+                                                    <p className="font-medium">{tx.description}</p>
+                                                    <p className="text-xs text-muted-foreground">{tx.date.toDate().toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                            <p className={cn("font-bold text-lg", tx.type === 'earn' ? 'text-green-600' : 'text-red-600')}>
+                                                {tx.type === 'earn' ? '+' : '-'}{Math.abs(tx.amount)}
+                                            </p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">No point history yet.</p>
+                                )}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                        <TabsContent value="transactions" className="mt-4">
+                              <ScrollArea className="h-72">
+                                <div className="space-y-3 pr-4">
+                                {isOrderHistoryLoading ? (
+                                    <HistorySkeleton />
+                                ) : orderHistory && orderHistory.length > 0 ? (
+                                    orderHistory.map(order => (
+                                         <div key={order.id} className="p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div>
+                                                    <p className="font-semibold">Order #{order.id.substring(0,7).toUpperCase()}</p>
+                                                    <p className="text-xs text-muted-foreground">{order.orderDate.toDate().toLocaleString()}</p>
+                                                </div>
+                                                <p className="font-bold text-lg text-primary">LKR {order.totalAmount.toFixed(2)}</p>
+                                            </div>
+                                            <div className="text-xs space-y-1">
+                                                {order.orderItems.map((item, index) => (
+                                                    <div key={index} className="flex justify-between">
+                                                        <span>{item.quantity}x {item.menuItemName}</span>
+                                                        <span>LKR {(item.totalPrice * item.quantity).toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                         </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-8">No transaction history yet.</p>
+                                )}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
              <Card className="shadow-lg">
                 <CardHeader>

@@ -209,6 +209,19 @@
         "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
       "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
+    },
+    "PointTransaction": {
+      "title": "Point Transaction",
+      "type": "object",
+      "description": "A record of points being earned or redeemed.",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["earn", "redeem"] }
+      },
+      "required": ["id", "date", "description", "amount", "type"]
     }
   },
   "auth": {
@@ -250,6 +263,10 @@
     "/daily_offers/{offerId}": {
       "schema": { "$ref": "#/entities/DailyOffer" },
       "description": "Publicly readable list of daily offers. Writable only by admins."
+    },
+    "/users/{userId}/point_transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/PointTransaction" },
+      "description": "A user's history of point earnings and redemptions."
     }
   }
 }

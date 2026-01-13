@@ -128,3 +128,11 @@ export type CartItem = {
   totalPrice: number;
   appliedDailyOfferId?: string;
 };
+
+export type PointTransaction = {
+    id: string;
+    date: Timestamp;
+    description: string;
+    amount: number; // positive for earn, negative for redeem
+    type: 'earn' | 'redeem';
+};

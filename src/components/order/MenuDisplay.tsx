@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -406,6 +406,17 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             loyaltyPoints: increment(-loyaltyDiscount),
         };
         
+        if (loyaltyDiscount > 0) {
+            const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
+            const transactionData: Omit<PointTransaction, 'id'> = {
+                date: serverTimestamp() as any,
+                description: `Redeemed on Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
+                amount: -loyaltyDiscount,
+                type: 'redeem'
+            };
+            batch.set(transactionRef, transactionData);
+        }
+
         if (birthdayDiscountAmount > 0) {
             updates.birthdayDiscountValue = null;
             updates.birthdayDiscountType = null;

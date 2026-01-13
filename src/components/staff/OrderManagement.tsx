@@ -11,10 +11,11 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import type { Order, UserProfile } from '@/lib/types';
+import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useState, useEffect } from 'react';
 import AudioNotifier from '../AudioNotifier';
+import { serverTimestamp } from 'firebase/firestore';
 
 export default function OrderManagement() {
   const firestore = useFirestore();
@@ -68,6 +69,16 @@ export default function OrderManagement() {
         if (pointsToAward > 0) {
             updates.loyaltyPoints = increment(pointsToAward);
             updates.lifetimePoints = increment(pointsToAward);
+            
+            // Log the point transaction
+            const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
+            const transactionData: Omit<PointTransaction, 'id'> = {
+                date: serverTimestamp() as any,
+                description: `Earned from Order #${order.id.substring(0, 7).toUpperCase()}`,
+                amount: pointsToAward,
+                type: 'earn'
+            };
+            batch.set(transactionRef, transactionData);
         }
         batch.update(userProfileRef, updates);
     }
@@ -77,6 +88,15 @@ export default function OrderManagement() {
         const pointsToRefund = order.pointsRedeemed || 0;
         if (pointsToRefund > 0) {
             batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
+             // Log the point transaction
+            const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
+            const transactionData: Omit<PointTransaction, 'id'> = {
+                date: serverTimestamp() as any,
+                description: `Refund for Rejected Order #${order.id.substring(0, 7).toUpperCase()}`,
+                amount: pointsToRefund,
+                type: 'earn' // It's an "earn" from the user's perspective
+            };
+            batch.set(transactionRef, transactionData);
         }
         
         // If a birthday reward was applied to this order, restore it.
