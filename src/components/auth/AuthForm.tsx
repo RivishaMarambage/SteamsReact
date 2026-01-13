@@ -21,7 +21,7 @@ import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon } from '@/lib/types';
+import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -40,6 +40,15 @@ const formSchema = z.object({
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
   rememberMe: z.boolean().default(false),
+});
+
+const customerSignupSchema = formSchema.extend({
+    fullName: z.string().min(1, { message: "Full name is required." }),
+    mobileNumber: z.string().min(10, { message: "A valid mobile number is required." }),
+    dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+    privacyPolicy: z.literal(true, {
+        errorMap: () => ({ message: "You must accept the privacy policy." }),
+    }),
 });
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -73,14 +82,10 @@ const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
     { name: 'Platinum', minimumPoints: 5000 },
 ]
 
-const SEED_ADDONS: Omit<Addon, 'id' | 'categoryId'>[] = [
-    { name: "Extra Espresso Shot", price: 100 },
-    { name: "Almond Milk", price: 80 },
-    { name: "Oat Milk", price: 80 },
-    { name: "Soy Milk", price: 70 },
-    { name: "Whipped Cream", price: 50 },
-    { name: "Caramel Drizzle", price: 60 },
-    { name: "Chocolate Syrup", price: 60 },
+const SEED_ADDON_CATEGORIES: Omit<AddonCategory, 'id'>[] = [
+    { name: 'Milk Options', description: 'Choose your preferred milk' },
+    { name: 'Syrups', description: 'Add a touch of sweetness' },
+    { name: 'Toppings', description: 'Finish your drink with a flourish' },
 ];
 
 export function AuthForm({ authType, role }: AuthFormProps) {
@@ -90,8 +95,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const firestore = useFirestore();
   const [resetEmail, setResetEmail] = useState('');
 
+  const currentFormSchema = authType === 'signup' && role === 'customer' ? customerSignupSchema : formSchema;
+
   const form = useForm<AuthFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(currentFormSchema),
     defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
   });
 
@@ -118,7 +125,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               role: role, // Use the role from the props for the current form
               loyaltyPoints: role === 'customer' ? 125 : 0,
               lifetimePoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: role === 'customer' ? "bronze" : "member",
+              loyaltyLevelId: role === 'customer' ? "bronze" : undefined,
               orderCount: role === 'customer' ? 1 : 0,
               emailVerified: true, // Demo users are pre-verified
             };
@@ -175,25 +182,56 @@ export function AuthForm({ authType, role }: AuthFormProps) {
              }
         }
 
+        const addonCategoriesRef = collection(firestore, 'addon_categories');
+        const addonCategorySnapshot = await getDocs(query(addonCategoriesRef, limit(1)));
+        const addonCategoryIds: Record<string, string> = {};
+
+        if (addonCategorySnapshot.empty) {
+            console.log("Add-on categories collection is empty. Seeding...");
+            const batch = writeBatch(firestore);
+            for (const category of SEED_ADDON_CATEGORIES) {
+                const docRef = doc(addonCategoriesRef);
+                batch.set(docRef, category);
+                addonCategoryIds[category.name] = docRef.id;
+            }
+            await batch.commit();
+            console.log("Seeded add-on categories.");
+        } else {
+            const allAddonCategories = await getDocs(addonCategoriesRef);
+            allAddonCategories.forEach(doc => {
+                const data = doc.data() as AddonCategory;
+                addonCategoryIds[data.name] = doc.id;
+            });
+        }
+        
         // Seed Add-ons
         const addonsRef = collection(firestore, 'addons');
         const addonSnapshot = await getDocs(query(addonsRef, limit(1)));
         const addonIds: string[] = [];
         if (addonSnapshot.empty) {
             console.log("Addons collection is empty. Seeding...");
-            const addonBatch = writeBatch(firestore);
+            const batch = writeBatch(firestore);
+            const SEED_ADDONS: Omit<Addon, 'id' | 'addonCategoryId'>[] = [
+                { name: "Extra Espresso Shot", price: 100, addonCategoryId: addonCategoryIds['Toppings'] },
+                { name: "Almond Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
+                { name: "Oat Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
+                { name: "Soy Milk", price: 70, addonCategoryId: addonCategoryIds['Milk Options'] },
+                { name: "Whipped Cream", price: 50, addonCategoryId: addonCategoryIds['Toppings'] },
+                { name: "Caramel Drizzle", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
+                { name: "Chocolate Syrup", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
+            ];
             SEED_ADDONS.forEach(addon => {
                 const docRef = doc(addonsRef);
-                const addonData = { ...addon, categoryId: customCreationsCategoryId };
-                addonBatch.set(docRef, addonData);
+                batch.set(docRef, addon);
                 addonIds.push(docRef.id);
             });
-            await addonBatch.commit();
+            await batch.commit();
             console.log("Seeded addons.");
         } else {
             const allAddons = await getDocs(addonsRef);
             allAddons.forEach(doc => addonIds.push(doc.id));
         }
+
 
         // Seed Custom Menu Items
         const menuItemsRef = collection(firestore, 'menu_items');
@@ -207,7 +245,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 price: 250,
                 categoryId: customCreationsCategoryId,
                 isOutOfStock: false,
-                addonIds: addonIds,
+                addonGroups: [
+                    { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
+                    { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                    { addonCategoryId: addonCategoryIds['Toppings'], isRequired: false, minSelection: 0, maxSelection: 3 },
+                ]
             };
              const teaBase: Omit<MenuItem, 'id'> = {
                 name: 'Custom Tea Base',
@@ -215,7 +257,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 price: 200,
                 categoryId: customCreationsCategoryId,
                 isOutOfStock: false,
-                addonIds: addonIds,
+                addonGroups: [
+                    { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
+                    { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                ]
             };
             batch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
             batch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
@@ -258,13 +303,15 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
 
     if (authType === 'signup') {
-      if (!data.fullName) {
-        form.setError('fullName', { type: 'manual', message: 'Full name is required.' });
-        return;
-      }
-      if (role === 'customer' && !data.privacyPolicy) {
-        form.setError('privacyPolicy', { type: 'manual', message: 'You must accept the privacy policy.' });
-        return;
+      if (role === 'customer' && data.mobileNumber) {
+        // Check for duplicate mobile number
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('mobileNumber', '==', data.mobileNumber));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
+          return;
+        }
       }
       
       try {
@@ -277,7 +324,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const userProfile: UserProfile = {
           id: user.uid,
           email: data.email,
-          name: data.fullName,
+          name: data.fullName!,
           role,
           mobileNumber: data.mobileNumber || '',
           cafeNickname: data.cafeNickname || '',
@@ -513,9 +560,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                         name="mobileNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mobile Number (Optional)</FormLabel>
+                            <FormLabel>Mobile Number</FormLabel>
                             <FormControl>
-                              <Input placeholder="555-123-4567" {...field} />
+                              <Input placeholder="07xxxxxxxx" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
