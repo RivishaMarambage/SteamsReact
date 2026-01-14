@@ -161,177 +161,174 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
         // Seed Categories
         const categoriesRef = collection(firestore, 'categories');
-        const categorySnapshot = await getDocs(query(categoriesRef, limit(1))).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'list' }));
-            return null;
-        });
-        if (!categorySnapshot) return;
-
-        if (categorySnapshot.empty) {
-            console.log("Categories collection is empty. Seeding...");
-            const categoryBatch = writeBatch(firestore);
-            for (const category of SEED_CATEGORIES) {
-                const docRef = doc(categoriesRef); // Create a new doc with a generated ID
-                categoryBatch.set(docRef, category);
-                 if (category.name === 'Custom Creations') {
-                  customCreationsCategoryId = docRef.id;
+        getDocs(query(categoriesRef, limit(1))).then(async categorySnapshot => {
+            if (categorySnapshot.empty) {
+                console.log("Categories collection is empty. Seeding...");
+                const categoryBatch = writeBatch(firestore);
+                for (const category of SEED_CATEGORIES) {
+                    const docRef = doc(categoriesRef); // Create a new doc with a generated ID
+                    categoryBatch.set(docRef, category);
+                     if (category.name === 'Custom Creations') {
+                      customCreationsCategoryId = docRef.id;
+                    }
                 }
+                await categoryBatch.commit().catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'write', requestResourceData: SEED_CATEGORIES }));
+                });
+                console.log("Seeded categories.");
+            } else {
+                 const q = query(categoriesRef, where('name', '==', 'Custom Creations'), limit(1));
+                 const snapshot = await getDocs(q);
+                 if (!snapshot.empty) {
+                    customCreationsCategoryId = snapshot.docs[0].id;
+                 }
             }
-            await categoryBatch.commit().catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'write', requestResourceData: SEED_CATEGORIES }));
-            });
-            console.log("Seeded categories.");
-        } else {
-             const q = query(categoriesRef, where('name', '==', 'Custom Creations'), limit(1));
-             const snapshot = await getDocs(q);
-             if (!snapshot.empty) {
-                customCreationsCategoryId = snapshot.docs[0].id;
-             }
-        }
 
-        const addonCategoriesRef = collection(firestore, 'addon_categories');
-        const addonCategorySnapshot = await getDocs(query(addonCategoriesRef, limit(1))).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'list' }));
-            return null;
-        });
-        if (!addonCategorySnapshot) return;
-
-        const addonCategoryIds: Record<string, string> = {};
-
-        if (addonCategorySnapshot.empty) {
-            console.log("Add-on categories collection is empty. Seeding...");
-            const batch = writeBatch(firestore);
-            for (const category of SEED_ADDON_CATEGORIES) {
-                const docRef = doc(addonCategoriesRef);
-                batch.set(docRef, category);
-                addonCategoryIds[category.name] = docRef.id;
-            }
-            await batch.commit().catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'write', requestResourceData: SEED_ADDON_CATEGORIES }));
-            });
-            console.log("Seeded add-on categories.");
-        } else {
-            const allAddonCategories = await getDocs(addonCategoriesRef).catch(error => {
+            // Seed Add-on Categories
+            const addonCategoriesRef = collection(firestore, 'addon_categories');
+            const addonCategorySnapshot = await getDocs(query(addonCategoriesRef, limit(1))).catch(error => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'list' }));
                 return null;
             });
-            if (!allAddonCategories) return;
-            allAddonCategories.forEach(doc => {
-                const data = doc.data() as AddonCategory;
-                addonCategoryIds[data.name] = doc.id;
-            });
-        }
-        
-        // Seed Add-ons
-        const addonsRef = collection(firestore, 'addons');
-        const addonSnapshot = await getDocs(query(addonsRef, limit(1))).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'list' }));
-            return null;
-        });
-        if (!addonSnapshot) return;
+            if (!addonCategorySnapshot) return;
 
-        const addonIds: string[] = [];
-        if (addonSnapshot.empty) {
-            console.log("Addons collection is empty. Seeding...");
-            const batch = writeBatch(firestore);
-            const SEED_ADDONS: Omit<Addon, 'id'>[] = [
-                { name: "Extra Espresso Shot", price: 100, addonCategoryId: addonCategoryIds['Toppings'] },
-                { name: "Almond Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
-                { name: "Oat Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
-                { name: "Soy Milk", price: 70, addonCategoryId: addonCategoryIds['Milk Options'] },
-                { name: "Whipped Cream", price: 50, addonCategoryId: addonCategoryIds['Toppings'] },
-                { name: "Caramel Drizzle", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
-                { name: "Chocolate Syrup", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
-            ];
-            SEED_ADDONS.forEach(addon => {
-                const docRef = doc(addonsRef);
-                batch.set(docRef, addon);
-                addonIds.push(docRef.id);
-            });
-            await batch.commit().catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'write', requestResourceData: SEED_ADDONS }));
-            });
-            console.log("Seeded addons.");
-        } else {
-            const allAddons = await getDocs(addonsRef).catch(error => {
+            const addonCategoryIds: Record<string, string> = {};
+
+            if (addonCategorySnapshot.empty) {
+                console.log("Add-on categories collection is empty. Seeding...");
+                const batch = writeBatch(firestore);
+                for (const category of SEED_ADDON_CATEGORIES) {
+                    const docRef = doc(addonCategoriesRef);
+                    batch.set(docRef, category);
+                    addonCategoryIds[category.name] = docRef.id;
+                }
+                await batch.commit().catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'write', requestResourceData: SEED_ADDON_CATEGORIES }));
+                });
+                console.log("Seeded add-on categories.");
+            } else {
+                const allAddonCategories = await getDocs(addonCategoriesRef).catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'list' }));
+                    return null;
+                });
+                if (!allAddonCategories) return;
+                allAddonCategories.forEach(doc => {
+                    const data = doc.data() as AddonCategory;
+                    addonCategoryIds[data.name] = doc.id;
+                });
+            }
+            
+            // Seed Add-ons
+            const addonsRef = collection(firestore, 'addons');
+            const addonSnapshot = await getDocs(query(addonsRef, limit(1))).catch(error => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'list' }));
                 return null;
             });
-            if (!allAddons) return;
-            allAddons.forEach(doc => addonIds.push(doc.id));
-        }
+            if (!addonSnapshot) return;
 
-
-        // Seed Custom Menu Items
-        const menuItemsRef = collection(firestore, 'menu_items');
-        const customCoffeeDoc = await getDoc(doc(menuItemsRef, 'custom-coffee-base')).catch(error => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items/custom-coffee-base', operation: 'get' }));
-             return null;
-        });
-        if (!customCoffeeDoc) return;
-
-        if (!customCoffeeDoc.exists() && customCreationsCategoryId && addonIds.length > 0) {
-            console.log("Seeding custom menu items...");
-            const batch = writeBatch(firestore);
-            const coffeeBase: Omit<MenuItem, 'id'> = {
-                name: 'Custom Coffee Base',
-                description: 'Your own coffee creation.',
-                price: 250,
-                categoryId: customCreationsCategoryId,
-                isOutOfStock: false,
-                addonGroups: [
-                    { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
-                    { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
-                    { addonCategoryId: addonCategoryIds['Toppings'], isRequired: false, minSelection: 0, maxSelection: 3 },
-                ]
-            };
-             const teaBase: Omit<MenuItem, 'id'> = {
-                name: 'Custom Tea Base',
-                description: 'Your own tea creation.',
-                price: 200,
-                categoryId: customCreationsCategoryId,
-                isOutOfStock: false,
-                addonGroups: [
-                    { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
-                    { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
-                ]
-            };
-            batch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
-            batch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
-            await batch.commit().catch(error => {
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items', operation: 'write', requestResourceData: { coffeeBase, teaBase } }));
-            });
-            console.log("Seeded custom menu items.");
-        }
-
-
-        // Seed Loyalty Levels
-        const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
-        // Check a specific doc to see if seeding happened.
-        const memberDoc = await getDoc(doc(loyaltyLevelsRef, 'member')).catch(error => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels/member', operation: 'get' }));
-            return null;
-        });
-        if (!memberDoc) return;
-
-        if (!memberDoc.exists()) {
-            console.log("Loyalty levels collection is missing or outdated. Seeding...");
-            const loyaltyBatch = writeBatch(firestore);
-            // Delete existing documents to prevent conflicts if any partial data exists
-            const existingLevels = await getDocs(loyaltyLevelsRef).catch(() => null);
-            if(existingLevels) {
-                existingLevels.docs.forEach(d => loyaltyBatch.delete(d.ref));
+            const addonIds: string[] = [];
+            if (addonSnapshot.empty) {
+                console.log("Addons collection is empty. Seeding...");
+                const batch = writeBatch(firestore);
+                const SEED_ADDONS: Omit<Addon, 'id'>[] = [
+                    { name: "Extra Espresso Shot", price: 100, addonCategoryId: addonCategoryIds['Toppings'] },
+                    { name: "Almond Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
+                    { name: "Oat Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
+                    { name: "Soy Milk", price: 70, addonCategoryId: addonCategoryIds['Milk Options'] },
+                    { name: "Whipped Cream", price: 50, addonCategoryId: addonCategoryIds['Toppings'] },
+                    { name: "Caramel Drizzle", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
+                    { name: "Chocolate Syrup", price: 60, addonCategoryId: addonCategoryIds['Syrups'] },
+                ];
+                SEED_ADDONS.forEach(addon => {
+                    const docRef = doc(addonsRef);
+                    batch.set(docRef, addon);
+                    addonIds.push(docRef.id);
+                });
+                await batch.commit().catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'write', requestResourceData: SEED_ADDONS }));
+                });
+                console.log("Seeded addons.");
+            } else {
+                const allAddons = await getDocs(addonsRef).catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'list' }));
+                    return null;
+                });
+                if (!allAddons) return;
+                allAddons.forEach(doc => addonIds.push(doc.id));
             }
-            
-            SEED_LOYALTY_LEVELS.forEach(level => {
-                const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
-                loyaltyBatch.set(docRef, level);
+
+
+            // Seed Custom Menu Items
+            const menuItemsRef = collection(firestore, 'menu_items');
+            const customCoffeeDoc = await getDoc(doc(menuItemsRef, 'custom-coffee-base')).catch(error => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items/custom-coffee-base', operation: 'get' }));
+                 return null;
             });
-            await loyaltyBatch.commit().catch(error => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels', operation: 'write', requestResourceData: SEED_LOYALTY_LEVELS }));
+            if (!customCoffeeDoc) return;
+
+            if (!customCoffeeDoc.exists() && customCreationsCategoryId && addonIds.length > 0) {
+                console.log("Seeding custom menu items...");
+                const batch = writeBatch(firestore);
+                const coffeeBase: Omit<MenuItem, 'id'> = {
+                    name: 'Custom Coffee Base',
+                    description: 'Your own coffee creation.',
+                    price: 250,
+                    categoryId: customCreationsCategoryId,
+                    isOutOfStock: false,
+                    addonGroups: [
+                        { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
+                        { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                        { addonCategoryId: addonCategoryIds['Toppings'], isRequired: false, minSelection: 0, maxSelection: 3 },
+                    ]
+                };
+                 const teaBase: Omit<MenuItem, 'id'> = {
+                    name: 'Custom Tea Base',
+                    description: 'Your own tea creation.',
+                    price: 200,
+                    categoryId: customCreationsCategoryId,
+                    isOutOfStock: false,
+                    addonGroups: [
+                        { addonCategoryId: addonCategoryIds['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
+                        { addonCategoryId: addonCategoryIds['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                    ]
+                };
+                batch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
+                batch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
+                await batch.commit().catch(error => {
+                     errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items', operation: 'write', requestResourceData: { coffeeBase, teaBase } }));
+                });
+                console.log("Seeded custom menu items.");
+            }
+
+
+            // Seed Loyalty Levels
+            const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
+            const memberDoc = await getDoc(doc(loyaltyLevelsRef, 'member')).catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels/member', operation: 'get' }));
+                return null;
             });
-            console.log("Seeded loyalty levels.");
-        }
+            if (!memberDoc) return;
+
+            if (!memberDoc.exists()) {
+                console.log("Loyalty levels collection is missing or outdated. Seeding...");
+                const loyaltyBatch = writeBatch(firestore);
+                const existingLevels = await getDocs(loyaltyLevelsRef).catch(() => null);
+                if(existingLevels) {
+                    existingLevels.docs.forEach(d => loyaltyBatch.delete(d.ref));
+                }
+                
+                SEED_LOYALTY_LEVELS.forEach(level => {
+                    const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase());
+                    loyaltyBatch.set(docRef, level);
+                });
+                await loyaltyBatch.commit().catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels', operation: 'write', requestResourceData: SEED_LOYALTY_LEVELS }));
+                });
+                console.log("Seeded loyalty levels.");
+            }
+        }).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'list' }));
+        });
     };
 
     if (firestore) {
@@ -351,118 +348,139 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         // Check for duplicate mobile number
         const usersRef = collection(firestore, 'users');
         const q = query(usersRef, where('mobileNumber', '==', data.mobileNumber));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
-          return;
-        }
-      }
-      
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-        const user = userCredential.user;
-
-        // Send verification email before creating profile
-        await sendEmailVerification(user);
-
-        const userProfile: UserProfile = {
-          id: user.uid,
-          email: data.email,
-          name: data.fullName!,
-          role,
-          mobileNumber: data.mobileNumber || '',
-          cafeNickname: data.cafeNickname || '',
-          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-          loyaltyPoints: 0,
-          lifetimePoints: 0,
-          loyaltyLevelId: "member", // Default loyalty level
-          orderCount: 0,
-          emailVerified: user.emailVerified,
-        };
         
-        const userDocRef = doc(firestore, "users", user.uid);
-        
-        // No await here, chain the .catch block for specific error handling
-        setDoc(userDocRef, userProfile)
-            .then(() => {
-                toast({
-                  title: 'Account Created!',
-                  description: "Welcome! Please check your email to verify your account and then log in.",
-                });
-                router.push(`/login/${role}`);
-            })
-            .catch((error) => {
-                // This will catch the Firestore permission error specifically
-                const contextualError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: userProfile,
-                });
-                errorEmitter.emit('permission-error', contextualError);
+        getDocs(q).then(async (querySnapshot) => {
+            if (!querySnapshot.empty) {
+                form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
+                return;
+            }
 
-                // You might still want to inform the user that profile creation failed
+            // If mobile number is unique, proceed with creating the user.
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+                const user = userCredential.user;
+
+                // Send verification email before creating profile
+                await sendEmailVerification(user);
+
+                const userProfile: UserProfile = {
+                  id: user.uid,
+                  email: data.email,
+                  name: data.fullName!,
+                  role,
+                  mobileNumber: data.mobileNumber || '',
+                  cafeNickname: data.cafeNickname || '',
+                  dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
+                  loyaltyPoints: 0,
+                  lifetimePoints: 0,
+                  loyaltyLevelId: "member", // Default loyalty level
+                  orderCount: 0,
+                  emailVerified: user.emailVerified,
+                };
+                
+                const userDocRef = doc(firestore, "users", user.uid);
+                
+                // No await here, chain the .catch block for specific error handling
+                setDoc(userDocRef, userProfile)
+                    .then(() => {
+                        toast({
+                          title: 'Account Created!',
+                          description: "Welcome! Please check your email to verify your account and then log in.",
+                        });
+                        router.push(`/login/${role}`);
+                    })
+                    .catch((error) => {
+                        const contextualError = new FirestorePermissionError({
+                            path: userDocRef.path,
+                            operation: 'create',
+                            requestResourceData: userProfile,
+                        });
+                        errorEmitter.emit('permission-error', contextualError);
+                    });
+
+              } catch (error: any) {
                 toast({
-                    variant: 'destructive',
-                    title: 'Profile Creation Failed',
-                    description: 'Your account was created, but we could not save your profile. Please contact support.',
+                  variant: 'destructive',
+                  title: 'Sign Up Failed',
+                  description: error.message,
                 });
+              }
+
+        }).catch(error => {
+            const contextualError = new FirestorePermissionError({
+                path: 'users',
+                operation: 'list',
+                requestResourceData: { where: `mobileNumber == ${data.mobileNumber}` }
             });
-
-      } catch (error: any) {
-        // This will catch errors from createUserWithEmailAndPassword
-        toast({
-          variant: 'destructive',
-          title: 'Sign Up Failed',
-          description: error.message,
+            errorEmitter.emit('permission-error', contextualError);
         });
+
+      } else {
+        // Fallback for non-customer signup or if mobile number is not provided
+         try {
+            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            const user = userCredential.user;
+            await sendEmailVerification(user);
+            const userProfile = { id: user.uid, email: data.email, name: data.fullName!, role, emailVerified: user.emailVerified };
+            const userDocRef = doc(firestore, "users", user.uid);
+            setDoc(userDocRef, userProfile).then(() => {
+                toast({ title: 'Account Created!', description: "Please verify your email and log in." });
+                router.push(`/login/${role}`);
+            }).catch(error => {
+                const contextualError = new FirestorePermissionError({ path: userDocRef.path, operation: 'create', requestResourceData: userProfile });
+                errorEmitter.emit('permission-error', contextualError);
+            });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
+        }
       }
       
     } else { // Login
         const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
-        await setPersistence(auth, persistence);
-        
-        signInWithEmailAndPassword(auth, data.email, data.password)
-          .then(userCredential => {
-             const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-             getDoc(userDocRef)
-                .then(userDocSnap => {
-                    if (userDocSnap.exists()) {
-                        const userProfile = userDocSnap.data() as UserProfile;
-                        if (userProfile.role === role) {
-                            const targetPath = getDashboardPathForRole(role);
-                            router.push(targetPath);
-                        } else {
-                            auth.signOut();
-                            toast({
-                                variant: 'destructive',
-                                title: 'Access Denied',
-                                description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
-                            });
-                        }
+        setPersistence(auth, persistence).then(() => {
+            return signInWithEmailAndPassword(auth, data.email, data.password)
+        })
+        .then(userCredential => {
+            const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+            getDoc(userDocRef)
+            .then(userDocSnap => {
+                if (userDocSnap.exists()) {
+                    const userProfile = userDocSnap.data() as UserProfile;
+                    if (userProfile.role === role) {
+                        const targetPath = getDashboardPathForRole(role);
+                        router.push(targetPath);
                     } else {
                         auth.signOut();
                         toast({
                             variant: 'destructive',
-                            title: 'Login Failed',
-                            description: 'User profile not found. Please contact support.',
+                            title: 'Access Denied',
+                            description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
                         });
                     }
-                })
-                .catch(error => {
-                    const contextualError = new FirestorePermissionError({
-                        path: userDocRef.path,
-                        operation: 'get',
+                } else {
+                    auth.signOut();
+                    toast({
+                        variant: 'destructive',
+                        title: 'Login Failed',
+                        description: 'User profile not found. Please contact support.',
                     });
-                    errorEmitter.emit('permission-error', contextualError);
+                }
+            })
+            .catch(error => {
+                const contextualError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'get',
                 });
-          })
-          .catch(error => {
-             toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Invalid email or password. Please try again.',
+                errorEmitter.emit('permission-error', contextualError);
             });
-          });
+        })
+        .catch(error => {
+            toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'Invalid email or password. Please try again.',
+            });
+        });
     }
   };
 
