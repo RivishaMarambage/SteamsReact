@@ -344,96 +344,83 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
 
     if (authType === 'signup') {
-      if (role === 'customer' && data.mobileNumber) {
-        // Check for duplicate mobile number
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('mobileNumber', '==', data.mobileNumber));
-        
-        getDocs(q).then(async (querySnapshot) => {
-            if (!querySnapshot.empty) {
-                form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
+        try {
+            // 1. Check for existing email
+            const signInMethods = await fetchSignInMethodsForEmail(auth, data.email);
+            if (signInMethods.length > 0) {
+                form.setError('email', { type: 'manual', message: 'This email address is already in use.' });
                 return;
             }
 
-            // If mobile number is unique, proceed with creating the user.
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-                const user = userCredential.user;
-
-                // Send verification email before creating profile
-                await sendEmailVerification(user);
-
-                const userProfile: UserProfile = {
-                  id: user.uid,
-                  email: data.email,
-                  name: data.fullName!,
-                  role,
-                  mobileNumber: data.mobileNumber || '',
-                  cafeNickname: data.cafeNickname || '',
-                  dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-                  loyaltyPoints: 0,
-                  lifetimePoints: 0,
-                  loyaltyLevelId: "member", // Default loyalty level
-                  orderCount: 0,
-                  emailVerified: user.emailVerified,
-                };
-                
-                const userDocRef = doc(firestore, "users", user.uid);
-                
-                // No await here, chain the .catch block for specific error handling
-                setDoc(userDocRef, userProfile)
-                    .then(() => {
-                        toast({
-                          title: 'Account Created!',
-                          description: "Welcome! Please check your email to verify your account and then log in.",
-                        });
-                        router.push(`/login/${role}`);
-                    })
-                    .catch((error) => {
-                        const contextualError = new FirestorePermissionError({
-                            path: userDocRef.path,
-                            operation: 'create',
-                            requestResourceData: userProfile,
-                        });
-                        errorEmitter.emit('permission-error', contextualError);
+            // 2. For customers, check for duplicate mobile number
+            if (role === 'customer' && data.mobileNumber) {
+                const usersRef = collection(firestore, 'users');
+                const q = query(usersRef, where('mobileNumber', '==', data.mobileNumber));
+                const querySnapshot = await getDocs(q).catch(error => {
+                    throw new FirestorePermissionError({
+                        path: 'users',
+                        operation: 'list',
+                        requestResourceData: { where: `mobileNumber == ${data.mobileNumber}` }
                     });
-
-              } catch (error: any) {
-                toast({
-                  variant: 'destructive',
-                  title: 'Sign Up Failed',
-                  description: error.message,
                 });
-              }
 
-        }).catch(error => {
-            const contextualError = new FirestorePermissionError({
-                path: 'users',
-                operation: 'list',
-                requestResourceData: { where: `mobileNumber == ${data.mobileNumber}` }
-            });
-            errorEmitter.emit('permission-error', contextualError);
-        });
+                if (!querySnapshot.empty) {
+                    form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
+                    return;
+                }
+            }
 
-      } else {
-        // Fallback for non-customer signup or if mobile number is not provided
-         try {
+            // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
+
+            // Send verification email
             await sendEmailVerification(user);
-            const userProfile = { id: user.uid, email: data.email, name: data.fullName!, role, emailVerified: user.emailVerified };
+
+            // 4. Create user profile in Firestore
+            const userProfile: UserProfile = {
+              id: user.uid,
+              email: data.email,
+              name: data.fullName!,
+              role,
+              mobileNumber: data.mobileNumber || '',
+              cafeNickname: data.cafeNickname || '',
+              dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
+              loyaltyPoints: 0,
+              lifetimePoints: 0,
+              loyaltyLevelId: "member",
+              orderCount: 0,
+              emailVerified: user.emailVerified,
+            };
+            
             const userDocRef = doc(firestore, "users", user.uid);
-            setDoc(userDocRef, userProfile).then(() => {
-                toast({ title: 'Account Created!', description: "Please verify your email and log in." });
-                router.push(`/login/${role}`);
-            }).catch(error => {
-                const contextualError = new FirestorePermissionError({ path: userDocRef.path, operation: 'create', requestResourceData: userProfile });
-                errorEmitter.emit('permission-error', contextualError);
+            
+            await setDoc(userDocRef, userProfile).catch((error) => {
+                throw new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userProfile,
+                });
             });
+
+            toast({
+              title: 'Account Created!',
+              description: "Welcome! Please check your email to verify your account and then log in.",
+            });
+            router.push(`/login/${role}`);
+
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
+            // This will catch errors from any of the await calls
+            if (error instanceof FirestorePermissionError) {
+                errorEmitter.emit('permission-error', error);
+            } else {
+                 toast({
+                  variant: 'destructive',
+                  title: 'Sign Up Failed',
+                  description: error.message || 'An unexpected error occurred.',
+                });
+            }
         }
-      }
       
     } else { // Login
         const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
@@ -867,3 +854,4 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
 
     
+
