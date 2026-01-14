@@ -362,7 +362,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         const user = userCredential.user;
 
-        // Send verification email
+        // Send verification email before creating profile
         await sendEmailVerification(user);
 
         const userProfile: UserProfile = {
@@ -379,15 +379,37 @@ export function AuthForm({ authType, role }: AuthFormProps) {
           orderCount: 0,
           emailVerified: user.emailVerified,
         };
-
-        await setDoc(doc(firestore, "users", user.uid), userProfile);
         
-        toast({
-          title: 'Account Created!',
-          description: "Welcome! Please check your email to verify your account and then log in.",
-        });
-        router.push(`/login/${role}`);
+        const userDocRef = doc(firestore, "users", user.uid);
+        
+        // No await here, chain the .catch block for specific error handling
+        setDoc(userDocRef, userProfile)
+            .then(() => {
+                toast({
+                  title: 'Account Created!',
+                  description: "Welcome! Please check your email to verify your account and then log in.",
+                });
+                router.push(`/login/${role}`);
+            })
+            .catch((error) => {
+                // This will catch the Firestore permission error specifically
+                const contextualError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userProfile,
+                });
+                errorEmitter.emit('permission-error', contextualError);
+
+                // You might still want to inform the user that profile creation failed
+                toast({
+                    variant: 'destructive',
+                    title: 'Profile Creation Failed',
+                    description: 'Your account was created, but we could not save your profile. Please contact support.',
+                });
+            });
+
       } catch (error: any) {
+        // This will catch errors from createUserWithEmailAndPassword
         toast({
           variant: 'destructive',
           title: 'Sign Up Failed',
@@ -823,5 +845,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
 
     
