@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CalendarIcon, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp } from 'firebase/firestore';
@@ -125,7 +125,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               role: role, // Use the role from the props for the current form
               loyaltyPoints: role === 'customer' ? 125 : 0,
               lifetimePoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: role === 'customer' ? "bronze" : undefined,
+              loyaltyLevelId: "bronze",
               orderCount: role === 'customer' ? 1 : 0,
               emailVerified: true, // Demo users are pre-verified
             };
@@ -229,7 +229,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             console.log("Seeded addons.");
         } else {
             const allAddons = await getDocs(addonsRef);
-            allAddons.forEach(doc => addonIds.push(doc.id));
+            allAddon.forEach(doc => addonIds.push(doc.id));
         }
 
 
@@ -352,48 +352,51 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       }
       
     } else { // Login
-      try {
         const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
         await setPersistence(auth, persistence);
         
-        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-        
-        // After successful login, check the user's role from Firestore
-        const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-            const userProfile = userDocSnap.data() as UserProfile;
-            if (userProfile.role === role) {
-                // Role matches, proceed to dashboard
-                const targetPath = getDashboardPathForRole(role);
-                router.push(targetPath);
-            } else {
-                // Role mismatch, sign out and show error
-                await auth.signOut();
-                toast({
-                    variant: 'destructive',
-                    title: 'Access Denied',
-                    description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
+        signInWithEmailAndPassword(auth, data.email, data.password)
+          .then(userCredential => {
+             const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+             getDoc(userDocRef)
+                .then(userDocSnap => {
+                    if (userDocSnap.exists()) {
+                        const userProfile = userDocSnap.data() as UserProfile;
+                        if (userProfile.role === role) {
+                            const targetPath = getDashboardPathForRole(role);
+                            router.push(targetPath);
+                        } else {
+                            auth.signOut();
+                            toast({
+                                variant: 'destructive',
+                                title: 'Access Denied',
+                                description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
+                            });
+                        }
+                    } else {
+                        auth.signOut();
+                        toast({
+                            variant: 'destructive',
+                            title: 'Login Failed',
+                            description: 'User profile not found. Please contact support.',
+                        });
+                    }
+                })
+                .catch(error => {
+                    const contextualError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'get',
+                    });
+                    errorEmitter.emit('permission-error', contextualError);
                 });
-            }
-        } else {
-            // This case should ideally not happen if signup is done correctly
-             await auth.signOut();
+          })
+          .catch(error => {
              toast({
-                variant: 'destructive',
-                title: 'Login Failed',
-                description: 'User profile not found. Please contact support.',
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: 'Invalid email or password. Please try again.',
             });
-        }
-
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'Invalid email or password. Please try again.',
-        });
-      }
+          });
     }
   };
 
@@ -776,3 +779,5 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
