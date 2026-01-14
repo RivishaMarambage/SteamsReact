@@ -40,7 +40,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) && !exists(/databases/$(database)/documents/users/$(userId));
 
       // LIST: Admins can list all users. Unauthenticated users can *only* query by mobile number for uniqueness checks.
-      allow list: if isAdmin() || (request.query.keys().hasAll(['where']) && string(request.query.where).split('`')[1] == 'mobileNumber');
+      allow list: if isAdmin() || (request.auth == null && request.query.keys().hasAll(['where']) && string(request.query.where).split('`')[1] == 'mobileNumber');
       
       // DELETE: Only admins can delete users.
       allow delete: if isAdmin();
