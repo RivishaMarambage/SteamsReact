@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, updateDoc, increment, collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, updateDoc, increment, collection, query, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,22 +49,33 @@ export default function WalletPage() {
 
     const isLoading = isUserLoading || isProfileLoading;
 
-    // Generate a referral code if it doesn't exist
-    const referralCode = useMemo(() => {
-        if (userProfile && !userProfile.referralCode) {
-            const newCode = `STM-${authUser?.uid.substring(0, 5).toUpperCase()}`;
-            if(userDocRef) {
-                updateDoc(userDocRef, { referralCode: newCode });
-            }
-            return newCode;
+    // We get the referral code, but we don't create it here anymore to avoid writes in render.
+    const referralCode = userProfile?.referralCode;
+
+    const handleCopy = async () => {
+        if (!userProfile || !authUser || !firestore || !userDocRef) return;
+
+        let codeToCopy = userProfile.referralCode;
+
+        // If the code doesn't exist, create it, save it, and then copy it.
+        if (!codeToCopy) {
+            codeToCopy = `STM-${authUser.uid.substring(0, 5).toUpperCase()}`;
+            const updateData = { referralCode: codeToCopy };
+            
+            updateDoc(userDocRef, updateData)
+                .catch(error => {
+                    const contextualError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'update',
+                        requestResourceData: updateData,
+                    });
+                    errorEmitter.emit('permission-error', contextualError);
+                });
         }
-        return userProfile?.referralCode;
-    }, [userProfile, authUser, userDocRef]);
+        
+        if (!codeToCopy) return;
 
-
-    const handleCopy = () => {
-        if (!referralCode) return;
-        navigator.clipboard.writeText(referralCode);
+        navigator.clipboard.writeText(codeToCopy);
         setIsCopied(true);
         toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
         setTimeout(() => setIsCopied(false), 2000);
@@ -95,34 +106,43 @@ export default function WalletPage() {
             description = 'Left a Google Review';
         }
 
-        try {
-            // Use a batch to update profile and add transaction log
-            const batch = firestore.batch();
+        const batch = writeBatch(firestore);
 
-            batch.update(userDocRef, {
-                [fieldToUpdate]: true,
-                loyaltyPoints: increment(pointsToAward),
-                lifetimePoints: increment(pointsToAward),
+        const profileUpdate = {
+            [fieldToUpdate]: true,
+            loyaltyPoints: increment(pointsToAward),
+            lifetimePoints: increment(pointsToAward),
+        };
+
+        batch.update(userDocRef, profileUpdate);
+        
+        const transactionRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
+        const transactionData: Omit<PointTransaction, 'id'> = {
+            date: serverTimestamp() as any,
+            description,
+            amount: pointsToAward,
+            type: 'earn'
+        };
+        batch.set(transactionRef, transactionData);
+
+        // No await here, chain the .catch block.
+        batch.commit()
+            .then(() => {
+                toast({
+                    title: 'Points Awarded!',
+                    description: `You've earned ${pointsToAward} points.`,
+                });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path, // The primary path being written to.
+                    operation: 'write', // Batches are generic writes
+                    requestResourceData: { profileUpdate, transactionData },
+                });
+
+                // Emit the error with the global error emitter
+                errorEmitter.emit('permission-error', permissionError);
             });
-            
-            const transactionRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
-            const transactionData: Omit<PointTransaction, 'id'> = {
-                date: serverTimestamp() as any,
-                description,
-                amount: pointsToAward,
-                type: 'earn'
-            };
-            batch.set(transactionRef, transactionData);
-
-            await batch.commit();
-
-            toast({
-                title: 'Points Awarded!',
-                description: `You've earned ${pointsToAward} points.`,
-            });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message });
-        }
     };
 
 
@@ -264,8 +284,8 @@ export default function WalletPage() {
                         <h3 className="font-semibold flex items-center gap-2"><UserPlus/> Refer a Friend</h3>
                         <p className="text-sm text-muted-foreground mb-4">Share your code with a friend. When they sign up, you'll both get {POINT_REWARDS.REFERRAL} points!</p>
                          <div className="flex items-center gap-2">
-                            <Input value={referralCode || 'Generating...'} readOnly />
-                            <Button variant="secondary" onClick={handleCopy} disabled={!referralCode}>
+                            <Input value={referralCode || 'Click to generate & copy'} readOnly />
+                            <Button variant="secondary" onClick={handleCopy}>
                                 {isCopied ? <Check className="text-green-500" /> : <Copy />}
                             </Button>
                         </div>
