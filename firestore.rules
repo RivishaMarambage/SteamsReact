@@ -12,26 +12,36 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    // Reads the user's role from their profile in the /users collection
+    // Safely reads the user's role from their profile in the /users collection.
+    // Returns null if the document or role does not exist.
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      if (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 'role' in userDoc.data) {
+        return userDoc.data.role;
+      }
+      return null;
     }
     
     function isAdmin() {
-      return isSignedIn() && getUserRole() == 'admin';
+      let role = getUserRole();
+      return isSignedIn() && role == 'admin';
     }
     
     function isStaff() {
-      return isSignedIn() && (getUserRole() == 'staff' || isAdmin());
+      let role = getUserRole();
+      return isSignedIn() && (role == 'staff' || role == 'admin');
     }
 
     match /users/{userId} {
-      // Admins can read any profile. Users can read or update their own profile.
-      allow read, update: if isOwner(userId) || isAdmin();
-      allow create: if isSignedIn(); // A user can create their own profile document after signing up
-      // Allow listing users only for admins OR for checking mobile number uniqueness during signup.
-      allow list: if isAdmin() || (request.query.keys().hasAny(['where']) && request.query.where[0][0] == 'mobileNumber');
-      allow delete: if isAdmin(); // Only admins can delete users
+      // READ: Admins can read any profile. Users can read their own.
+      // LIST: Admins can list all users. New users can query to check for mobile number uniqueness.
+      allow read, list: if isAdmin() || isOwner(userId) || (request.query.keys().hasAny(['where']) && request.query.where[0][0] == 'mobileNumber');
+
+      // WRITE: A user can create their own document. An existing user can update their own document. Admins can update any.
+      allow write: if (isOwner(userId) || isAdmin()) || (request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(userId)));
+      
+      // DELETE: Only admins can delete users.
+      allow delete: if isAdmin();
     }
 
     match /menu_items/{menuItemId} {
