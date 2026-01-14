@@ -161,7 +161,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
         // Seed Categories
         const categoriesRef = collection(firestore, 'categories');
-        const categorySnapshot = await getDocs(query(categoriesRef, limit(1)));
+        const categorySnapshot = await getDocs(query(categoriesRef, limit(1))).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'list' }));
+            return null;
+        });
+        if (!categorySnapshot) return;
+
         if (categorySnapshot.empty) {
             console.log("Categories collection is empty. Seeding...");
             const categoryBatch = writeBatch(firestore);
@@ -172,7 +177,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   customCreationsCategoryId = docRef.id;
                 }
             }
-            await categoryBatch.commit();
+            await categoryBatch.commit().catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'categories', operation: 'write', requestResourceData: SEED_CATEGORIES }));
+            });
             console.log("Seeded categories.");
         } else {
              const q = query(categoriesRef, where('name', '==', 'Custom Creations'), limit(1));
@@ -183,7 +190,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         }
 
         const addonCategoriesRef = collection(firestore, 'addon_categories');
-        const addonCategorySnapshot = await getDocs(query(addonCategoriesRef, limit(1)));
+        const addonCategorySnapshot = await getDocs(query(addonCategoriesRef, limit(1))).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'list' }));
+            return null;
+        });
+        if (!addonCategorySnapshot) return;
+
         const addonCategoryIds: Record<string, string> = {};
 
         if (addonCategorySnapshot.empty) {
@@ -194,10 +206,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 batch.set(docRef, category);
                 addonCategoryIds[category.name] = docRef.id;
             }
-            await batch.commit();
+            await batch.commit().catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'write', requestResourceData: SEED_ADDON_CATEGORIES }));
+            });
             console.log("Seeded add-on categories.");
         } else {
-            const allAddonCategories = await getDocs(addonCategoriesRef);
+            const allAddonCategories = await getDocs(addonCategoriesRef).catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addon_categories', operation: 'list' }));
+                return null;
+            });
+            if (!allAddonCategories) return;
             allAddonCategories.forEach(doc => {
                 const data = doc.data() as AddonCategory;
                 addonCategoryIds[data.name] = doc.id;
@@ -206,7 +224,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         
         // Seed Add-ons
         const addonsRef = collection(firestore, 'addons');
-        const addonSnapshot = await getDocs(query(addonsRef, limit(1)));
+        const addonSnapshot = await getDocs(query(addonsRef, limit(1))).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'list' }));
+            return null;
+        });
+        if (!addonSnapshot) return;
+
         const addonIds: string[] = [];
         if (addonSnapshot.empty) {
             console.log("Addons collection is empty. Seeding...");
@@ -225,17 +248,28 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 batch.set(docRef, addon);
                 addonIds.push(docRef.id);
             });
-            await batch.commit();
+            await batch.commit().catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'write', requestResourceData: SEED_ADDONS }));
+            });
             console.log("Seeded addons.");
         } else {
-            const allAddons = await getDocs(addonsRef);
+            const allAddons = await getDocs(addonsRef).catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'addons', operation: 'list' }));
+                return null;
+            });
+            if (!allAddons) return;
             allAddons.forEach(doc => addonIds.push(doc.id));
         }
 
 
         // Seed Custom Menu Items
         const menuItemsRef = collection(firestore, 'menu_items');
-        const customCoffeeDoc = await getDoc(doc(menuItemsRef, 'custom-coffee-base'));
+        const customCoffeeDoc = await getDoc(doc(menuItemsRef, 'custom-coffee-base')).catch(error => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items/custom-coffee-base', operation: 'get' }));
+             return null;
+        });
+        if (!customCoffeeDoc) return;
+
         if (!customCoffeeDoc.exists() && customCreationsCategoryId && addonIds.length > 0) {
             console.log("Seeding custom menu items...");
             const batch = writeBatch(firestore);
@@ -264,7 +298,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             };
             batch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
             batch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
-            await batch.commit();
+            await batch.commit().catch(error => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'menu_items', operation: 'write', requestResourceData: { coffeeBase, teaBase } }));
+            });
             console.log("Seeded custom menu items.");
         }
 
@@ -272,26 +308,34 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         // Seed Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
         // Check a specific doc to see if seeding happened.
-        const memberDoc = await getDoc(doc(loyaltyLevelsRef, 'member'));
+        const memberDoc = await getDoc(doc(loyaltyLevelsRef, 'member')).catch(error => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels/member', operation: 'get' }));
+            return null;
+        });
+        if (!memberDoc) return;
 
         if (!memberDoc.exists()) {
             console.log("Loyalty levels collection is missing or outdated. Seeding...");
             const loyaltyBatch = writeBatch(firestore);
             // Delete existing documents to prevent conflicts if any partial data exists
-            const existingLevels = await getDocs(loyaltyLevelsRef);
-            existingLevels.docs.forEach(d => loyaltyBatch.delete(d.ref));
+            const existingLevels = await getDocs(loyaltyLevelsRef).catch(() => null);
+            if(existingLevels) {
+                existingLevels.docs.forEach(d => loyaltyBatch.delete(d.ref));
+            }
             
             SEED_LOYALTY_LEVELS.forEach(level => {
                 const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase()); // Use name as ID
                 loyaltyBatch.set(docRef, level);
             });
-            await loyaltyBatch.commit();
+            await loyaltyBatch.commit().catch(error => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'loyalty_levels', operation: 'write', requestResourceData: SEED_LOYALTY_LEVELS }));
+            });
             console.log("Seeded loyalty levels.");
         }
     };
 
     if (firestore) {
-      seedDatabase().catch(console.error);
+      seedDatabase();
     }
   }, [firestore]);
 
