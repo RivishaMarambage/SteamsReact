@@ -211,7 +211,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         if (addonSnapshot.empty) {
             console.log("Addons collection is empty. Seeding...");
             const batch = writeBatch(firestore);
-            const SEED_ADDONS: Omit<Addon, 'id' | 'addonCategoryId'>[] = [
+            const SEED_ADDONS: Omit<Addon, 'id'>[] = [
                 { name: "Extra Espresso Shot", price: 100, addonCategoryId: addonCategoryIds['Toppings'] },
                 { name: "Almond Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
                 { name: "Oat Milk", price: 80, addonCategoryId: addonCategoryIds['Milk Options'] },
@@ -229,7 +229,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             console.log("Seeded addons.");
         } else {
             const allAddons = await getDocs(addonsRef);
-            allAddon.forEach(doc => addonIds.push(doc.id));
+            allAddons.forEach(doc => addonIds.push(doc.id));
         }
 
 
