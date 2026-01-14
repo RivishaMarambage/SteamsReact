@@ -34,8 +34,10 @@ service cloud.firestore {
 
     match /users/{userId} {
       // READ: Admins can read any profile. Users can read their own.
-      // LIST: Admins can list all users. New users can query to check for mobile number uniqueness.
-      allow read, list: if isAdmin() || isOwner(userId) || (request.query.keys().hasAny(['where']) && request.query.where[0][0] == 'mobileNumber');
+      allow read: if isAdmin() || isOwner(userId);
+      
+      // LIST: Admins can list all users. Unauthenticated users can *only* query by mobile number for uniqueness checks.
+      allow list: if isAdmin() || (request.query.keys().hasAny(['where']) && request.query.where[0][0] == 'mobileNumber');
 
       // WRITE: A user can create their own document. An existing user can update their own document. Admins can update any.
       allow write: if (isOwner(userId) || isAdmin()) || (request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(userId)));
