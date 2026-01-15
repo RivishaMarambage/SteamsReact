@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
@@ -91,12 +91,17 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     return (userProfile.lifetimePoints ?? 0) >= bronzeTier.minimumPoints;
   }, [userProfile, loyaltyLevels]);
   
-  const applicableWelcomeOffer = useMemo(() => {
-    if (!userProfile || !isEmailVerified || (userProfile.orderCount ?? 0) >= 3) {
+  const potentialWelcomeOffer = useMemo(() => {
+     if (!userProfile || (userProfile.orderCount ?? 0) >= 3) {
       return null;
     }
     return WELCOME_OFFERS.find(offer => offer.order === (userProfile.orderCount ?? 0)) || null;
-  }, [userProfile, isEmailVerified]);
+  }, [userProfile]);
+
+  const applicableWelcomeOffer = useMemo(() => {
+    if (!isEmailVerified) return null;
+    return potentialWelcomeOffer;
+  }, [isEmailVerified, potentialWelcomeOffer]);
 
 
   const getCategoryName = (categoryId: string, source: 'menu' | 'addon') => {
@@ -679,6 +684,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
           {cart.length > 0 && (
             <SheetFooter className="pt-4 border-t">
               <div className="w-full space-y-4">
+                  {potentialWelcomeOffer && !isEmailVerified && (
+                     <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                      <h3 className="font-headline text-lg text-yellow-600 flex items-center gap-2"><MailWarning /> Verify Your Email</h3>
+                      <p className="text-sm text-muted-foreground">
+                        You have a <span className="font-bold">{potentialWelcomeOffer.discount}% welcome discount</span> waiting! Please verify your email to apply it to this order.
+                      </p>
+                    </div>
+                  )}
 
                   {applicableWelcomeOffer && (
                     <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
