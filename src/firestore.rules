@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -34,6 +35,16 @@ service cloud.firestore {
       allow read: if true; // Menu is public
       allow write: if isAdmin(); // Only admins can create, update, or delete menu items
     }
+    
+    match /addons/{addonId} {
+      allow read: if true; // Addons are public
+      allow write: if isAdmin(); // Only admins can manage addons
+    }
+    
+    match /addon_categories/{addonCategoryId} {
+      allow read: if true; // Addon categories are public
+      allow write: if isAdmin(); // Only admins can manage addon categories
+    }
 
     match /categories/{categoryId} {
       allow read: if true; // Categories are public
@@ -58,5 +69,16 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isStaff(); // A user can update their order, and so can staff to update status.
       allow delete: if false; // Users should not be able to modify their past orders
     }
+     match /daily_offers/{offerId} {
+      allow read: if true; // Daily offers are public
+      allow write: if isAdmin(); // Only admins can create, update, or delete daily offers
+    }
+     match /users/{userId}/point_transactions/{transactionId} {
+      allow read, list: if isOwner(userId) || isAdmin(); // User can read their own history, admins can read anyone's.
+      allow create: if isOwner(userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
+      allow update, delete: if false; // Transactions are immutable.
+    }
   }
 }
+
+    

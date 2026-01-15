@@ -36,8 +36,6 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   fullName: z.string().optional(),
-  countryCode: z.string().optional(),
-  mobileNumber: z.string().optional(),
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
@@ -46,8 +44,6 @@ const formSchema = z.object({
 
 const customerSignupSchema = formSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
-    countryCode: z.string().min(1, { message: "Country code is required."}),
-    mobileNumber: z.string().min(9, { message: "A valid mobile number is required." }),
     dateOfBirth: z.date({ required_error: "Date of birth is required." }),
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
@@ -102,7 +98,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', fullName: '', countryCode: '+94', mobileNumber: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
+    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -355,39 +351,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 return;
             }
 
-            // 2. For customers, check for duplicate mobile number
-            if (role === 'customer' && data.mobileNumber) {
-                const fullMobileNumber = `${data.countryCode}${data.mobileNumber}`;
-                const usersRef = collection(firestore, 'users');
-                const q = query(usersRef, where('mobileNumber', '==', fullMobileNumber), limit(1));
-                const querySnapshot = await getDocs(q).catch(error => {
-                    throw new FirestorePermissionError({
-                        path: 'users',
-                        operation: 'list',
-                        requestResourceData: { where: `mobileNumber == ${fullMobileNumber}` }
-                    });
-                });
-
-                if (!querySnapshot.empty) {
-                    form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already in use.' });
-                    return;
-                }
-            }
-
-            // 3. If all checks pass, create the user
+            // 2. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
 
             // Send verification email
             await sendEmailVerification(user);
 
-            // 4. Create user profile in Firestore
+            // 3. Create user profile in Firestore
             const userProfile: UserProfile = {
               id: user.uid,
               email: data.email,
               name: data.fullName!,
               role,
-              mobileNumber: data.mobileNumber ? `${data.countryCode}${data.mobileNumber}` : '',
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
               loyaltyPoints: 0,
@@ -633,39 +609,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   />
                   {role === 'customer' && (
                     <>
-                       <FormItem>
-                          <FormLabel>Mobile Number</FormLabel>
-                            <div className="flex gap-2">
-                                <FormField
-                                    control={form.control}
-                                    name="countryCode"
-                                    render={({ field }) => (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl className="w-24">
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Code" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="+94">+94 (LK)</SelectItem>
-                                                <SelectItem value="+1">+1 (US)</SelectItem>
-                                                <SelectItem value="+44">+44 (UK)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="mobileNumber"
-                                    render={({ field }) => (
-                                        <FormControl>
-                                            <Input type="tel" placeholder="712345678" {...field} />
-                                        </FormControl>
-                                    )}
-                                />
-                            </div>
-                           <FormMessage className="mt-2">{form.formState.errors.mobileNumber?.message}</FormMessage>
-                        </FormItem>
                       <FormField
                         control={form.control}
                         name="cafeNickname"
@@ -874,5 +817,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
 
     
