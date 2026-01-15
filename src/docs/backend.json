@@ -20,6 +20,7 @@
         "birthdayDiscountType": { "type": ["string", "null"], "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
         "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
         "orderCount": { "type": "number", "description": "The number of orders the user has placed, used for tiered welcome offers." },
+        "welcomeOfferRedeemed": { "type": "boolean", "description": "Whether the user has redeemed their welcome offer." },
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
