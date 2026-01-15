@@ -359,7 +359,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             if (role === 'customer' && data.mobileNumber) {
                 const fullMobileNumber = `${data.countryCode}${data.mobileNumber}`;
                 const usersRef = collection(firestore, 'users');
-                const q = query(usersRef, where('mobileNumber', '==', fullMobileNumber));
+                const q = query(usersRef, where('mobileNumber', '==', fullMobileNumber), limit(1));
                 const querySnapshot = await getDocs(q).catch(error => {
                     throw new FirestorePermissionError({
                         path: 'users',

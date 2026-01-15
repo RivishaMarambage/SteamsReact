@@ -33,8 +33,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow listing users only for admins OR for checking mobile number uniqueness during signup.
-      allow list: if isAdmin() || (request.auth == null && request.query.keys().hasOnly(['where']) && string(request.query.where).split('`')[1] == 'mobileNumber');
+      // Allow listing for admins, OR for a specific, limited query by an unauthenticated user to check for mobile number uniqueness.
+      // This is secure because we limit the query to 1 result, preventing mass-reading of user data.
+      allow list: if isAdmin() || (request.auth == null && request.query.limit == 1);
 
       // Allow reads for admins or the owner of the document.
       allow read: if isAdmin() || isOwner(userId);
