@@ -8,10 +8,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     // Safely reads the user's role from their profile in the /users collection.
     // Returns null if the document or role does not exist.
     function getUserRole() {
@@ -34,11 +30,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow list: if isAdmin();
-      allow read: if isAdmin() || isOwner(userId);
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       // A user can create their own profile document. This is critical for sign-up.
       allow create: if request.auth != null && request.auth.uid == userId;
       // An owner or admin can update the document.
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -76,15 +72,15 @@ service cloud.firestore {
 
     // This is the customer's private view of their own orders
     match /users/{userId}/orders/{orderId} {
-      allow read, list, create: if isOwner(userId); // A user can see their own orders
-      allow update: if isOwner(userId) || isStaff(); // A user can update their order, and so can staff to update status.
+      allow read, list, create: if request.auth != null && request.auth.uid == userId; // A user can see their own orders
+      allow update: if (request.auth != null && request.auth.uid == userId) || isStaff(); // A user can update their order, and so can staff to update status.
       allow delete: if false; // Users should not be able to modify their past orders
     }
 
     // A user's private history of point transactions
     match /users/{userId}/point_transactions/{transactionId} {
-      allow read, list: if isOwner(userId) || isAdmin(); // User can read their own history, admins can read anyone's.
-      allow create: if isOwner(userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
+      allow read, list: if (request.auth != null && request.auth.uid == userId) || isAdmin(); // User can read their own history, admins can read anyone's.
+      allow create: if (request.auth != null && request.auth.uid == userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
       allow update, delete: if false; // Transactions are immutable.
     }
 
