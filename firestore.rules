@@ -101,11 +101,13 @@ service cloud.firestore {
     
     // New rules for the public mobile number lookup collection
     match /mobile_numbers/{mobileNumber} {
-      // Allow anyone to check if a number exists. This is safe as it doesn't reveal user data.
-      allow get: if true;
+      // Allow an unauthenticated user to check if a number exists.
+      allow get: if request.auth == null;
+
       // Allow an authenticated user to create their own lookup document.
       // This happens right after sign-up.
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
       // Disallow other operations for security.
       allow update, delete, list: if false;
     }
