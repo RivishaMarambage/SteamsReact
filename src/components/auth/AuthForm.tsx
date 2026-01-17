@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -356,24 +355,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 return;
             }
             
-            // 2. Check for existing mobile number using the new lookup collection
-            if (data.mobileNumber && data.countryCode) {
-                const fullMobileNumber = data.countryCode + data.mobileNumber.replace(/^0+/, '');
-                const mobileNumberDocRef = doc(firestore, 'mobile_numbers', fullMobileNumber);
-                const mobileNumberDocSnap = await getDoc(mobileNumberDocRef).catch(error => {
-                    throw new FirestorePermissionError({
-                        path: `mobile_numbers/${fullMobileNumber}`,
-                        operation: 'get',
-                    });
-                });
-
-                if (mobileNumberDocSnap.exists()) {
-                    form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already registered.' });
-                    return;
-                }
-            }
-
-
             // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;

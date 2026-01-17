@@ -92,15 +92,12 @@ service cloud.firestore {
     
     // New rules for the public mobile number lookup collection
     match /mobile_numbers/{mobileNumber} {
-      // Allow an unauthenticated user to check if a number exists.
-      allow get: if true;
-
       // Allow an authenticated user to create their own lookup document.
       // This happens right after sign-up.
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       
       // Disallow other operations for security.
-      allow update, delete, list: if false;
+      allow get, update, delete, list: if false;
     }
   }
 }
