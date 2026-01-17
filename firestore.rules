@@ -35,7 +35,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow list: if isAdmin();
       allow read: if isAdmin() || isOwner(userId);
-      allow write: if (request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))) || (isAdmin() || isOwner(userId));
+      // A user can create their own profile document.
+      allow create: if request.auth.uid == userId;
+      // An owner or admin can update the document.
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -96,8 +99,11 @@ service cloud.firestore {
       // This happens right after sign-up.
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       
+      // Allow anyone to check for a number's existence during sign-up
+      allow get: if true;
+
       // Disallow other operations for security.
-      allow get, update, delete, list: if false;
+      allow update, delete, list: if false;
     }
   }
 }
