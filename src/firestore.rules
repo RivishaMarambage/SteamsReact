@@ -33,17 +33,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow listing ONLY for admins, OR for an unauthenticated user
-      // performing a uniqueness check on a single document.
-      allow list: if isAdmin() || (request.auth == null && request.query.limit == 1);
+      // Allow listing ONLY for admins. Unauthenticated checks are now done
+      // on the `mobile_numbers` collection.
+      allow list: if isAdmin();
       
       // Allow reads for the owner or an admin.
       allow read: if isOwner(userId) || isAdmin();
       
       // Allow a user to create their own document if the ID matches their auth UID.
-      // This rule is more secure than a general 'create' because it ties the document
-      // ID to the authenticated user's ID.
-      // It also prevents a user from creating a document for another user.
       allow create: if request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
 
       // Allow updates for the owner or an admin.
@@ -99,6 +96,18 @@ service cloud.firestore {
       allow read, list: if isOwner(userId) || isAdmin(); // User can read their own history, admins can read anyone's.
       allow create: if isOwner(userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
       allow update, delete: if false; // Transactions are immutable.
+    }
+    
+    // New rules for the public mobile number lookup collection
+    match /mobile_numbers/{mobileNumber} {
+      // Allow an unauthenticated user to check if a number exists.
+      allow get: if request.auth == null;
+      // Allow an authenticated user to create their own lookup document.
+      // This happens right after sign-up.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // Disallow updates and deletes for client security. These would be handled
+      // by a trusted server environment if needed.
+      allow update, delete: if false;
     }
   }
 }

@@ -136,3 +136,7 @@ export type PointTransaction = {
     amount: number; // positive for earn, negative for redeem
     type: 'earn' | 'redeem';
 };
+
+export type MobileNumberLookup = {
+  userId: string;
+};

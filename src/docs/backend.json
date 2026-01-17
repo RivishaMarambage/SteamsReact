@@ -222,6 +222,15 @@
         "type": { "type": "string", "enum": ["earn", "redeem"] }
       },
       "required": ["id", "date", "description", "amount", "type"]
+    },
+    "MobileNumberLookup": {
+      "title": "Mobile Number Lookup",
+      "type": "object",
+      "description": "A public document used to enforce uniqueness of mobile numbers.",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user associated with this mobile number." }
+      },
+      "required": ["userId"]
     }
   },
   "auth": {
@@ -267,8 +276,10 @@
     "/users/{userId}/point_transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/PointTransaction" },
       "description": "A user's history of point earnings and redemptions."
+    },
+    "/mobile_numbers/{mobileNumber}": {
+      "schema": { "$ref": "#/entities/MobileNumberLookup" },
+      "description": "Publicly readable collection for mobile number uniqueness checks. Writeable only by the user creating their profile."
     }
   }
 }
-
-    

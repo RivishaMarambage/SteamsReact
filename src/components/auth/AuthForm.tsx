@@ -356,19 +356,18 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 return;
             }
             
-            // 2. Check for existing mobile number
+            // 2. Check for existing mobile number using the new lookup collection
             if (data.mobileNumber && data.countryCode) {
                 const fullMobileNumber = data.countryCode + data.mobileNumber.replace(/^0+/, '');
-                const usersRef = collection(firestore, "users");
-                const q = query(usersRef, where('mobileNumber', '==', fullMobileNumber), limit(1));
-                const querySnapshot = await getDocs(q).catch(error => {
+                const mobileNumberDocRef = doc(firestore, 'mobile_numbers', fullMobileNumber);
+                const mobileNumberDocSnap = await getDoc(mobileNumberDocRef).catch(error => {
                     throw new FirestorePermissionError({
-                        path: 'users',
-                        operation: 'list',
-                        requestResourceData: { where: `mobileNumber == ${fullMobileNumber}` }
+                        path: `mobile_numbers/${fullMobileNumber}`,
+                        operation: 'get',
                     });
                 });
-                if (!querySnapshot.empty) {
+
+                if (mobileNumberDocSnap.exists()) {
                     form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already registered.' });
                     return;
                 }
@@ -382,7 +381,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             // Send verification email
             await sendEmailVerification(user);
 
-            // 4. Create user profile in Firestore
+            // 4. Create user profile and mobile lookup in a batch
+            const batch = writeBatch(firestore);
+            const userDocRef = doc(firestore, "users", user.uid);
             const fullMobileNumber = data.mobileNumber && data.countryCode ? data.countryCode + data.mobileNumber.replace(/^0+/, '') : undefined;
             
             const userProfile: UserProfile = {
@@ -399,16 +400,21 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               orderCount: 0,
               emailVerified: user.emailVerified,
             };
-            
-            const userDocRef = doc(firestore, "users", user.uid);
-            
-            await setDoc(userDocRef, userProfile).catch((error) => {
-                throw new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: userProfile,
+            batch.set(userDocRef, userProfile);
+
+            if (fullMobileNumber) {
+                const mobileNumberDocRef = doc(firestore, 'mobile_numbers', fullMobileNumber);
+                batch.set(mobileNumberDocRef, { userId: user.uid });
+            }
+
+            await batch.commit().catch((error) => {
+                 throw new FirestorePermissionError({
+                    path: `batch write to users/${user.uid} and mobile_numbers`,
+                    operation: 'write',
+                    requestResourceData: { userProfile, mobileLookup: { userId: user.uid } },
                 });
             });
+
 
             toast({
               title: 'Account Created!',
