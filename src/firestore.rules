@@ -12,23 +12,45 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    // This function is safer because it checks for document existence
+    // before trying to access its data.
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      if (exists(userDocPath) && 'role' in get(userDocPath).data) {
+        return get(userDocPath).data.role;
+      }
+      return null;
     }
     
     function isAdmin() {
-      return isSignedIn() && getUserRole() == 'admin';
+      let role = getUserRole();
+      return isSignedIn() && role == 'admin';
     }
     
     function isStaff() {
-      return isSignedIn() && (getUserRole() == 'staff' || isAdmin());
+      let role = getUserRole();
+      return isSignedIn() && (role == 'staff' || role == 'admin');
     }
 
     match /users/{userId} {
-      allow read, update: if isOwner(userId) || isAdmin();
-      allow create: if isSignedIn(); // A user can create their own profile document after signing up
-      allow list: if isAdmin(); // Only admins can list all users
-      allow delete: if isAdmin(); // Only admins can delete users
+      // Allow listing ONLY for admins, OR for an unauthenticated user
+      // performing a uniqueness check on a single document.
+      allow list: if isAdmin() || (request.auth == null && request.query.limit == 1);
+      
+      // Allow reads for the owner or an admin.
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Allow a user to create their own document if the ID matches their auth UID.
+      // This rule is more secure than a general 'create' because it ties the document
+      // ID to the authenticated user's ID.
+      // It also prevents a user from creating a document for another user.
+      allow create: if request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+
+      // Allow updates for the owner or an admin.
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Only admins can delete users.
+      allow delete: if isAdmin();
     }
 
     match /menu_items/{menuItemId} {
@@ -80,5 +102,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

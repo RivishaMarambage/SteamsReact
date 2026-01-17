@@ -40,11 +40,15 @@ const formSchema = z.object({
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
   rememberMe: z.boolean().default(false),
+  countryCode: z.string().optional(),
+  mobileNumber: z.string().optional(),
 });
 
 const customerSignupSchema = formSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+    countryCode: z.string().min(1, { message: "Country code is required."}),
+    mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
     }),
@@ -93,12 +97,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const auth = useAuth();
   const firestore = useFirestore();
   const [resetEmail, setResetEmail] = useState('');
+  const [countryCode, setCountryCode] = useState('+94');
 
   const currentFormSchema = authType === 'signup' && role === 'customer' ? customerSignupSchema : formSchema;
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
+    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false, countryCode: '+94', mobileNumber: '' },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -350,20 +355,42 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 form.setError('email', { type: 'manual', message: 'This email address is already in use.' });
                 return;
             }
+            
+            // 2. Check for existing mobile number
+            if (data.mobileNumber && data.countryCode) {
+                const fullMobileNumber = data.countryCode + data.mobileNumber.replace(/^0+/, '');
+                const usersRef = collection(firestore, "users");
+                const q = query(usersRef, where('mobileNumber', '==', fullMobileNumber), limit(1));
+                const querySnapshot = await getDocs(q).catch(error => {
+                    throw new FirestorePermissionError({
+                        path: 'users',
+                        operation: 'list',
+                        requestResourceData: { where: `mobileNumber == ${fullMobileNumber}` }
+                    });
+                });
+                if (!querySnapshot.empty) {
+                    form.setError('mobileNumber', { type: 'manual', message: 'This mobile number is already registered.' });
+                    return;
+                }
+            }
 
-            // 2. If all checks pass, create the user
+
+            // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
 
             // Send verification email
             await sendEmailVerification(user);
 
-            // 3. Create user profile in Firestore
+            // 4. Create user profile in Firestore
+            const fullMobileNumber = data.mobileNumber && data.countryCode ? data.countryCode + data.mobileNumber.replace(/^0+/, '') : undefined;
+            
             const userProfile: UserProfile = {
               id: user.uid,
               email: data.email,
               name: data.fullName!,
               role,
+              mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
               loyaltyPoints: 0,
@@ -609,6 +636,44 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   />
                   {role === 'customer' && (
                     <>
+                       <FormField
+                            control={form.control}
+                            name="mobileNumber"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Mobile Number</FormLabel>
+                                <div className="flex">
+                                <FormField
+                                    control={form.control}
+                                    name="countryCode"
+                                    render={({ field: countryCodeField }) => (
+                                    <Select onValueChange={countryCodeField.onChange} defaultValue={countryCodeField.value}>
+                                        <FormControl>
+                                        <SelectTrigger className="w-24 rounded-r-none">
+                                            <SelectValue placeholder="Code" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="+94">+94 (LK)</SelectItem>
+                                        <SelectItem value="+1">+1 (US)</SelectItem>
+                                        <SelectItem value="+44">+44 (UK)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    )}
+                                />
+                                <FormControl>
+                                    <Input
+                                    type="tel"
+                                    placeholder="77 123 4567"
+                                    className="rounded-l-none"
+                                    {...field}
+                                    />
+                                </FormControl>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                       <FormField
                         control={form.control}
                         name="cafeNickname"
@@ -817,7 +882,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-
-    
-
-    
