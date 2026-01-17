@@ -33,10 +33,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow listing for admins.
-      // Also allow unauthenticated users to perform a query for mobile number uniqueness,
-      // but ONLY if they are asking for a single document. This is the crucial security constraint.
-      allow list: if isAdmin() || (request.auth == null && request.query.limit == 1);
+      // Allow listing only for admins. Uniqueness checks are now on mobile_numbers collection.
+      allow list: if isAdmin();
 
       // Allow reads for admins or the owner of the document.
       allow read: if isAdmin() || isOwner(userId);
@@ -99,6 +97,17 @@ service cloud.firestore {
     match /daily_offers/{offerId} {
       allow read: if true; // Daily offers are public
       allow write: if isAdmin(); // Only admins can create, update, or delete daily offers
+    }
+    
+    // New rules for the public mobile number lookup collection
+    match /mobile_numbers/{mobileNumber} {
+      // Allow an unauthenticated user to check if a number exists.
+      allow get: if request.auth == null;
+      // Allow an authenticated user to create their own lookup document.
+      // This happens right after sign-up.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // Disallow other operations for security.
+      allow update, delete, list: if false;
     }
   }
 }
