@@ -11,6 +11,7 @@ import PublicMenuDisplay from "@/components/order/PublicMenuDisplay";
 import { Logo } from "@/components/Logo";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Footer from "@/components/layout/Footer";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -107,6 +108,15 @@ export default function LandingPage() {
         </section>
       </main>
       <Footer />
+       <Link
+        href="https://wa.me/94123456789"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-8 right-8 z-50 h-16 w-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-colors"
+        aria-label="Chat on WhatsApp"
+      >
+        <FaWhatsapp className="h-8 w-8 text-white" />
+      </Link>
     </div>
   );
 }
