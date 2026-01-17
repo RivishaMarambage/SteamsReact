@@ -254,7 +254,7 @@ export default function WalletPage() {
                                                 <p className="font-bold text-lg text-primary">LKR {order.totalAmount.toFixed(2)}</p>
                                             </div>
                                             <div className="text-xs space-y-1">
-                                                {order.orderItems.map((item, index) => (
+                                                {order.orderItems?.map((item, index) => (
                                                     <div key={index} className="flex justify-between">
                                                         <span>{item.quantity}x {item.menuItemName}</span>
                                                         <span>LKR {(item.totalPrice * item.quantity).toFixed(2)}</span>
