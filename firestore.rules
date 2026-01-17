@@ -33,18 +33,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow listing only for admins. Uniqueness checks are now on mobile_numbers collection.
       allow list: if isAdmin();
-
-      // Allow reads for admins or the owner of the document.
       allow read: if isAdmin() || isOwner(userId);
-      
-      // Allow a user to create their own document if the ID matches their auth UID.
-      // Allow admins to update any user document.
-      // Allow users to update their own document.
       allow write: if (request.resource.data.id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid))) || (isAdmin() || isOwner(userId));
-
-      // Only admins can delete users.
       allow delete: if isAdmin();
     }
 
@@ -102,7 +93,7 @@ service cloud.firestore {
     // New rules for the public mobile number lookup collection
     match /mobile_numbers/{mobileNumber} {
       // Allow an unauthenticated user to check if a number exists.
-      allow get: if request.auth == null;
+      allow get: if true;
 
       // Allow an authenticated user to create their own lookup document.
       // This happens right after sign-up.
