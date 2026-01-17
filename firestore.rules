@@ -88,18 +88,5 @@ service cloud.firestore {
       allow read: if true; // Daily offers are public
       allow write: if isAdmin(); // Only admins can create, update, or delete daily offers
     }
-    
-    // New rules for the public mobile number lookup collection
-    match /mobile_numbers/{mobileNumber} {
-      // Allow an authenticated user to create their own lookup document.
-      // This happens right after sign-up.
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      
-      // Allow anyone to check for a number's existence during sign-up
-      allow get: if true;
-
-      // Disallow other operations for security.
-      allow update, delete, list: if false;
-    }
   }
 }

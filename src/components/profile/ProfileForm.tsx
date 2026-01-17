@@ -33,7 +33,6 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   cafeNickname: z.string().optional(),
   email: z.string().email(),
-  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }).optional().or(z.literal('')),
   dateOfBirth: z.date().optional(),
 });
 
@@ -52,7 +51,6 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
       name: userProfile.name,
       cafeNickname: userProfile.cafeNickname || '',
       email: userProfile.email,
-      mobileNumber: userProfile.mobileNumber || '',
       dateOfBirth: userProfile.dateOfBirth ? new Date(userProfile.dateOfBirth) : undefined,
     },
     mode: "onChange",
@@ -144,20 +142,6 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                           <Input placeholder="Your email address" {...field} readOnly disabled />
                       </FormControl>
                       <FormDescription>Used for login and receipts. Cannot be changed.</FormDescription>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-                  <FormField
-                  control={form.control}
-                  name="mobileNumber"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Mobile Number</FormLabel>
-                      <FormControl>
-                          <Input placeholder="Your mobile number" {...field} />
-                      </FormControl>
-                      <FormDescription>Used for order notifications.</FormDescription>
                       <FormMessage />
                       </FormItem>
                   )}

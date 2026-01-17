@@ -39,15 +39,11 @@ const formSchema = z.object({
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
   rememberMe: z.boolean().default(false),
-  countryCode: z.string().optional(),
-  mobileNumber: z.string().optional(),
 });
 
 const customerSignupSchema = formSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     dateOfBirth: z.date({ required_error: "Date of birth is required." }),
-    countryCode: z.string().min(1, { message: "Country code is required."}),
-    mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
     }),
@@ -96,13 +92,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const auth = useAuth();
   const firestore = useFirestore();
   const [resetEmail, setResetEmail] = useState('');
-  const [countryCode, setCountryCode] = useState('+94');
 
   const currentFormSchema = authType === 'signup' && role === 'customer' ? customerSignupSchema : formSchema;
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false, countryCode: '+94', mobileNumber: '' },
+    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -362,17 +357,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             // Send verification email
             await sendEmailVerification(user);
 
-            // 4. Create user profile and mobile lookup in a batch
-            const batch = writeBatch(firestore);
+            // 4. Create user profile
             const userDocRef = doc(firestore, "users", user.uid);
-            const fullMobileNumber = data.mobileNumber && data.countryCode ? data.countryCode + data.mobileNumber.replace(/^0+/, '') : undefined;
             
             const userProfile: UserProfile = {
               id: user.uid,
               email: data.email,
               name: data.fullName!,
               role,
-              mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
               loyaltyPoints: 0,
@@ -381,20 +373,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               orderCount: 0,
               emailVerified: user.emailVerified,
             };
-            batch.set(userDocRef, userProfile);
-
-            if (fullMobileNumber) {
-                const mobileNumberDocRef = doc(firestore, 'mobile_numbers', fullMobileNumber);
-                batch.set(mobileNumberDocRef, { userId: user.uid });
-            }
-
-            await batch.commit().catch((error) => {
-                 throw new FirestorePermissionError({
-                    path: `batch write to users/${user.uid} and mobile_numbers`,
-                    operation: 'write',
-                    requestResourceData: { userProfile, mobileLookup: { userId: user.uid } },
-                });
-            });
+            await setDoc(userDocRef, userProfile);
 
 
             toast({
@@ -623,44 +602,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   />
                   {role === 'customer' && (
                     <>
-                       <FormField
-                            control={form.control}
-                            name="mobileNumber"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Mobile Number</FormLabel>
-                                <div className="flex">
-                                <FormField
-                                    control={form.control}
-                                    name="countryCode"
-                                    render={({ field: countryCodeField }) => (
-                                    <Select onValueChange={countryCodeField.onChange} defaultValue={countryCodeField.value}>
-                                        <FormControl>
-                                        <SelectTrigger className="w-24 rounded-r-none">
-                                            <SelectValue placeholder="Code" />
-                                        </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                        <SelectItem value="+94">+94 (LK)</SelectItem>
-                                        <SelectItem value="+1">+1 (US)</SelectItem>
-                                        <SelectItem value="+44">+44 (UK)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    )}
-                                />
-                                <FormControl>
-                                    <Input
-                                    type="tel"
-                                    placeholder="77 123 4567"
-                                    className="rounded-l-none"
-                                    {...field}
-                                    />
-                                </FormControl>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
                       <FormField
                         control={form.control}
                         name="cafeNickname"

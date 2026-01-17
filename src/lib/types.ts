@@ -5,7 +5,6 @@ import { Timestamp } from "firebase/firestore";
 export type UserProfile = {
   id: string;
   email: string;
-  mobileNumber?: string;
   name: string;
   cafeNickname?: string;
   loyaltyPoints?: number;

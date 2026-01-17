@@ -9,7 +9,6 @@
         "id": { "type": "string", "description": "User's unique ID (matches Auth UID)." },
         "email": { "type": "string", "format": "email", "description": "User's email address." },
         "name": { "type": "string", "description": "User's full name." },
-        "mobileNumber": { "type": "string", "description": "User's mobile phone number." },
         "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
         "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
         "lifetimePoints": { "type": "number", "description": "Total points accumulated over the user's lifetime, not reduced by redemptions." },
@@ -32,6 +31,18 @@
       },
       "required": ["id", "email", "name", "role"]
     },
+    "MenuItemAddonGroup": {
+      "title": "Menu Item Add-on Group",
+      "type": "object",
+      "description": "Defines rules for an add-on category on a specific menu item.",
+      "properties": {
+        "addonCategoryId": { "type": "string", "description": "ID of the AddonCategory." },
+        "isRequired": { "type": "boolean", "description": "Whether a selection from this group is mandatory." },
+        "minSelection": { "type": "number", "description": "The minimum number of addons a user must select." },
+        "maxSelection": { "type": "number", "description": "The maximum number of addons a user can select." }
+      },
+      "required": ["addonCategoryId", "isRequired", "minSelection", "maxSelection"]
+    },
     "MenuItem": {
       "title": "Menu Item",
       "type": "object",
@@ -44,9 +55,24 @@
         "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
         "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
         "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." },
-        "addonIds": { "type": "array", "items": { "type": "string" }, "description": "List of addon IDs applicable to this menu item." }
+        "addonGroups": {
+          "type": "array",
+          "items": { "$ref": "#/entities/MenuItemAddonGroup" },
+          "description": "Configuration for applicable addon groups and their rules."
+        }
       },
       "required": ["id", "name", "price", "categoryId"]
+    },
+    "AddonCategory": {
+        "title": "Add-on Category",
+        "type": "object",
+        "description": "A category for organizing add-ons (e.g., 'Milk Options', 'Syrups').",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the addon category." },
+            "name": { "type": "string", "description": "Name of the category." },
+            "description": { "type": "string", "description": "A brief description of the category." }
+        },
+        "required": ["id", "name"]
     },
     "Addon": {
       "title": "Addon",
@@ -56,9 +82,9 @@
         "id": { "type": "string", "description": "Unique ID for the addon." },
         "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
         "price": { "type": "number", "description": "Additional price for this addon." },
-        "categoryId": { "type": "string", "description": "The ID of the category this addon belongs to." }
+        "addonCategoryId": { "type": "string", "description": "The ID of the addon category this addon belongs to." }
       },
-      "required": ["id", "name", "price", "categoryId"]
+      "required": ["id", "name", "price", "addonCategoryId"]
     },
     "Category": {
       "title": "Category",
@@ -182,6 +208,19 @@
         "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
       "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
+    },
+    "PointTransaction": {
+      "title": "Point Transaction",
+      "type": "object",
+      "description": "A record of points being earned or redeemed.",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["earn", "redeem"] }
+      },
+      "required": ["id", "date", "description", "amount", "type"]
     }
   },
   "auth": {
@@ -199,6 +238,10 @@
      "/addons/{addonId}": {
       "schema": { "$ref": "#/entities/Addon" },
       "description": "Publicly readable list of all addons."
+    },
+    "/addon_categories/{addonCategoryId}": {
+      "schema": { "$ref": "#/entities/AddonCategory" },
+      "description": "Publicly readable list of all addon categories."
     },
     "/categories/{categoryId}": {
       "schema": { "$ref": "#/entities/Category" },
@@ -219,6 +262,10 @@
     "/daily_offers/{offerId}": {
       "schema": { "$ref": "#/entities/DailyOffer" },
       "description": "Publicly readable list of daily offers. Writable only by admins."
+    },
+    "/users/{userId}/point_transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/PointTransaction" },
+      "description": "A user's history of point earnings and redemptions."
     }
   }
 }
