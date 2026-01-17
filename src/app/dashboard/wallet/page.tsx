@@ -224,7 +224,7 @@ export default function WalletPage() {
                                                 )}
                                                 <div>
                                                     <p className="font-medium">{tx.description}</p>
-                                                    <p className="text-xs text-muted-foreground">{tx.date.toDate().toLocaleString()}</p>
+                                                    <p className="text-xs text-muted-foreground">{tx.date ? tx.date.toDate().toLocaleString() : 'Date pending...'}</p>
                                                 </div>
                                             </div>
                                             <p className={cn("font-bold text-lg", tx.type === 'earn' ? 'text-green-600' : 'text-red-600')}>
@@ -249,7 +249,7 @@ export default function WalletPage() {
                                             <div className="flex justify-between items-center mb-2">
                                                 <div>
                                                     <p className="font-semibold">Order #{order.id.substring(0,7).toUpperCase()}</p>
-                                                    <p className="text-xs text-muted-foreground">{order.orderDate.toDate().toLocaleString()}</p>
+                                                    <p className="text-xs text-muted-foreground">{order.orderDate ? order.orderDate.toDate().toLocaleString() : 'Date pending...'}</p>
                                                 </div>
                                                 <p className="font-bold text-lg text-primary">LKR {order.totalAmount.toFixed(2)}</p>
                                             </div>
