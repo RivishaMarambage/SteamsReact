@@ -35,6 +35,8 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   fullName: z.string().optional(),
+  mobileNumber: z.string().optional(),
+  countryCode: z.string().optional(),
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
   privacyPolicy: z.boolean().default(false),
@@ -43,6 +45,8 @@ const formSchema = z.object({
 
 const customerSignupSchema = formSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
+    mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
+    countryCode: z.string(),
     dateOfBirth: z.date({ required_error: "Date of birth is required." }),
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
@@ -97,7 +101,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', fullName: '', cafeNickname: '', privacyPolicy: false, rememberMe: false },
+    defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', privacyPolicy: false, rememberMe: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -350,6 +354,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 return;
             }
             
+            const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
+
             // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
@@ -365,6 +371,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               email: data.email,
               name: data.fullName!,
               role,
+              mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
               loyaltyPoints: 0,
@@ -373,7 +380,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               orderCount: 0,
               emailVerified: user.emailVerified,
             };
-            await setDoc(userDocRef, userProfile);
+
+            await setDoc(userDocRef, userProfile).catch((error) => {
+                 throw new FirestorePermissionError({
+                    path: `users/${user.uid}`,
+                    operation: 'create',
+                    requestResourceData: userProfile
+                });
+            });
 
 
             toast({
@@ -602,6 +616,43 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   />
                   {role === 'customer' && (
                     <>
+                       <div className="flex gap-2">
+                        <FormField
+                            control={form.control}
+                            name="countryCode"
+                            render={({ field }) => (
+                            <FormItem className="w-1/3">
+                                <FormLabel>Code</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Code" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="+94">+94 (LK)</SelectItem>
+                                    <SelectItem value="+1">+1 (US)</SelectItem>
+                                    <SelectItem value="+44">+44 (UK)</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="mobileNumber"
+                            render={({ field }) => (
+                            <FormItem className="w-2/3">
+                                <FormLabel>Mobile Number</FormLabel>
+                                <FormControl>
+                                <Input type="tel" placeholder="771234567" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        </div>
                       <FormField
                         control={form.control}
                         name="cafeNickname"

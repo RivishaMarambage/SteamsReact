@@ -118,6 +118,7 @@ export default function UserManagementTable() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Mobile Number</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Loyalty Level</TableHead>
                 <TableHead>Order Count</TableHead>
@@ -135,6 +136,7 @@ export default function UserManagementTable() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.mobileNumber || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
                   </TableCell>
@@ -229,5 +231,3 @@ export default function UserManagementTable() {
     </>
   );
 }
-
-    

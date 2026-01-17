@@ -6,6 +6,7 @@ export type UserProfile = {
   id: string;
   email: string;
   name: string;
+  mobileNumber?: string;
   cafeNickname?: string;
   loyaltyPoints?: number;
   lifetimePoints?: number;
@@ -134,8 +135,4 @@ export type PointTransaction = {
     description: string;
     amount: number; // positive for earn, negative for redeem
     type: 'earn' | 'redeem';
-};
-
-export type MobileNumberLookup = {
-  userId: string;
 };

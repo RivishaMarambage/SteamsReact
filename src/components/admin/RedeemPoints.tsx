@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -113,7 +114,7 @@ export default function RedeemPoints() {
             <Input
               id="search-term"
               type="text"
-              placeholder="customer@example.com or 555-123-4567"
+              placeholder="customer@example.com or +94771234567"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               required

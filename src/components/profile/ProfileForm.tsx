@@ -34,6 +34,7 @@ const profileFormSchema = z.object({
   cafeNickname: z.string().optional(),
   email: z.string().email(),
   dateOfBirth: z.date().optional(),
+  mobileNumber: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -51,6 +52,7 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
       name: userProfile.name,
       cafeNickname: userProfile.cafeNickname || '',
       email: userProfile.email,
+      mobileNumber: userProfile.mobileNumber || '',
       dateOfBirth: userProfile.dateOfBirth ? new Date(userProfile.dateOfBirth) : undefined,
     },
     mode: "onChange",
@@ -146,6 +148,20 @@ export function ProfileForm({ userProfile }: { userProfile: UserProfile }) {
                       </FormItem>
                   )}
                   />
+                 <FormField
+                    control={form.control}
+                    name="mobileNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Mobile Number</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Your mobile number" {...field} readOnly disabled />
+                        </FormControl>
+                        <FormDescription>Your mobile number cannot be changed.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
                   <FormField
                     control={form.control}
                     name="dateOfBirth"

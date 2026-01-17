@@ -9,6 +9,7 @@
         "id": { "type": "string", "description": "User's unique ID (matches Auth UID)." },
         "email": { "type": "string", "format": "email", "description": "User's email address." },
         "name": { "type": "string", "description": "User's full name." },
+        "mobileNumber": { "type": "string", "description": "User's mobile phone number." },
         "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
         "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
         "lifetimePoints": { "type": "number", "description": "Total points accumulated over the user's lifetime, not reduced by redemptions." },
