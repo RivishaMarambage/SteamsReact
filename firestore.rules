@@ -75,7 +75,8 @@ service cloud.firestore {
       allow read, list, create: if request.auth != null && request.auth.uid == userId; // A user can see their own orders
       // A user can update their own order, and staff/admins can also update status.
       allow update: if (request.auth != null && request.auth.uid == userId) || 
-                      (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
       allow delete: if false; // Users should not be able to modify their past orders
     }
 
