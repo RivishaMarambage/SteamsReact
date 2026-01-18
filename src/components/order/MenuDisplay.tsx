@@ -331,11 +331,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
         toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
         return;
     }
-
-    if (orderType === 'Dine-in' && !tableNumber) {
-        toast({ variant: 'destructive', title: "Table Number Required", description: "Please enter your table number for dine-in orders."});
-        return;
-    }
     
     try {
         const batch = writeBatch(firestore);

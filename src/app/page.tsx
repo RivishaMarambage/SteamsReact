@@ -109,7 +109,7 @@ export default function LandingPage() {
       </main>
       <Footer />
        <Link
-        href="https://wa.me/94779979838"
+        href="https://wa.me/94740479838"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-8 right-8 z-50 h-16 w-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-colors"
