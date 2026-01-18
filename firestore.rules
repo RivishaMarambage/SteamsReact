@@ -30,7 +30,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow list: if isAdmin();
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow read: if isStaff() || (request.auth.uid == userId);
       // A user can create their own profile document. This is critical for sign-up.
       allow create: if request.auth != null && request.auth.uid == userId;
       // An owner, staff, or admin can update the document.
@@ -93,3 +93,4 @@ service cloud.firestore {
     }
   }
 }
+
