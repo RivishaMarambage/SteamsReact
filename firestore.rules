@@ -8,89 +8,65 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Safely reads the user's role from their profile in the /users collection.
-    // Returns null if the document or role does not exist.
-    function getUserRole() {
-      let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      if (exists(userDocPath) && 'role' in get(userDocPath).data) {
-        return get(userDocPath).data.role;
-      }
-      return null;
-    }
-
-    function isAdmin() {
-      let role = getUserRole();
-      return isSignedIn() && role == 'admin';
-    }
-
-    function isStaff() {
-      let role = getUserRole();
-      return isSignedIn() && (role == 'staff' || role == 'admin');
-    }
-
     match /users/{userId} {
-      allow list: if isAdmin();
-      allow read: if isStaff() || (request.auth.uid == userId);
-      // A user can create their own profile document. This is critical for sign-up.
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // An owner, staff, or admin can update the document.
-      allow update: if (request.auth != null && request.auth.uid == userId) || isStaff();
-      allow delete: if isAdmin();
+      allow list: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read: if (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']) || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+      allow delete: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /menu_items/{menuItemId} {
-      allow read: if true; // Menu is public
-      allow write: if isAdmin(); // Only admins can create, update, or delete menu items
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     match /addons/{addonId} {
-      allow read: if true; // Addons are public
-      allow write: if isAdmin(); // Only admins can manage addons
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     match /addon_categories/{addonCategoryId} {
-      allow read: if true; // Addon categories are public
-      allow write: if isAdmin(); // Only admins can manage addon categories
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /categories/{categoryId} {
-      allow read: if true; // Categories are public
-      allow write: if isAdmin(); // Only admins can manage categories
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     match /loyalty_levels/{loyaltyLevelId} {
-      allow read: if true; // Loyalty levels are public
-      allow write: if isAdmin(); // Only admins can manage loyalty levels
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // This is the root collection for all orders, used by staff and admins
     match /orders/{orderId} {
-        allow read, write: if isStaff(); // Staff/admins can read and update any order (e.g., to change status)
-        allow list: if isStaff(); // Staff/admins can list all orders for the management dashboard
-        allow create: if isSignedIn(); // A customer creates an order here
+        allow read, write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
+        allow list: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
+        allow create: if isSignedIn();
     }
 
-    // This is the customer's private view of their own orders
     match /users/{userId}/orders/{orderId} {
-      allow read, list, create: if request.auth != null && request.auth.uid == userId; // A user can see their own orders
-      // A user can update their own order, and staff/admins can also update status.
-      allow update: if (request.auth != null && request.auth.uid == userId) || 
-                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
-      allow delete: if false; // Users should not be able to modify their past orders
+      allow read, list, create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+      allow delete: if false;
     }
 
-    // A user's private history of point transactions
     match /users/{userId}/point_transactions/{transactionId} {
-      allow read, list: if (request.auth != null && request.auth.uid == userId) || isAdmin(); // User can read their own history, admins can read anyone's.
-      allow create: if (request.auth != null && request.auth.uid == userId) || isStaff(); // A user's actions (or staff on their behalf) create transactions.
-      allow update, delete: if false; // Transactions are immutable.
+      allow read, list: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+      allow update, delete: if false;
     }
 
     match /daily_offers/{offerId} {
-      allow read: if true; // Daily offers are public
-      allow write: if isAdmin(); // Only admins can create, update, or delete daily offers
+      allow read: if true;
+      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    match /mobile_numbers/{mobileNumber} {
+      allow read: if true;
+      allow create: if request.resource.data.userId == request.auth.uid;
     }
   }
 }
-
