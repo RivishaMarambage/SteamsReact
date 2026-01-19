@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -45,12 +46,20 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
   const userRole = userProfile?.role;
   const isLoading = isUserLoading || isProfileLoading;
 
+  const handleNavigate = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else {
+      setOpen(false);
+    }
+  };
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === href;
@@ -101,7 +110,7 @@ export default function AppSidebar() {
                 asChild
                 tooltip={item.label}
               >
-                <Link href={item.href}>
+                <Link href={item.href} onClick={handleNavigate}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
@@ -120,7 +129,7 @@ export default function AppSidebar() {
                     asChild
                     tooltip={item.label}
                   >
-                    <Link href={item.href}>
+                    <Link href={item.href} onClick={handleNavigate}>
                       <item.icon />
                       <span>{item.label}</span>
                     </Link>
