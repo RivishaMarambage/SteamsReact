@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info } from 'lucide-react';
+import { CalendarIcon, Info, Eye, EyeOff } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string().optional(),
   fullName: z.string().optional(),
   mobileNumber: z.string().optional(),
   countryCode: z.string().optional(),
@@ -43,7 +44,15 @@ const formSchema = z.object({
   rememberMe: z.boolean().default(false),
 });
 
-const customerSignupSchema = formSchema.extend({
+const genericSignupSchema = formSchema.extend({
+    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
+
+const customerSignupSchema = genericSignupSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
     countryCode: z.string(),
@@ -96,8 +105,21 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const auth = useAuth();
   const firestore = useFirestore();
   const [resetEmail, setResetEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const currentFormSchema = authType === 'signup' && role === 'customer' ? customerSignupSchema : formSchema;
+  const getSchema = () => {
+    if (authType === 'login') {
+      return formSchema;
+    }
+    // It's a signup
+    if (role === 'customer') {
+      return customerSignupSchema;
+    }
+    return genericSignupSchema; // For admin/staff signup
+  };
+
+  const currentFormSchema = getSchema();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
@@ -734,12 +756,67 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          className="pr-10"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {authType === 'signup' && (
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            className="pr-10"
+                            {...field}
+                          />
+                           <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
+                            onClick={() => setShowConfirmPassword((prev) => !prev)}
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               {authType === 'login' && role === 'customer' && (
                 <div className="flex items-center justify-between">
                     <FormField
