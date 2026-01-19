@@ -127,7 +127,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', privacyPolicy: false, rememberMe: false },
+    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, privacyPolicy: false, rememberMe: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -942,5 +942,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
 
     
