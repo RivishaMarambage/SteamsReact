@@ -52,8 +52,7 @@ const genericSignupSchema = formSchema.extend({
 });
 
 
-const customerSignupSchema = formSchema.extend({
-    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
+const customerSignupSchema = genericSignupSchema.extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
     countryCode: z.string(),
@@ -61,9 +60,6 @@ const customerSignupSchema = formSchema.extend({
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
     }),
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
 });
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -156,6 +152,138 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     ensureDemoUserExists();
   }, [auth, firestore, authType, demoAccount, role]);
 
+  const seedDatabase = async () => {
+    if (!firestore) return;
+
+    const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
+        { name: 'Coffee Classics', type: 'Beverages' },
+        { name: 'Specialty Lattes', type: 'Beverages' },
+        { name: 'Matcha & Tea', type: 'Beverages' },
+        { name: 'Pastries & Bakes', type: 'Food' },
+        { name: 'Savory Snacks', type: 'Food' },
+        { name: 'Lunch Specials', type: 'Food' },
+        { name: 'Custom Creations', type: 'Beverages' },
+    ];
+
+    const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
+        { name: 'Member', minimumPoints: 0 },
+        { name: 'Bronze', minimumPoints: 100 },
+        { name: 'Silver', minimumPoints: 500 },
+        { name: 'Gold', minimumPoints: 2000 },
+        { name: 'Platinum', minimumPoints: 5000 },
+    ]
+
+    const SEED_ADDON_CATEGORIES: Omit<AddonCategory, 'id'>[] = [
+        { name: 'Milk Options', description: 'Choose your preferred milk' },
+        { name: 'Syrups', description: 'Add a touch of sweetness' },
+        { name: 'Toppings', description: 'Finish your drink with a flourish' },
+    ];
+    
+    try {
+        const batch = writeBatch(firestore);
+
+        console.log("Seeding initial data...");
+
+        // Categories
+        let customCreationsCategoryId = '';
+        const categoriesRef = collection(firestore, 'categories');
+        const categoryPromises = SEED_CATEGORIES.map(category => {
+            const docRef = doc(categoriesRef);
+            if(category.name === 'Custom Creations') {
+                customCreationsCategoryId = docRef.id;
+            }
+            batch.set(docRef, category);
+        });
+
+        // Loyalty Levels
+        const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
+        SEED_LOYALTY_LEVELS.forEach(level => {
+            const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase());
+            batch.set(docRef, level);
+        });
+        
+         // Add-on Categories
+        const addonCategoriesRef = collection(firestore, 'addon_categories');
+        const addonCategoryRefs: Record<string, string> = {};
+        SEED_ADDON_CATEGORIES.forEach(category => {
+            const docRef = doc(addonCategoriesRef);
+            batch.set(docRef, category);
+            addonCategoryRefs[category.name] = docRef.id;
+        });
+
+        await batch.commit(); // Commit first batch to get IDs
+
+        const addonBatch = writeBatch(firestore);
+        const addonsRef = collection(firestore, 'addons');
+        
+        const SEED_ADDONS: Omit<Addon, 'id' | 'addonCategoryId'> & { categoryName: string }[] = [
+            { name: "Extra Espresso Shot", price: 100, categoryName: "Toppings" },
+            { name: "Almond Milk", price: 80, categoryName: "Milk Options" },
+            { name: "Oat Milk", price: 80, categoryName: "Milk Options" },
+            { name: "Soy Milk", price: 70, categoryName: "Milk Options" },
+            { name: "Whipped Cream", price: 50, categoryName: "Toppings" },
+            { name: "Caramel Drizzle", price: 60, categoryName: "Syrups" },
+            { name: "Chocolate Syrup", price: 60, categoryName: "Syrups" },
+        ];
+
+        // Add-ons, now with correct category IDs
+        SEED_ADDONS.forEach(addon => {
+            const categoryId = addonCategoryRefs[addon.categoryName];
+            if (categoryId) {
+                const docRef = doc(addonsRef);
+                const { categoryName, ...addonData } = addon;
+                addonBatch.set(docRef, { ...addonData, addonCategoryId: categoryId });
+            }
+        });
+        
+        // Custom Menu Items
+        if(customCreationsCategoryId) {
+            const menuItemsRef = collection(firestore, 'menu_items');
+            const coffeeBase: Omit<MenuItem, 'id'> = {
+                name: 'Custom Coffee Base',
+                description: 'Your own coffee creation.',
+                price: 250,
+                categoryId: customCreationsCategoryId,
+                isOutOfStock: false,
+                addonGroups: [
+                    { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
+                    { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                    { addonCategoryId: addonCategoryRefs['Toppings'], isRequired: false, minSelection: 0, maxSelection: 3 },
+                ]
+            };
+             const teaBase: Omit<MenuItem, 'id'> = {
+                name: 'Custom Tea Base',
+                description: 'Your own tea creation.',
+                price: 200,
+                categoryId: customCreationsCategoryId,
+                isOutOfStock: false,
+                addonGroups: [
+                    { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
+                    { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
+                ]
+            };
+            addonBatch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
+            addonBatch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
+        }
+
+        await addonBatch.commit();
+
+
+        console.log("Database seeded successfully.");
+    } catch (e: any) {
+        if (e instanceof FirestorePermissionError) {
+            errorEmitter.emit('permission-error', e);
+        } else {
+            console.error("Error seeding database: ", e);
+            toast({
+                variant: 'destructive',
+                title: 'Database Seeding Failed',
+                description: "Could not set up initial data. Please check Firestore rules.",
+            });
+        }
+    }
+  };
+
 
   const onSubmit = async (data: AuthFormValues) => {
     if (!auth || !firestore) {
@@ -173,6 +301,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             }
             
             const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
+
+            // 2. Seed database if it's the first admin user
+            if (role === 'admin') {
+                const usersRef = collection(firestore, "users");
+                const q = query(usersRef, where("role", "==", "admin"), limit(1));
+                const adminSnapshot = await getDocs(q);
+                if (adminSnapshot.empty) {
+                    await seedDatabase();
+                }
+            }
 
             // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -738,3 +876,4 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
 
     
+
