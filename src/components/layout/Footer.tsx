@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { Logo } from '../Logo';
-import { Github, Twitter, Instagram } from 'lucide-react';
+import { FaFacebook, FaInstagram, FaTiktok } from 'react-icons/fa';
 
 export default function Footer() {
   return (
@@ -32,9 +32,9 @@ export default function Footer() {
             <div>
                 <h4 className="font-semibold text-foreground mb-3 font-headline">Follow Us</h4>
                 <div className="flex space-x-4">
-                    <Link href="#" className="hover:text-primary"><Twitter /></Link>
-                    <Link href="#" className="hover:text-primary"><Instagram /></Link>
-                    <Link href="#" className="hover:text-primary"><Github /></Link>
+                    <Link href="#" className="hover:text-primary"><FaFacebook className="h-6 w-6" /></Link>
+                    <Link href="#" className="hover:text-primary"><FaInstagram className="h-6 w-6" /></Link>
+                    <Link href="#" className="hover:text-primary"><FaTiktok className="h-6 w-6" /></Link>
                 </div>
             </div>
           </div>
