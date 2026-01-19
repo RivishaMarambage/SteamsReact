@@ -52,7 +52,8 @@ const genericSignupSchema = formSchema.extend({
 });
 
 
-const customerSignupSchema = genericSignupSchema.extend({
+const customerSignupSchema = formSchema.extend({
+    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
     countryCode: z.string(),
@@ -60,6 +61,9 @@ const customerSignupSchema = genericSignupSchema.extend({
     privacyPolicy: z.literal(true, {
         errorMap: () => ({ message: "You must accept the privacy policy." }),
     }),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
 });
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -938,3 +942,5 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
+
+    
