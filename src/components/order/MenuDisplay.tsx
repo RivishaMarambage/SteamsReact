@@ -40,7 +40,7 @@ const WELCOME_OFFERS = [
 
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orderType, setOrderType] = useState<Order['orderType']>('Takeaway');
+  const [orderType, setOrderType] = useState<Order['orderType'] | null>(null);
   const [tableNumber, setTableNumber] = useState('');
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
@@ -53,6 +53,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+
+  const [isOrderTypeDialogOpen, setOrderTypeDialogOpen] = useState(true);
+  const [dialogStep, setDialogStep] = useState<'type' | 'table'>('type');
 
 
   const { toast } = useToast();
@@ -73,6 +76,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
+  const handleTypeSelect = (type: Order['orderType']) => {
+    setOrderType(type);
+    if (type === 'Dine-in') {
+        setDialogStep('table');
+    } else {
+        setOrderTypeDialogOpen(false);
+    }
+  };
+
+  const handleTableSelect = (table: string) => {
+      setTableNumber(table);
+      setOrderTypeDialogOpen(false);
+  };
+
 
   useEffect(() => {
     const checkVerification = async () => {
@@ -390,7 +408,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
             totalAmount: cartTotal,
             status: "Placed" as const,
             orderItems: orderItems,
-            orderType: orderType,
+            orderType: orderType!,
             pointsRedeemed: loyaltyDiscount,
             discountApplied: totalDiscount,
             serviceCharge: serviceCharge,
@@ -478,144 +496,161 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
 
   return (
     <>
-      <div className="mb-8">
-        <Card>
-            <CardHeader>
-                <CardTitle>Order Type</CardTitle>
-                <CardDescription>Select how you'd like to receive your order.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <RadioGroup value={orderType} onValueChange={(value: Order['orderType']) => setOrderType(value)} className="grid grid-cols-2 gap-4">
-                    <div>
-                        <RadioGroupItem value="Dine-in" id="dine-in" className="peer sr-only" />
-                        <Label htmlFor="dine-in" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                            <Utensils className="mb-2 h-6 w-6" />
-                            Dine-in
-                        </Label>
-                    </div>
-                     <div>
-                        <RadioGroupItem value="Takeaway" id="takeaway" className="peer sr-only" />
-                        <Label htmlFor="takeaway" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                            <ShoppingBag className="mb-2 h-6 w-6" />
-                            Takeaway
-                        </Label>
-                    </div>
-                </RadioGroup>
-                {orderType === 'Dine-in' && (
-                    <div className="mt-6">
-                        <Label className="text-lg font-semibold mb-4 block">Select Table Number</Label>
-                        <RadioGroup value={tableNumber} onValueChange={setTableNumber} className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                             {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                                <div key={num}>
-                                    <RadioGroupItem value={String(num)} id={`table-${num}`} className="peer sr-only" />
-                                    <Label htmlFor={`table-${num}`} className="flex h-12 w-full items-center justify-center rounded-md border-2 border-muted bg-popover text-lg font-semibold hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                        {num}
-                                    </Label>
-                                </div>
-                             ))}
-                        </RadioGroup>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue={categories?.[0]?.id} className="w-full">
-        <div className="flex justify-center mb-6 overflow-x-auto">
-          <TabsList>
-            {categories?.map(category => (
-              <TabsTrigger key={category.id} value={category.id}>{category.name}</TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        {categories?.map(subCategory => (
-          <TabsContent key={subCategory.id} value={subCategory.id}>
-             <div className="space-y-8">
-                <div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
-                        const today = new Date();
-                        const todayString = format(today, 'yyyy-MM-dd');
-                        
-                        const offer = dailyOffers.find(o => {
-                            if (!o.offerStartDate || !o.offerEndDate) return false;
-                            if (o.menuItemId !== item.id) return false;
-                            if (o.orderType !== orderType) return false;
-                            
-                            const isOfferActive = isWithinInterval(today, {
-                                start: parseISO(o.offerStartDate),
-                                end: parseISO(o.offerEndDate),
-                            });
-                           
-                            return isOfferActive;
-                        });
-
-                        const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
-                        
-                        const originalPrice = item.price;
-                        let displayPrice = originalPrice;
-                        let isOfferApplied = false;
-                        let appliedOfferId;
-                        
-                        if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
-                            const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
-                            if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
-                                if (offer.discountType === 'percentage') {
-                                    displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
-                                } else { // fixed
-                                    displayPrice = originalPrice - userTierDiscount;
-                                }
-                                isOfferApplied = true;
-                                appliedOfferId = offer.id;
-                            }
-                        }
-
-                        // Ensure price is not negative
-                        displayPrice = Math.max(0, displayPrice);
-
-                        return (
-                          <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300", item.isOutOfStock && "opacity-60")}>
-                             <div className="relative w-full h-40">
-                                <Image
-                                    src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
-                                    alt={item.name}
-                                    fill
-                                    className="object-cover"
-                                    data-ai-hint="food item"
-                                />
-                                {item.isOutOfStock && (
-                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                        <Badge variant="destructive">Out of Stock</Badge>
-                                    </div>
-                                )}
-                                {isOfferApplied && !item.isOutOfStock && (
-                                    <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
-                                    <Tag className="h-3 w-3"/> Daily Special
-                                    </Badge>
-                                )}
-                            </div>
-                            <CardContent className="p-4 flex-grow">
-                              <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
-                              <CardDescription>{item.description}</CardDescription>
-                            </CardContent>
-                            <CardFooter className="p-4 flex justify-between items-center">
-                              <div className="font-bold text-lg text-primary">
-                                {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
-                                LKR {displayPrice.toFixed(2)}
-                              </div>
-                              <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
-                                {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
-                              </Button>
-                            </CardFooter>
-                          </Card>
-                        );
-                      })}
+      <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" hideCloseButton>
+           {dialogStep === 'type' && (
+             <>
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl text-center">How will you be joining us?</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                    <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
+                        <Utensils className="h-8 w-8"/>
+                        <span className="text-lg">Dine-in</span>
+                    </Button>
+                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Takeaway')}>
+                        <ShoppingBag className="h-8 w-8"/>
+                        <span className="text-lg">Takeaway</span>
+                    </Button>
+                </div>
+             </>
+           )}
+           {dialogStep === 'table' && (
+               <>
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl text-center">Please select your table number</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                            <Button key={num} variant="outline" className="h-16 text-lg" onClick={() => handleTableSelect(String(num))}>
+                                {num}
+                            </Button>
+                        ))}
                     </div>
                 </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogStep('type')}>Back</Button>
+                </DialogFooter>
+               </>
+           )}
+        </DialogContent>
+      </Dialog>
+      
+      {!isOrderTypeDialogOpen && (
+        <>
+            <div className="mb-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Your Order Details</CardTitle>
+                        <CardDescription>
+                            You are placing a <span className="font-semibold">{orderType}</span> order.
+                            {orderType === 'Dine-in' && tableNumber && (
+                                <> You are seated at <span className="font-semibold">Table #{tableNumber}</span>.</>
+                            )}
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
             </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+
+            <Tabs defaultValue={categories?.[0]?.id} className="w-full">
+                <div className="flex justify-center mb-6 overflow-x-auto">
+                <TabsList>
+                    {categories?.map(category => (
+                    <TabsTrigger key={category.id} value={category.id}>{category.name}</TabsTrigger>
+                    ))}
+                </TabsList>
+                </div>
+                {categories?.map(subCategory => (
+                <TabsContent key={subCategory.id} value={subCategory.id}>
+                    <div className="space-y-8">
+                        <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
+                                const today = new Date();
+                                const todayString = format(today, 'yyyy-MM-dd');
+                                
+                                const offer = dailyOffers.find(o => {
+                                    if (!o.offerStartDate || !o.offerEndDate) return false;
+                                    if (o.menuItemId !== item.id) return false;
+                                    if (o.orderType !== orderType) return false;
+                                    
+                                    const isOfferActive = isWithinInterval(today, {
+                                        start: parseISO(o.offerStartDate),
+                                        end: parseISO(o.offerEndDate),
+                                    });
+                                
+                                    return isOfferActive;
+                                });
+
+                                const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
+                                
+                                const originalPrice = item.price;
+                                let displayPrice = originalPrice;
+                                let isOfferApplied = false;
+                                let appliedOfferId;
+                                
+                                if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
+                                    const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
+                                    if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
+                                        if (offer.discountType === 'percentage') {
+                                            displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
+                                        } else { // fixed
+                                            displayPrice = originalPrice - userTierDiscount;
+                                        }
+                                        isOfferApplied = true;
+                                        appliedOfferId = offer.id;
+                                    }
+                                }
+
+                                // Ensure price is not negative
+                                displayPrice = Math.max(0, displayPrice);
+
+                                return (
+                                <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300", item.isOutOfStock && "opacity-60")}>
+                                    <div className="relative w-full h-40">
+                                        <Image
+                                            src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
+                                            alt={item.name}
+                                            fill
+                                            className="object-cover"
+                                            data-ai-hint="food item"
+                                        />
+                                        {item.isOutOfStock && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Badge variant="destructive">Out of Stock</Badge>
+                                            </div>
+                                        )}
+                                        {isOfferApplied && !item.isOutOfStock && (
+                                            <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
+                                            <Tag className="h-3 w-3"/> Daily Special
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <CardContent className="p-4 flex-grow">
+                                    <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
+                                    <CardDescription>{item.description}</CardDescription>
+                                    </CardContent>
+                                    <CardFooter className="p-4 flex justify-between items-center">
+                                    <div className="font-bold text-lg text-primary">
+                                        {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
+                                        LKR {displayPrice.toFixed(2)}
+                                    </div>
+                                    <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
+                                        {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
+                                    </Button>
+                                    </CardFooter>
+                                </Card>
+                                );
+                            })}
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+                ))}
+            </Tabs>
+        </>
+      )}
 
       <Sheet>
         <SheetTrigger asChild>
@@ -846,3 +881,4 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     
 
     
+
