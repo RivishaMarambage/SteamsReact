@@ -32,9 +32,9 @@ export default function Footer() {
             <div>
                 <h4 className="font-semibold text-foreground mb-3 font-headline">Follow Us</h4>
                 <div className="flex space-x-4">
-                    <Link href="#" className="hover:text-primary"><FaFacebook className="h-6 w-6" /></Link>
-                    <Link href="#" className="hover:text-primary"><FaInstagram className="h-6 w-6" /></Link>
-                    <Link href="#" className="hover:text-primary"><FaTiktok className="h-6 w-6" /></Link>
+                    <Link href="#" className="transition-colors hover:text-blue-600"><FaFacebook className="h-6 w-6" /></Link>
+                    <Link href="#" className="transition-colors hover:text-purple-600"><FaInstagram className="h-6 w-6" /></Link>
+                    <Link href="#" className="transition-colors hover:text-black dark:hover:text-white"><FaTiktok className="h-6 w-6" /></Link>
                 </div>
             </div>
           </div>
