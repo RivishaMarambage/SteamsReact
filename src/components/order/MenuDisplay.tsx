@@ -217,8 +217,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   };
 
   const addToCart = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
+    const category = categories?.find(c => c.id === item.categoryId);
+    const isBeverage = category?.type === 'Beverages';
+
     // If no addon groups, add directly to cart
     if(!item.addonGroups || item.addonGroups.length === 0) {
+        if (isBeverage) {
+            const isInCart = cart.some(cartItem => cartItem.menuItem.id === item.id);
+            if (isInCart) {
+                toast({
+                    title: "Item already in order",
+                    description: "Beverages can only be ordered in single quantities.",
+                });
+                return;
+            }
+        }
+        
         const cartId = `${item.id}-${Date.now()}`;
         const newCartItem: CartItem = {
             id: cartId,
@@ -684,37 +698,41 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 </div>
             ) : (
               <div className="space-y-4">
-                {cart.map(item => (
-                  <div key={item.id} className="flex items-start gap-4">
-                    <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
-                        <Image
-                            src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
-                            alt={item.menuItem.name}
-                            fill
-                            className="object-cover"
-                            data-ai-hint="food item"
-                        />
+                {cart.map(item => {
+                  const category = categories?.find(c => c.id === item.menuItem.categoryId);
+                  const isBeverage = category?.type === 'Beverages';
+                  return (
+                    <div key={item.id} className="flex items-start gap-4">
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
+                          <Image
+                              src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                              alt={item.menuItem.name}
+                              fill
+                              className="object-cover"
+                              data-ai-hint="food item"
+                          />
+                      </div>
+                      <div className="flex-grow grid gap-1">
+                        <p className="font-semibold leading-tight">{item.menuItem.name}</p>
+                        {item.addons.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                              {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
+                          </div>
+                        )}
+                        <p className="text-sm text-muted-foreground">LKR {item.totalPrice.toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
+                          {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
+                        </Button>
+                        <span className="w-6 text-center font-medium">{item.quantity}</span>
+                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex-grow grid gap-1">
-                      <p className="font-semibold leading-tight">{item.menuItem.name}</p>
-                       {item.addons.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                            {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
-                        </div>
-                      )}
-                      <p className="text-sm text-muted-foreground">LKR {item.totalPrice.toFixed(2)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
-                        {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
-                      </Button>
-                      <span className="w-6 text-center font-medium">{item.quantity}</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, 1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -888,5 +906,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     
 
     
+
 
 
