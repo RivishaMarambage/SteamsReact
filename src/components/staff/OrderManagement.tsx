@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AudioNotifier from '../AudioNotifier';
 import { serverTimestamp } from 'firebase/firestore';
 
@@ -26,7 +26,24 @@ export default function OrderManagement() {
     return query(collection(firestore, 'orders'), orderBy('orderDate', 'desc'));
   }, [firestore]);
   
-  const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+  const { data: orders, isLoading: ordersLoading } = useCollection<Order>(ordersQuery);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+
+  const isLoading = ordersLoading || usersLoading;
+
+  const customerNames = useMemo(() => {
+    if (!users) return {};
+    return users.reduce((acc, user) => {
+        acc[user.id] = user.name;
+        return acc;
+    }, {} as Record<string, string>);
+  }, [users]);
+
 
   useEffect(() => {
     if (!ordersQuery) return;
@@ -214,6 +231,7 @@ export default function OrderManagement() {
               <TableRow>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Type / Table</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
@@ -226,6 +244,7 @@ export default function OrderManagement() {
                 <TableRow key={order.id} className={order.status === 'Completed' || order.status === 'Rejected' ? 'opacity-60' : ''}>
                   <TableCell className="font-medium">{order.id.substring(0, 7).toUpperCase()}</TableCell>
                   <TableCell>{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>{customerNames[order.customerId] || order.customerId.substring(0,7)}</TableCell>
                   <TableCell>
                       <div className="flex flex-col gap-1">
                           <Badge variant={getOrderTypeVariant(order.orderType)}>{order.orderType || 'N/A'}</Badge>
