@@ -44,6 +44,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   const [tableNumber, setTableNumber] = useState('');
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
+  const [activeTab, setActiveTab] = useState<string | undefined>();
   
   const router = useRouter();
   const pathname = usePathname();
@@ -101,6 +102,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     };
     checkVerification();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!activeTab && categories && categories.length > 0) {
+      setActiveTab(categories[0].id);
+    }
+  }, [categories, activeTab]);
 
   const canRedeemPoints = useMemo(() => {
     if (!userProfile || !loyaltyLevels) return false;
@@ -553,7 +560,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 </Card>
             </div>
 
-            <Tabs defaultValue={categories?.[0]?.id} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex justify-center mb-6 overflow-x-auto">
                 <TabsList>
                     {categories?.map(category => (
@@ -881,4 +888,5 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     
 
     
+
 
