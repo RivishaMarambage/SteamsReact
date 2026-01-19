@@ -170,6 +170,8 @@ export default function OrderManagement() {
     switch (status) {
       case 'Placed':
         return 'secondary';
+      case 'Accepting':
+        return 'outline';
       case 'Processing':
         return 'outline';
       case 'Ready for Pickup':
@@ -270,30 +272,31 @@ export default function OrderManagement() {
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                      {order.status !== 'Completed' && order.status !== 'Rejected' && (
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost">
-                                  <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order, 'Processing')}>
-                                  Mark as Processing
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order, 'Ready for Pickup')}>
-                                  Mark as Ready
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order, 'Completed')}>
-                                  Mark as Completed
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange(order, 'Rejected')}>
-                                  Reject Order
-                              </DropdownMenuItem>
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                      )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" disabled={order.status === 'Completed' || order.status === 'Rejected'}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {order.status === 'Placed' && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleStatusChange(order, 'Accepting')}>Accept Order</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange(order, 'Rejected')}>Reject Order</DropdownMenuItem>
+                          </>
+                        )}
+                        {order.status === 'Accepting' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(order, 'Processing')}>Mark as Processing</DropdownMenuItem>
+                        )}
+                        {order.status === 'Processing' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(order, 'Ready for Pickup')}>Mark as Ready for Pickup</DropdownMenuItem>
+                        )}
+                        {order.status === 'Ready for Pickup' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(order, 'Completed')}>Mark as Completed</DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

@@ -86,7 +86,7 @@ export type Order = {
     customerId: string;
     orderDate: Timestamp;
     totalAmount: number;
-    status: 'Placed' | 'Processing' | 'Ready for Pickup' | 'Completed' | 'Rejected';
+    status: 'Placed' | 'Accepting' | 'Processing' | 'Ready for Pickup' | 'Completed' | 'Rejected';
     orderItems: OrderItem[];
     orderType: 'Dine-in' | 'Takeaway';
     tableNumber?: string;
