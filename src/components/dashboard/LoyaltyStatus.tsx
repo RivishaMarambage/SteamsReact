@@ -8,6 +8,7 @@ import { collection, query, orderBy } from "firebase/firestore";
 import type { UserProfile, LoyaltyLevel } from "@/lib/types";
 import { Shield, Gem, Crown, Minus, Star, Trophy } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
+import { useMemo } from "react";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
     "member": Star,
@@ -27,7 +28,13 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
     return null;
   }, [firestore]);
 
-  const { data: loyaltyTiers, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+  const { data: loyaltyTiersFromDB, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+  
+  const loyaltyTiers = useMemo(() => {
+    if (!loyaltyTiersFromDB) return null;
+    // Filter out any tier named "Standard" to handle stale data in the database.
+    return loyaltyTiersFromDB.filter(tier => tier.name.toLowerCase() !== 'standard');
+  }, [loyaltyTiersFromDB]);
 
   if (isLoading || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
