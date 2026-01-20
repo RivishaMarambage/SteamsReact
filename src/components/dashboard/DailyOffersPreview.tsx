@@ -59,6 +59,11 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             const userLoyaltyId = userProfile.loyaltyLevelId;
             const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId] || 0;
             
+            // Only include the offer if there's a specific discount for the user's tier.
+            if (userTierDiscount <= 0) {
+                return null;
+            }
+
             const originalPrice = menuItem.price;
             let displayPrice;
             if (offer.discountType === 'percentage') {
@@ -73,7 +78,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                 menuItem,
                 originalPrice,
                 displayPrice,
-                hasDiscount: userTierDiscount > 0,
+                hasDiscount: true, // Will always be true because of the filter above
             };
         }).filter((o): o is NonNullable<typeof o> => o !== null);
     }, [dailyOffers, menuItems, userProfile, today, todayString]);
@@ -109,18 +114,11 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                         <div key={offer.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-background rounded-lg">
                            <div>
                                 <h4 className="font-semibold">{offer.title} - {offer.menuItem.name}</h4>
-                                {offer.hasDiscount ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Your price today: 
-                                        <span className="text-sm font-normal text-muted-foreground line-through mx-2">LKR {offer.originalPrice.toFixed(2)}</span>
-                                        <span className="font-bold text-primary">LKR {offer.displayPrice.toFixed(2)}</span>
-                                    </p>
-                                ) : (
-                                     <p className="text-sm text-muted-foreground">
-                                        Standard price: 
-                                        <span className="font-bold text-primary ml-1">LKR {offer.originalPrice.toFixed(2)}</span>
-                                    </p>
-                                )}
+                                <p className="text-sm text-muted-foreground">
+                                    Your price today: 
+                                    <span className="text-sm font-normal text-muted-foreground line-through mx-2">LKR {offer.originalPrice.toFixed(2)}</span>
+                                    <span className="font-bold text-primary">LKR {offer.displayPrice.toFixed(2)}</span>
+                                </p>
                                 <p className="text-xs text-muted-foreground capitalize">Valid for {offer.orderType} orders.</p>
                            </div>
                            <Button asChild>
