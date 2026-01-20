@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -56,11 +57,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             if (!menuItem) return null;
 
             const userLoyaltyId = userProfile.loyaltyLevelId;
-            const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId];
-            
-            if (typeof userTierDiscount !== 'number') {
-                return null;
-            }
+            const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId] || 0;
             
             const originalPrice = menuItem.price;
             let displayPrice;
@@ -121,13 +118,13 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                                 ) : (
                                      <p className="text-sm text-muted-foreground">
                                         Standard price: 
-                                        <span className="font-bold text-primary">LKR {offer.originalPrice.toFixed(2)}</span>
+                                        <span className="font-bold text-primary ml-1">LKR {offer.originalPrice.toFixed(2)}</span>
                                     </p>
                                 )}
                                 <p className="text-xs text-muted-foreground capitalize">Valid for {offer.orderType} orders.</p>
                            </div>
                            <Button asChild>
-                                <Link href="/dashboard/order">Order Now</Link>
+                                <Link href={`/dashboard/order?addOffer=${offer.id}`}>Order Now</Link>
                            </Button>
                         </div>
                     )

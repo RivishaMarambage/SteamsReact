@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import MenuDisplay from "@/components/order/MenuDisplay";
@@ -23,6 +24,7 @@ function OrderPageContent() {
 
   const searchParams = useSearchParams();
   const freebieToClaim = searchParams.get('claimFreebie');
+  const offerToClaim = searchParams.get('addOffer');
 
   const isLoading = menuLoading || offersLoading;
 
@@ -52,7 +54,7 @@ function OrderPageContent() {
         <h1 className="text-3xl font-bold font-headline">Place an Order</h1>
         <p className="text-muted-foreground">Select your favorites and we'll have them ready for you.</p>
       </div>
-      <MenuDisplay menuItems={menuItems || []} dailyOffers={dailyOffers || []} freebieToClaim={freebieToClaim} />
+      <MenuDisplay menuItems={menuItems || []} dailyOffers={dailyOffers || []} freebieToClaim={freebieToClaim} offerToClaim={offerToClaim} />
     </div>
   );
 }

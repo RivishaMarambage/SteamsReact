@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -29,6 +29,7 @@ interface MenuDisplayProps {
   menuItems: MenuItem[];
   dailyOffers: DailyOffer[];
   freebieToClaim: string | null;
+  offerToClaim: string | null;
 }
 
 const WELCOME_OFFERS = [
@@ -58,7 +59,7 @@ const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: num
 };
 
 
-export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: MenuDisplayProps) {
+export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, offerToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType'] | null>(null);
   const [tableNumber, setTableNumber] = useState('');
@@ -68,6 +69,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
   
   const router = useRouter();
   const pathname = usePathname();
+  const processedFreebieIdRef = useRef<string | null>(null);
+  const processedOfferIdRef = useRef<string | null>(null);
 
   const [isCustomizationOpen, setCustomizationOpen] = useState(false);
   const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
@@ -191,12 +194,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     return addonCategories?.find(c => c.id === categoryId)?.name;
   }
   
-  const handleOpenCustomization = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
+  const handleOpenCustomization = useCallback((item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
     setCustomizingItem({menuItem: item, displayPrice, appliedDailyOfferId});
     setSelectedAddons([]);
     setValidationErrors({});
     setCustomizationOpen(true);
-  }
+  }, []);
 
   const handleAddonToggle = (addon: Addon) => {
     setSelectedAddons(prev => {
@@ -271,51 +274,51 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     setSelectedAddons([]);
   };
 
-  const addToCart = (item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
+  const addToCart = useCallback((item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
     const category = categories?.find(c => c.id === item.categoryId);
     const isBeverage = category?.type === 'Beverages';
 
     // If no addon groups, add directly to cart
     if(!item.addonGroups || item.addonGroups.length === 0) {
-        if (isBeverage) {
-            const isInCart = cart.some(cartItem => cartItem.menuItem.id === item.id);
-            if (isInCart) {
-                toast({
-                    title: "Item already in order",
-                    description: "Beverages can only be ordered in single quantities.",
-                });
-                return;
+        setCart(prevCart => {
+            if (isBeverage) {
+                const isInCart = prevCart.some(cartItem => cartItem.menuItem.id === item.id);
+                if (isInCart) {
+                    toast({
+                        title: "Item already in order",
+                        description: "Beverages can only be ordered in single quantities.",
+                    });
+                    return prevCart;
+                }
             }
-        }
-        
-        const cartId = `${item.id}-${Date.now()}`;
-        const newCartItem: CartItem = {
-            id: cartId,
-            menuItem: item,
-            addons: [],
-            quantity: 1,
-            totalPrice: displayPrice,
-            appliedDailyOfferId: appliedDailyOfferId,
-        };
-        setCart(prev => [...prev, newCartItem]);
-        toast({
-            title: "Added to order",
-            description: `${item.name} is now in your cart.`,
+            
+            const cartId = `${item.id}-${Date.now()}`;
+            const newCartItem: CartItem = {
+                id: cartId,
+                menuItem: item,
+                addons: [],
+                quantity: 1,
+                totalPrice: displayPrice,
+                appliedDailyOfferId: appliedDailyOfferId,
+            };
+            toast({
+                title: "Added to order",
+                description: `${item.name} is now in your cart.`,
+            });
+            return [...prevCart, newCartItem];
         });
         return;
     }
     // Otherwise, open customization dialog
     handleOpenCustomization(item, displayPrice, appliedDailyOfferId);
-  };
+  }, [categories, toast, handleOpenCustomization]);
 
 
   useEffect(() => {
-    if (freebieToClaim && menuItems.length > 0 && userProfile && !isProfileLoading) {
+    if (freebieToClaim && freebieToClaim !== processedFreebieIdRef.current && menuItems.length > 0 && userProfile && !isProfileLoading) {
+        processedFreebieIdRef.current = freebieToClaim;
         const freebieInProfile = userProfile.birthdayFreebieMenuItemIds?.includes(freebieToClaim);
         if (!freebieInProfile) return;
-
-        const alreadyInCart = cart.some(item => item.menuItem.id === freebieToClaim && item.totalPrice === 0);
-        if (alreadyInCart) return;
         
         const freebieItem = menuItems.find(item => item.id === freebieToClaim);
         if (freebieItem) {
@@ -335,9 +338,41 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
                 title: "Birthday Reward Added!",
                 description: `Your free ${freebieItem.name} has been added to your cart.`,
             });
+             const params = new URLSearchParams(window.location.search);
+            params.delete('claimFreebie');
+            router.replace(`${pathname}?${params.toString()}`);
         }
     }
-  }, [freebieToClaim, menuItems, userProfile, isProfileLoading, cart, userDocRef]);
+  }, [freebieToClaim, menuItems, userProfile, isProfileLoading, userDocRef, router, pathname]);
+
+  useEffect(() => {
+    if (offerToClaim && offerToClaim !== processedOfferIdRef.current && menuItems.length > 0 && dailyOffers.length > 0 && userProfile && !isProfileLoading) {
+        processedOfferIdRef.current = offerToClaim;
+        const offer = dailyOffers.find(o => o.id === offerToClaim);
+        if (!offer) return;
+
+        const menuItem = menuItems.find(item => item.id === offer.menuItemId);
+        if (!menuItem) return;
+
+        const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
+        
+        let displayPrice = menuItem.price;
+        if (userTierDiscount > 0) {
+            if (offer.discountType === 'percentage') {
+                displayPrice = menuItem.price - (menuItem.price * userTierDiscount / 100);
+            } else { // fixed
+                displayPrice = menuItem.price - userTierDiscount;
+            }
+        }
+        displayPrice = Math.max(0, displayPrice);
+
+        addToCart(menuItem, displayPrice, offer.id);
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete('addOffer');
+        router.replace(`${pathname}?${params.toString()}`);
+    }
+  }, [offerToClaim, menuItems, dailyOffers, userProfile, isProfileLoading, addToCart, router, pathname]);
 
   const updateQuantity = (cartItemId: string, amount: number) => {
     setCart(prevCart => {
@@ -989,11 +1024,3 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim }: 
     </>
   );
 }
-
-    
-
-    
-
-
-
-
