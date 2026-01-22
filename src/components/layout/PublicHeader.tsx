@@ -16,7 +16,7 @@ export default function PublicHeader() {
           <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
           <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About</Link>
           <Link href="/rewards" className="text-sm font-medium hover:underline underline-offset-4">Rewards</Link>
-          <Link href="/news" className="text-sm font-medium hover:underline underline-offset-4">News</Link>
+          <Link href="/updates" className="text-sm font-medium hover:underline underline-offset-4">Updates</Link>
           <Dialog>
             <DialogTrigger asChild>
               <button className="text-sm font-medium hover:underline underline-offset-4">Menu</button>

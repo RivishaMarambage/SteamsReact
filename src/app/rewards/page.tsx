@@ -15,10 +15,10 @@ const tiers = [
 
 export default function RewardsPage() {
   return (
-    <PublicPageLayout title="Steamsburry Rewards">
+    <PublicPageLayout >
       <div className="space-y-12">
         <section className="text-center">
-            <h2 className="text-3xl font-bold font-headline">Join the Steamsburry Family</h2>
+            <h2 className="text-3xl font-bold font-headline">Join the Steamsbury Club</h2>
             <p className="mt-4 max-w-3xl mx-auto text-lg text-muted-foreground">
                 Our loyalty program is designed to give back to our amazing community. Earn points on every purchase, unlock exclusive rewards, and enjoy special treats on us. It's our way of saying thank you!
             </p>
