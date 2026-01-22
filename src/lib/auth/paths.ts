@@ -1,3 +1,4 @@
+
 export const getDashboardPathForRole = (role?: string) => {
   switch (role) {
     case 'admin':
@@ -12,4 +13,4 @@ export const getDashboardPathForRole = (role?: string) => {
   }
 };
 
-export const PUBLIC_PATHS = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy'];
+export const PUBLIC_PATHS = ['/', '/login/customer', '/login/staff', '/login/admin', '/signup/customer', '/signup/admin', '/privacy', '/about', '/rewards', '/updates', '/offers'];

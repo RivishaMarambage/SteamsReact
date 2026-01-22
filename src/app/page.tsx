@@ -99,7 +99,7 @@ export default function LandingPage() {
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="/dashboard/order">Our Offers</Link>
+                <Link href="/offers">Our Offers</Link>
               </Button>
 
             </div>
