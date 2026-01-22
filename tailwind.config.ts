@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['"Inter"', 'sans-serif'],
-        headline: ['"Poppins"', 'sans-serif'],
+        body: ['"Montserrat"', 'sans-serif'],
+        headline: ['"Playfair Display"', 'serif'],
         code: ['monospace'],
       },
       colors: {
@@ -72,6 +72,8 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        brass: 'hsl(var(--brass))',
+        charcoal: 'hsl(var(--charcoal))',
       },
       borderRadius: {
         lg: 'var(--radius)',
