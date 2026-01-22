@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,7 +39,7 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#211811] px-4 text-primary-foreground md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <div className="hidden md:block">
@@ -49,7 +50,7 @@ export default function AppHeader() {
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-sidebar-accent">
               <Avatar className="h-10 w-10">
                 {user && <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.displayName || user.email || ''} />}
                 <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
