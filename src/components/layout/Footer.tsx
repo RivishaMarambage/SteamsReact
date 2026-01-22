@@ -18,9 +18,9 @@ export default function Footer() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/" className="hover:text-accent">Home</Link></li>
                 <li><Link href="/menu" className="hover:text-accent">Menu</Link></li>
+                <li><Link href="/updates" className="hover:text-accent">Updates</Link></li>
                 <li><Link href="/rewards" className="hover:text-accent">Rewards</Link></li>
                 <li><Link href="/offers" className="hover:text-accent">Offers</Link></li>
-                <li><Link href="/updates" className="hover:text-accent">Updates</Link></li>
                 <li><Link href="/about" className="hover:text-accent">About Us</Link></li>
               </ul>
             </div>

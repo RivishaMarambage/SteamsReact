@@ -12,9 +12,9 @@ export default function PublicHeader() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/menu", label: "Menu" },
+    { href: "/updates", label: "Updates" },
     { href: "/rewards", label: "Rewards" },
     { href: "/offers", label: "Offers" },
-    { href: "/updates", label: "Updates" },
     { href: "/about", label: "About Us" },
   ];
 
