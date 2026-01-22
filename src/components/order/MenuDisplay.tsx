@@ -297,6 +297,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         const offer = dailyOffers.find(o => o.id === offerToClaim);
         if (!offer) return;
 
+        if (offer.orderType !== orderType) {
+            toast({
+                variant: "destructive",
+                title: "Offer Not Applicable",
+                description: `This offer is only valid for ${offer.orderType} orders. You have selected a ${orderType} order.`,
+            });
+            const params = new URLSearchParams(window.location.search);
+            params.delete('addOffer');
+            router.replace(`${pathname}?${params.toString()}`);
+            return;
+        }
+
         const menuItem = menuItems.find(item => item.id === offer.menuItemId);
         if (!menuItem) return;
 
@@ -318,7 +330,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         params.delete('addOffer');
         router.replace(`${pathname}?${params.toString()}`);
     }
-  }, [offerToClaim, menuItems, dailyOffers, userProfile, isProfileLoading, addToCart, router, pathname]);
+  }, [offerToClaim, menuItems, dailyOffers, userProfile, isProfileLoading, addToCart, router, pathname, orderType, toast]);
 
   const updateQuantity = (cartItemId: string, amount: number) => {
     setCart(prevCart => {

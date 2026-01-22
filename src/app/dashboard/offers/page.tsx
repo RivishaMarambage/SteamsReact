@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
@@ -153,10 +154,13 @@ function OffersPageContent() {
                                                             data-ai-hint="food item"
                                                         />
                                                         <div className="flex-1">
-                                                            <Badge variant={userProfile.loyaltyLevelId === level.id ? 'default' : 'secondary'}>
-                                                                {discountText}
-                                                            </Badge>
-                                                            <h4 className="font-semibold mt-1">{offer.title}</h4>
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <Badge variant={userProfile.loyaltyLevelId === level.id ? 'default' : 'secondary'}>
+                                                                    {discountText}
+                                                                </Badge>
+                                                                <Badge variant="outline" className="capitalize">{offer.orderType}</Badge>
+                                                            </div>
+                                                            <h4 className="font-semibold">{offer.title}</h4>
                                                             <p className="text-sm text-muted-foreground">{menuItem.name}</p>
                                                         </div>
                                                     </CardHeader>
