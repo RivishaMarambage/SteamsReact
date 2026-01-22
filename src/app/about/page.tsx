@@ -1,13 +1,20 @@
 'use client';
 import Image from "next/image";
-import { Award, Users, Check, Diamond } from "lucide-react";
+import { Award, Users, Check, Diamond, FileText } from "lucide-react";
 import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 export default function AboutPage() {
+  const [subject, setSubject] = useState('General Inquiries');
 
   const aboutMainImage = PlaceHolderImages.find(p => p.id === 'about-main');
   const earlyDaysImage = PlaceHolderImages.find(p => p.id === 'about-early-days');
@@ -181,6 +188,90 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Contact Us Section */}
+        <section className="text-center">
+            <h2 className="text-4xl font-bold font-headline">Contact & Location</h2>
+            <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+                Get in touch with us for any inquiries or just to say hello.
+            </p>
+             <div className="grid md:grid-cols-2 gap-12 mt-12 text-left">
+                <div className="space-y-6">
+                    <p className="text-lg text-muted-foreground">
+                        We'd love to hear from you! Whether you have a question about our menu, a suggestion, or want to discuss opportunities, feel free to reach out.
+                    </p>
+                    <div className="space-y-4">
+                        <div>
+                        <h3 className="text-xl font-semibold">Our Address</h3>
+                        <p className="text-muted-foreground">123 Coffee Lane, Colombo, Sri Lanka</p>
+                        </div>
+                        <div>
+                        <h3 className="text-xl font-semibold">Opening Hours</h3>
+                        <p className="text-muted-foreground">Monday - Friday: 7:00 AM - 7:00 PM</p>
+                        <p className="text-muted-foreground">Saturday - Sunday: 8:00 AM - 6:00 PM</p>
+                        </div>
+                        <div>
+                        <h3 className="text-xl font-semibold">Email</h3>
+                        <p className="text-muted-foreground">hello@steamsburry.com</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                <Card className="shadow-lg">
+                    <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Send us a Message</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="first-name">First Name</Label>
+                            <Input id="first-name" placeholder="John" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="last-name">Last Name</Label>
+                            <Input id="last-name" placeholder="Doe" />
+                        </div>
+                        </div>
+                        <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="john@example.com" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="subject">Subject</Label>
+                            <Select onValueChange={setSubject} defaultValue={subject}>
+                                <SelectTrigger id="subject">
+                                    <SelectValue placeholder="Select a subject" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="General Inquiries">General Inquiries</SelectItem>
+                                    <SelectItem value="Job Opportunities/Career">Job Opportunities/Career</SelectItem>
+                                    <SelectItem value="Private Events">Private Events</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {subject === 'Job Opportunities/Career' && (
+                            <div className="space-y-2 rounded-md border border-dashed p-4">
+                                <Label htmlFor="cv" className="flex items-center gap-2 text-muted-foreground">
+                                    <FileText className="h-4 w-4" />
+                                    Upload your CV (PDF only)
+                                </Label>
+                                <Input id="cv" type="file" accept=".pdf" />
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                        <Label htmlFor="message">Message</Label>
+                        <Textarea id="message" placeholder="Your message..." />
+                        </div>
+                        <Button type="submit">Send Message</Button>
+                    </form>
+                    </CardContent>
+                </Card>
+                </div>
+            </div>
         </section>
 
         {/* CTA Section */}
