@@ -4,32 +4,42 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function PublicHeader() {
+  const pathname = usePathname();
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/menu", label: "Menu" },
+    { href: "/rewards", label: "Rewards" },
+    { href: "/offers", label: "Offers" },
+    { href: "/updates", label: "Updates" },
+    { href: "/about", label: "About Us" },
+  ];
+
   return (
-    <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b">
-        <Logo />
+    <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-foreground text-primary-foreground">
+        <Logo className="text-primary-foreground" />
         <nav className="hidden lg:flex gap-6">
-          <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
-          <Link href="/menu" className="text-sm font-medium hover:underline underline-offset-4">Menu</Link>
-          <Link href="/rewards" className="text-sm font-medium hover:underline underline-offset-4">Rewards</Link>
-          <Link href="/offers" className="text-sm font-medium hover:underline underline-offset-4">Offers</Link>
-          <Link href="/updates" className="text-sm font-medium hover:underline underline-offset-4">Updates</Link>
-          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About Us</Link>
+          {navLinks.map(link => (
+            <Link 
+              key={link.href} 
+              href={link.href} 
+              className={cn(
+                "text-sm font-medium hover:text-accent underline-offset-4",
+                pathname === link.href ? "text-accent underline" : ""
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <nav className="flex items-center gap-2 sm:gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Log In</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem asChild><Link href="/login/customer">Customer Login</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/login/staff">Staff Login</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href="/login/admin">Admin Login</Link></DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Link href="/login/customer">Sign In</Link>
+          </Button>
+          <Button asChild variant="outline" className="bg-primary-foreground border-accent text-accent hover:bg-primary-foreground/90">
             <Link href="/signup/customer">Sign Up</Link>
           </Button>
         </nav>
