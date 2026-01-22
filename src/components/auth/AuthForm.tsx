@@ -59,7 +59,7 @@ const genericSignupSchema = formSchema.pick({ email: true, password: true, confi
   });
 
 // Schema for customer signup, based on new design
-const customerSignupSchema = formSchema.pick({ email: true, password: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true })
+const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true })
   .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
@@ -69,6 +69,11 @@ const customerSignupSchema = formSchema.pick({ email: true, password: true, full
     agreeToTerms: z.literal(true, {
         errorMap: () => ({ message: "You must agree to the Privacy Policy." }),
     }),
+    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 
 
@@ -730,7 +735,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             </FormItem>
                             )}
                         />
-                        {authType === 'signup' && role !== 'customer' && (
+                        {authType === 'signup' && (
                             <FormField
                             control={form.control}
                             name="confirmPassword"
@@ -740,7 +745,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 <FormControl>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" {...field} />
+                                        <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
                                         <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
                                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </Button>
