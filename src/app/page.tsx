@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
+  const clubImage = PlaceHolderImages.find(p => p.id === 'loyalty-club');
   const pathname = usePathname();
   const navLinks = [
     { href: "/", label: "Home" },
@@ -122,23 +123,37 @@ export default function LandingPage() {
             isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          <div className="container mx-auto px-4 md:px-6 text-center space-y-6">
-            <h2 className="text-3xl font-headline font-bold sm:text-4xl">The Steamsbury Club</h2>
-            <p className="text-lg font-semibold text-primary">Loyalty & Rewards Program | Steam Points</p>
-            <div className="max-w-3xl mx-auto space-y-4">
-                <p className="text-muted-foreground md:text-lg">
-                    The Steamsbury Club is our way of rewarding loyalty and
-                    making every visit more rewarding. Members earn Steam
-                    Points every time they spend with us, turning regular visits
-                    into meaningful rewards.
-                </p>
-                <p className="text-muted-foreground md:text-lg">
-                    As a Club member, you enjoy exclusive benefits, special
-                    offers, birthday rewards, and early access to promotions.
-                    Steam Points can be accumulated and redeemed for a range
-                    of member privileges, ensuring that loyalty is always
-                    recognised and appreciated.
-                </p>
+          <div className="container mx-auto px-4 md:px-6 text-center space-y-8">
+            {clubImage && (
+                <div className="max-w-3xl mx-auto">
+                  <Image
+                    src={clubImage.imageUrl}
+                    alt={clubImage.description}
+                    width={800}
+                    height={500}
+                    className="rounded-lg shadow-lg w-full"
+                    data-ai-hint={clubImage.imageHint}
+                  />
+                </div>
+            )}
+            <div className="space-y-6">
+                <h2 className="text-3xl font-headline font-bold sm:text-4xl">The Steamsbury Club</h2>
+                <p className="text-lg font-semibold text-primary">Loyalty & Rewards Program | Steam Points</p>
+                <div className="max-w-3xl mx-auto space-y-4">
+                    <p className="text-muted-foreground md:text-lg">
+                        The Steamsbury Club is our way of rewarding loyalty and
+                        making every visit more rewarding. Members earn Steam
+                        Points every time they spend with us, turning regular visits
+                        into meaningful rewards.
+                    </p>
+                    <p className="text-muted-foreground md:text-lg">
+                        As a Club member, you enjoy exclusive benefits, special
+                        offers, birthday rewards, and early access to promotions.
+                        Steam Points can be accumulated and redeemed for a range
+                        of member privileges, ensuring that loyalty is always
+                        recognised and appreciated.
+                    </p>
+                </div>
             </div>
           </div>
         </section>
