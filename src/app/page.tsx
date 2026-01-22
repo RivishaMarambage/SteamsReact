@@ -181,9 +181,9 @@ export default function LandingPage() {
                 <div className="absolute w-64 h-64 bg-black/10 rounded-full flex items-center justify-center backdrop-blur-sm">
                     <Coffee className="w-32 h-32 text-white" />
                 </div>
-                <div className="absolute top-10 right-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Vanilla</div>
-                <div className="absolute bottom-20 -right-10 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Oat Milk</div>
-                <div className="absolute bottom-10 left-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Extra Shot</div>
+                <div className="absolute top-10 right-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float">+ Vanilla</div>
+                <div className="absolute bottom-20 -right-10 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-1.5s]">+ Oat Milk</div>
+                <div className="absolute bottom-10 left-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-0.5s]">+ Extra Shot</div>
             </div>
           </div>
         </section>
