@@ -14,9 +14,9 @@ export default function PublicHeader() {
         <Logo />
         <nav className="hidden lg:flex gap-6">
           <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
-          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About Us</Link>
+          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About</Link>
+          <Link href="/rewards" className="text-sm font-medium hover:underline underline-offset-4">Rewards</Link>
           <Link href="/news" className="text-sm font-medium hover:underline underline-offset-4">News</Link>
-          <Link href="/contact" className="text-sm font-medium hover:underline underline-offset-4">Contact</Link>
           <Dialog>
             <DialogTrigger asChild>
               <button className="text-sm font-medium hover:underline underline-offset-4">Menu</button>
