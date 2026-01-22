@@ -296,9 +296,7 @@ export default function AboutPage() {
                 Whether you're looking for your morning jolt or a peaceful afternoon retreat, we have a seat waiting for you.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-                <Button asChild variant="secondary">
-                    <Link href="/about">Find a Location</Link>
-                </Button>
+                
                 <Button asChild variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
                     <Link href="/menu">Order Online</Link>
                 </Button>
