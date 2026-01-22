@@ -85,6 +85,29 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        
+        <section className="bg-card text-card-foreground py-16 lg:py-24">
+          <div className="container mx-auto px-4 md:px-6 text-center space-y-6">
+            <h2 className="text-3xl font-headline font-bold sm:text-4xl">The Steamsbury Club</h2>
+            <p className="text-lg font-semibold text-primary">Loyalty & Rewards Program | Steam Points</p>
+            <div className="max-w-3xl mx-auto space-y-4">
+                <p className="text-muted-foreground md:text-lg">
+                    The Steamsbury Club is our way of rewarding loyalty and
+                    making every visit more rewarding. Members earn Steam
+                    Points every time they spend with us, turning regular visits
+                    into meaningful rewards.
+                </p>
+                <p className="text-muted-foreground md:text-lg">
+                    As a Club member, you enjoy exclusive benefits, special
+                    offers, birthday rewards, and early access to promotions.
+                    Steam Points can be accumulated and redeemed for a range
+                    of member privileges, ensuring that loyalty is always
+                    recognised and appreciated.
+                </p>
+            </div>
+          </div>
+        </section>
+        
       </main>
       <Footer />
        <Link
