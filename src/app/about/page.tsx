@@ -191,20 +191,19 @@ export default function AboutPage() {
         </section>
 
         {/* Contact Us Section */}
-        <section className="text-center">
-            <h2 className="text-4xl font-bold font-headline">Contact & Location</h2>
-            <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
-                Get in touch with us for any inquiries or just to say hello.
-            </p>
-             <div className="grid md:grid-cols-2 gap-12 mt-12 text-left">
+        <section className="text-center space-y-12">
+            <div>
+                <h2 className="text-4xl font-bold font-headline">Contact & Location</h2>
+                <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+                    Find us at our Battaramulla location or send us a message.
+                </p>
+            </div>
+             <div className="grid md:grid-cols-2 gap-12 text-left items-center">
                 <div className="space-y-6">
-                    <p className="text-lg text-muted-foreground">
-                        We'd love to hear from you! Whether you have a question about our menu, a suggestion, or want to discuss opportunities, feel free to reach out.
-                    </p>
                     <div className="space-y-4">
                         <div>
                         <h3 className="text-xl font-semibold">Our Address</h3>
-                        <p className="text-muted-foreground">123 Coffee Lane, Colombo, Sri Lanka</p>
+                        <p className="text-muted-foreground">911, Electricity board road, Battaramulla - Pannipitiya Rd, Battaramulla</p>
                         </div>
                         <div>
                         <h3 className="text-xl font-semibold">Opening Hours</h3>
@@ -217,7 +216,21 @@ export default function AboutPage() {
                         </div>
                     </div>
                 </div>
-                <div>
+                 <div className="relative h-96 w-full rounded-lg overflow-hidden shadow-lg">
+                    <Image
+                        src="https://picsum.photos/seed/map/800/600"
+                        alt="Map showing cafe location"
+                        fill
+                        className="object-cover"
+                        data-ai-hint="city map"
+                    />
+                </div>
+            </div>
+            
+            <div className="max-w-3xl mx-auto text-left">
+              <p className="text-lg text-muted-foreground text-center mb-8">
+                  We'd love to hear from you! Whether you have a question about our menu, a suggestion, or want to discuss opportunities, feel free to reach out using the form below.
+              </p>
                 <Card className="shadow-lg">
                     <CardHeader>
                     <CardTitle className="font-headline text-2xl">Send us a Message</CardTitle>
@@ -270,7 +283,6 @@ export default function AboutPage() {
                     </form>
                     </CardContent>
                 </Card>
-                </div>
             </div>
         </section>
 

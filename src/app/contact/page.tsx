@@ -13,7 +13,7 @@ export default function ContactPage() {
           <div className="space-y-4">
             <div>
               <h3 className="text-xl font-semibold">Our Address</h3>
-              <p className="text-muted-foreground">123 Coffee Lane, Colombo, Sri Lanka</p>
+              <p className="text-muted-foreground">911, Electricity board road, Battaramulla - Pannipitiya Rd, Battaramulla</p>
             </div>
             <div>
               <h3 className="text-xl font-semibold">Opening Hours</h3>
