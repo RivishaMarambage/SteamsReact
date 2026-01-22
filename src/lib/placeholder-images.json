@@ -41,12 +41,6 @@
       "description": "A freshly baked blueberry muffin with a crumbly top.",
       "imageUrl": "https://images.unsplash.com/photo-1606188074044-fcd750f6996a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtdWZmaW58ZW58MHx8fHwxNzYzOTMwNjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "muffin"
-    },
-    {
-      "id": "loyalty-club",
-      "description": "A person holding a coffee loyalty card in a cafe setting.",
-      "imageUrl": "https://images.unsplash.com/photo-1637652915488-4be9bbfbb8a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxsb3lhbHR5JTIwY2FyZCUyMGNhZmV8ZW58MHx8fHwxNzY5MDk4OTMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "loyalty card cafe"
     }
   ]
 }
