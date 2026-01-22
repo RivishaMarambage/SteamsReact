@@ -11,6 +11,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight } from "lucide-react";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -145,6 +146,48 @@ export default function LandingPage() {
           </div>
         </section>
         
+        <section className="bg-accent text-accent-foreground py-20 lg:py-24 overflow-hidden relative">
+          <div className="absolute -top-20 -left-40 w-80 h-80 bg-white/10 rounded-full opacity-50" />
+          <div className="absolute -bottom-20 -right-40 w-96 h-96 bg-white/10 rounded-full opacity-50" />
+          <div className="container mx-auto px-4 md:px-6 grid md:grid-cols-2 gap-12 items-center relative">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-black/20 rounded-full text-sm font-medium">
+                <Sparkles className="h-4 w-4" />
+                NEW FEATURE
+              </div>
+              <h2 className="text-4xl lg:text-5xl font-bold font-headline">Create Your Perfect Cup</h2>
+              <p className="text-lg text-accent-foreground/90">
+                Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours. From syrups to milk alternatives, every detail is in your hands.
+              </p>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2 px-4 py-2 bg-black/20 rounded-full">
+                  <Coffee className="h-5 w-5" />
+                  <span>4 Coffee Bases</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-black/20 rounded-full">
+                  <SlidersHorizontal className="h-5 w-5" />
+                  <span>12+ Add-ons</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-black/20 rounded-full">
+                  <DollarSign className="h-5 w-5" />
+                  <span>Start from Rs 400</span>
+                </div>
+              </div>
+              <Button asChild size="lg" className="bg-accent-foreground text-accent hover:bg-accent-foreground/90">
+                <Link href="/dashboard/creator">Start Building Now <ArrowRight className="ml-2" /></Link>
+              </Button>
+            </div>
+            <div className="hidden md:flex justify-center items-center relative h-96">
+                <div className="absolute w-64 h-64 bg-black/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <Coffee className="w-32 h-32 text-white" />
+                </div>
+                <div className="absolute top-10 right-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Vanilla</div>
+                <div className="absolute bottom-20 -right-10 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Oat Milk</div>
+                <div className="absolute bottom-10 left-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold">+ Extra Shot</div>
+            </div>
+          </div>
+        </section>
+
       </main>
       <Footer />
        <Link
