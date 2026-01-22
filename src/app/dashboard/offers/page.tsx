@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
@@ -7,15 +6,13 @@ import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { format, isWithinInterval, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tag, Gift, Percent, ArrowRight } from "lucide-react";
+import { Percent } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Link from "next/link";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
 
 const WELCOME_OFFERS = [
@@ -72,6 +69,31 @@ function OffersPageContent() {
         router.push(`/dashboard/order?addOffer=${offerId}`);
     };
 
+    const currentLevel = useMemo(() => {
+        if (!loyaltyLevels || !userProfile) return null;
+        return loyaltyLevels.find(l => l.id === userProfile.loyaltyLevelId);
+    }, [loyaltyLevels, userProfile]);
+
+    const myActiveOffers = useMemo(() => {
+        if (!activeOffers || !userProfile?.loyaltyLevelId || !menuItems) return [];
+    
+        return activeOffers.map(offer => {
+            const tierDiscountValue = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
+            if (tierDiscountValue <= 0) return null;
+            
+            const menuItem = menuItems.find(item => item.id === offer.menuItemId);
+            if (!menuItem) return null;
+    
+            return {
+                ...offer,
+                menuItem,
+                tierDiscountValue,
+            };
+        }).filter((o): o is NonNullable<typeof o> => !!o);
+
+    }, [activeOffers, userProfile, menuItems]);
+
+
     if (isLoading) {
         return (
             <div className="space-y-8">
@@ -112,79 +134,62 @@ function OffersPageContent() {
             {/* Daily Offers */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Daily Offers</CardTitle>
-                    <CardDescription>Special deals available today, personalized for each loyalty tier.</CardDescription>
+                    <CardTitle className="font-headline">Your Daily Offers</CardTitle>
+                    <CardDescription>
+                        Here are the special deals available today for your {currentLevel ? <span className="font-bold capitalize">{currentLevel.name}</span> : ''} tier.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue={userProfile.loyaltyLevelId || loyaltyLevels?.[0]?.id} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
-                            {loyaltyLevels?.filter(l => l.name.toLowerCase() !== 'standard').map(level => (
-                                <TabsTrigger key={level.id} value={level.id} className="capitalize">{level.name}</TabsTrigger>
-                            ))}
-                        </TabsList>
-                        {loyaltyLevels?.filter(l => l.name.toLowerCase() !== 'standard').map(level => (
-                            <TabsContent key={level.id} value={level.id} className="mt-6">
-                                {activeOffers.length > 0 ? (
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        {activeOffers.map(offer => {
-                                            const menuItem = menuItems?.find(item => item.id === offer.menuItemId);
-                                            if (!menuItem) return null;
+                    {myActiveOffers.length > 0 ? (
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {myActiveOffers.map(offer => {
+                                const discountText = offer.discountType === 'percentage'
+                                    ? `${offer.tierDiscountValue}% off`
+                                    : `LKR ${offer.tierDiscountValue.toFixed(2)} off`;
+                                
+                                const originalPrice = offer.menuItem.price;
+                                const discountedPrice = offer.discountType === 'percentage' 
+                                    ? originalPrice - (originalPrice * offer.tierDiscountValue / 100)
+                                    : originalPrice - offer.tierDiscountValue;
 
-                                            const tierDiscountValue = offer.tierDiscounts?.[level.id] || 0;
-                                            if (tierDiscountValue <= 0) return null;
-
-                                            const discountText = offer.discountType === 'percentage'
-                                                ? `${tierDiscountValue}% off`
-                                                : `LKR ${tierDiscountValue.toFixed(2)} off`;
-                                            
-                                            const originalPrice = menuItem.price;
-                                            const discountedPrice = offer.discountType === 'percentage' 
-                                                ? originalPrice - (originalPrice * tierDiscountValue / 100)
-                                                : originalPrice - tierDiscountValue;
-
-                                            return (
-                                                <Card key={`${offer.id}-${level.id}`} className={cn("overflow-hidden", userProfile.loyaltyLevelId === level.id && "border-primary")}>
-                                                    <CardHeader className="flex-row gap-4 items-start p-4">
-                                                         <Image
-                                                            src={menuItem.imageUrl || `https://picsum.photos/seed/${menuItem.id}/100/100`}
-                                                            alt={menuItem.name}
-                                                            width={80}
-                                                            height={80}
-                                                            className="rounded-md object-cover w-20 h-20"
-                                                            data-ai-hint="food item"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-start mb-1">
-                                                                <Badge variant={userProfile.loyaltyLevelId === level.id ? 'default' : 'secondary'}>
-                                                                    {discountText}
-                                                                </Badge>
-                                                                <Badge variant="outline" className="capitalize">{offer.orderType}</Badge>
-                                                            </div>
-                                                            <h4 className="font-semibold">{offer.title}</h4>
-                                                            <p className="text-sm text-muted-foreground">{menuItem.name}</p>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardFooter className="bg-muted/50 p-4 flex justify-between items-center">
-                                                        <div className="text-sm">
-                                                            <span className="text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>
-                                                            <span className="font-bold text-lg">LKR {Math.max(0, discountedPrice).toFixed(2)}</span>
-                                                        </div>
-                                                        {userProfile.loyaltyLevelId === level.id && (
-                                                            <Button size="sm" onClick={() => handleOrderClick(offer.id)} disabled={menuItem.isOutOfStock}>
-                                                                {menuItem.isOutOfStock ? "Unavailable" : "Order Now"}
-                                                            </Button>
-                                                        )}
-                                                    </CardFooter>
-                                                </Card>
-                                            )
-                                        })}
-                                    </div>
-                                ) : (
-                                     <p className="text-center text-muted-foreground py-8">No special offers available for the {level.name} tier today.</p>
-                                )}
-                            </TabsContent>
-                        ))}
-                    </Tabs>
+                                return (
+                                    <Card key={offer.id} className={cn("overflow-hidden", "border-primary")}>
+                                        <CardHeader className="flex-row gap-4 items-start p-4">
+                                             <Image
+                                                src={offer.menuItem.imageUrl || `https://picsum.photos/seed/${offer.menuItem.id}/100/100`}
+                                                alt={offer.menuItem.name}
+                                                width={80}
+                                                height={80}
+                                                className="rounded-md object-cover w-20 h-20"
+                                                data-ai-hint="food item"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <Badge variant={'default'}>
+                                                        {discountText}
+                                                    </Badge>
+                                                    <Badge variant="outline" className="capitalize">{offer.orderType}</Badge>
+                                                </div>
+                                                <h4 className="font-semibold">{offer.title}</h4>
+                                                <p className="text-sm text-muted-foreground">{offer.menuItem.name}</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter className="bg-muted/50 p-4 flex justify-between items-center">
+                                            <div className="text-sm">
+                                                <span className="text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>
+                                                <span className="font-bold text-lg">LKR {Math.max(0, discountedPrice).toFixed(2)}</span>
+                                            </div>
+                                            <Button size="sm" onClick={() => handleOrderClick(offer.id)} disabled={offer.menuItem.isOutOfStock}>
+                                                {offer.menuItem.isOutOfStock ? "Unavailable" : "Order Now"}
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">No special offers available for your tier today.</p>
+                    )}
                 </CardContent>
             </Card>
         </div>
