@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -27,7 +26,7 @@ import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
-import { FaGoogle, FaApple } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '../ui/checkbox';
@@ -789,14 +788,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                         <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
                         <FaGoogle className="mr-2 h-4 w-4" />
                         Google
-                    </Button>
-                     <Button variant="outline" className="w-full" disabled>
-                        <FaApple className="mr-2 h-4 w-4" />
-                        Apple
                     </Button>
                 </div>
             </div>
@@ -805,5 +800,3 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     </div>
   );
 }
-
-    
