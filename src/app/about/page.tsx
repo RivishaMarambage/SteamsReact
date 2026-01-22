@@ -4,6 +4,8 @@ import { Award, Users, Check, Diamond } from "lucide-react";
 import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function AboutPage() {
 
@@ -16,6 +18,22 @@ export default function AboutPage() {
   const sensory4Image = PlaceHolderImages.find(p => p.id === 'sensory-4');
   
   const sensoryImages = [sensory1Image, sensory2Image, sensory3Image, sensory4Image];
+  
+  const teamMembers = [
+    { name: 'Marcus Chen', role: 'Head Roaster', image: PlaceHolderImages.find(p => p.id === 'team-marcus') },
+    { name: 'Sarah Jenkins', role: 'Lead Barista', image: PlaceHolderImages.find(p => p.id === 'team-sarah') },
+    { name: 'David Steams', role: 'Founder', image: PlaceHolderImages.find(p => p.id === 'team-david') },
+    { name: 'Elena Rossi', role: 'Community Manager', image: PlaceHolderImages.find(p => p.id === 'team-elena') }
+  ];
+
+  const galleryImages = [
+    PlaceHolderImages.find(p => p.id === 'gallery-interior-1'),
+    PlaceHolderImages.find(p => p.id === 'gallery-lattes'),
+    PlaceHolderImages.find(p => p.id === 'gallery-iced-coffee'),
+    PlaceHolderImages.find(p => p.id === 'gallery-interior-2'),
+    PlaceHolderImages.find(p => p.id === 'gallery-bread'),
+    PlaceHolderImages.find(p => p.id === 'gallery-sign')
+  ];
 
   return (
     <PublicPageLayout title="About Us">
@@ -135,6 +153,51 @@ export default function AboutPage() {
             </div>
         </section>
 
+        {/* Meet the Team Section */}
+        <section className="text-center">
+            <h2 className="text-4xl font-bold font-headline">Meet the Team</h2>
+            <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+                The passionate experts behind your daily cup.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
+                {teamMembers.map(member => member.image && (
+                    <div key={member.name} className="flex flex-col items-center">
+                        <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full overflow-hidden shadow-lg mb-4">
+                            <Image src={member.image.imageUrl} alt={member.image.description} fill className="object-cover" data-ai-hint={member.image.imageHint} />
+                        </div>
+                        <h3 className="font-semibold text-lg">{member.name}</h3>
+                        <p className="text-sm text-primary">{member.role}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
+
+        {/* Gallery Section */}
+        <section>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {galleryImages.map((img, index) => img && (
+              <div key={index} className="relative aspect-square rounded-lg overflow-hidden shadow-lg">
+                <Image src={img.imageUrl} alt={img.description} fill className="object-cover" data-ai-hint={img.imageHint} />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="bg-accent text-accent-foreground p-12 rounded-2xl text-center">
+            <h2 className="text-4xl font-bold font-headline">Experience Steamsbury Today</h2>
+            <p className="mt-2 max-w-2xl mx-auto">
+                Whether you're looking for your morning jolt or a peaceful afternoon retreat, we have a seat waiting for you.
+            </p>
+            <div className="mt-8 flex justify-center gap-4">
+                <Button asChild variant="secondary">
+                    <Link href="/contact">Find a Location</Link>
+                </Button>
+                <Button asChild variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
+                    <Link href="/menu">Order Online</Link>
+                </Button>
+            </div>
+        </section>
       </div>
     </PublicPageLayout>
   );
