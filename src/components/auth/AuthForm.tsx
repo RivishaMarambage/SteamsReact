@@ -2,6 +2,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -10,11 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Logo } from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info, Eye, EyeOff } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award } from 'lucide-react';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -28,8 +27,9 @@ import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
-import { FaGoogle } from "react-icons/fa";
+import { FaGoogle, FaApple } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -40,8 +40,6 @@ const formSchema = z.object({
   countryCode: z.string().optional(),
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
-  privacyPolicy: z.boolean().default(false),
-  rememberMe: z.boolean().default(false),
 });
 
 // The unrefined object for generic signup
@@ -61,9 +59,6 @@ const customerSignupSchema = genericSignupObject.extend({
     mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
     countryCode: z.string(),
     dateOfBirth: z.date({ required_error: "Date of birth is required." }),
-    privacyPolicy: z.literal(true, {
-        errorMap: () => ({ message: "You must accept the privacy policy." }),
-    }),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -107,21 +102,18 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, privacyPolicy: false, rememberMe: false },
+    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
 
   useEffect(() => {
-    // This effect ensures our demo users are pre-populated in Firebase Auth
-    // so that testers can log in without signing up.
     const ensureDemoUserExists = async () => {
       if (!auth || !firestore || authType !== 'login') return;
 
       try {
         const methods = await fetchSignInMethodsForEmail(auth, demoAccount.email);
         if (methods.length === 0) {
-          // User does not exist, so create them
           try {
             const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
             const user = userCredential.user;
@@ -130,19 +122,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               id: user.uid,
               email: demoAccount.email,
               name: demoAccount.name,
-              role: role, // Use the role from the props for the current form
+              role: role,
               loyaltyPoints: role === 'customer' ? 125 : 0,
               lifetimePoints: role === 'customer' ? 125 : 0,
               loyaltyLevelId: "bronze",
               orderCount: role === 'customer' ? 1 : 0,
-              emailVerified: true, // Demo users are pre-verified
+              emailVerified: true,
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
             console.log(`Created demo user: ${demoAccount.email}`);
 
-            // It's good practice to sign the user out immediately after creation
-            // so the login form is fresh for the user to try.
             if (auth.currentUser) {
               await auth.signOut();
             }
@@ -189,13 +179,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
     try {
         const batch = writeBatch(firestore);
-
         console.log("Seeding initial data...");
-
-        // Categories
         let customCreationsCategoryId = '';
         const categoriesRef = collection(firestore, 'categories');
-        const categoryPromises = SEED_CATEGORIES.map(category => {
+        SEED_CATEGORIES.forEach(category => {
             const docRef = doc(categoriesRef);
             if(category.name === 'Custom Creations') {
                 customCreationsCategoryId = docRef.id;
@@ -203,14 +190,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             batch.set(docRef, category);
         });
 
-        // Loyalty Levels
         const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
         SEED_LOYALTY_LEVELS.forEach(level => {
             const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase());
             batch.set(docRef, level);
         });
         
-         // Add-on Categories
         const addonCategoriesRef = collection(firestore, 'addon_categories');
         const addonCategoryRefs: Record<string, string> = {};
         SEED_ADDON_CATEGORIES.forEach(category => {
@@ -219,7 +204,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             addonCategoryRefs[category.name] = docRef.id;
         });
 
-        await batch.commit(); // Commit first batch to get IDs
+        await batch.commit(); 
 
         const addonBatch = writeBatch(firestore);
         const addonsRef = collection(firestore, 'addons');
@@ -234,7 +219,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             { name: "Chocolate Syrup", price: 60, categoryName: "Syrups" },
         ];
 
-        // Add-ons, now with correct category IDs
         SEED_ADDONS.forEach(addon => {
             const categoryId = addonCategoryRefs[addon.categoryName];
             if (categoryId) {
@@ -244,7 +228,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             }
         });
         
-        // Custom Menu Items
         if(customCreationsCategoryId) {
             const menuItemsRef = collection(firestore, 'menu_items');
             const coffeeBase: Omit<MenuItem, 'id'> = {
@@ -275,8 +258,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         }
 
         await addonBatch.commit();
-
-
         console.log("Database seeded successfully.");
     } catch (e: any) {
         if (e instanceof FirestorePermissionError) {
@@ -301,7 +282,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
     if (authType === 'signup') {
         try {
-            // 1. Check for existing email
             const signInMethods = await fetchSignInMethodsForEmail(auth, data.email);
             if (signInMethods.length > 0) {
                 form.setError('email', { type: 'manual', message: 'This email address is already in use.' });
@@ -310,7 +290,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             
             const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
 
-            // 2. Seed database if it's the first admin user
             if (role === 'admin') {
                 const usersRef = collection(firestore, "users");
                 const q = query(usersRef, where("role", "==", "admin"), limit(1));
@@ -320,14 +299,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 }
             }
 
-            // 3. If all checks pass, create the user
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
-
-            // Send verification email
             await sendEmailVerification(user);
-
-            // 4. Create user profile
             const userDocRef = doc(firestore, "users", user.uid);
             
             const userProfile: UserProfile = {
@@ -338,8 +312,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-              loyaltyPoints: 0,
-              lifetimePoints: 0,
+              loyaltyPoints: 50,
+              lifetimePoints: 50,
               loyaltyLevelId: "member",
               orderCount: 0,
               emailVerified: user.emailVerified,
@@ -353,15 +327,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 });
             });
 
-
             toast({
               title: 'Account Created!',
-              description: "Welcome! Please check your email to verify your account and then log in.",
+              description: "Welcome! We've sent you a verification email. Please check your inbox, then log in.",
             });
             router.push(`/login/${role}`);
 
         } catch (error: any) {
-            // This will catch errors from any of the await calls
             if (error instanceof FirestorePermissionError) {
                 errorEmitter.emit('permission-error', error);
             } else {
@@ -373,8 +345,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             }
         }
       
-    } else { // Login
-        const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
+    } else {
+        const persistence = browserLocalPersistence;
         setPersistence(auth, persistence).then(() => {
             return signInWithEmailAndPassword(auth, data.email, data.password)
         })
@@ -392,7 +364,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                         toast({
                             variant: 'destructive',
                             title: 'Access Denied',
-                            description: `You are not authorized to log in as a ${role}. Please use the correct login page for your role.`,
+                            description: `You are not authorized to log in as a ${role}. Please use the correct login page.`,
                         });
                     }
                 } else {
@@ -425,25 +397,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const handlePasswordReset = async () => {
     if (!auth) return;
     if (!resetEmail) {
-        toast({
-            variant: 'destructive',
-            title: 'Email required',
-            description: 'Please enter your email address to reset your password.',
-        });
+        toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email to reset your password.' });
         return;
     }
     try {
         await sendPasswordResetEmail(auth, resetEmail);
-        toast({
-            title: 'Password Reset Email Sent',
-            description: 'Please check your inbox for instructions to reset your password.',
-        });
+        toast({ title: 'Password Reset Email Sent', description: 'Please check your inbox.' });
     } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error.message,
-        });
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
   };
 
@@ -460,30 +421,24 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const userDocSnap = await getDoc(userDocRef);
 
         if (additionalUserInfo?.isNewUser || !userDocSnap.exists()) {
-            // New user, create a profile
             const userProfile: UserProfile = {
                 id: user.uid,
                 email: user.email!,
                 name: user.displayName!,
                 role,
-                loyaltyPoints: 0,
-                lifetimePoints: 0,
+                loyaltyPoints: 50,
+                lifetimePoints: 50,
                 loyaltyLevelId: "member",
                 orderCount: 0,
                 emailVerified: user.emailVerified,
             };
             await setDoc(userDocRef, userProfile);
-             toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
+            toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
         } else {
-             // Existing user, just log them in and check role
             const userProfile = userDocSnap.data() as UserProfile;
              if (userProfile.role !== role) {
                 await auth.signOut();
-                toast({
-                    variant: 'destructive',
-                    title: 'Access Denied',
-                    description: `You are not authorized to log in as a ${role}.`,
-                });
+                toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
                 return;
             }
              toast({ title: `Welcome back, ${user.displayName}!` });
@@ -493,13 +448,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         router.push(targetPath);
 
     } catch (error: any) {
-        // Handle specific errors, like account-exists-with-different-credential
         if (error.code === 'auth/account-exists-with-different-credential' && error.customData.email) {
             const email = error.customData.email;
             const methods = await fetchSignInMethodsForEmail(auth, email);
 
             if (methods[0] === 'password') {
-                // Prompt user to sign in with email/password to link accounts
                 const password = prompt('It looks like you already have an account with this email. Please enter your password to link your Google account.');
                 if (password) {
                     try {
@@ -516,367 +469,187 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     }
                 }
             } else {
-                toast({ variant: 'destructive', title: 'Sign-in Failed', description: `You have previously signed in with ${methods[0]}. Please use that method.` });
+                toast({ variant: 'destructive', title: 'Sign-in Failed', description: `You have previously signed in with ${methods[0]}.` });
             }
         } else {
-            toast({
-                variant: 'destructive',
-                title: 'Google Sign-In Failed',
-                description: error.message,
-            });
+            toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
         }
     }
   };
 
-  const title = authType === 'login' ? 'Log In' : 'Sign Up';
-  const description =
-    authType === 'login'
-      ? `Enter your credentials to access your ${role} account.`
-      : `Create your ${role} account to get started.`;
-  const buttonText = authType === 'login' ? 'Log In' : 'Sign Up';
-  
-  const showSignupLink = role === 'customer';
+  const title = authType === 'login' ? 'Welcome Back' : 'Create an Account';
+  const description = authType === 'login' ? 'Please enter your details to sign in.' : 'Please enter your details to sign up.';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <Card className="w-full max-w-sm mx-auto shadow-xl">
-        <CardHeader className="text-center space-y-4">
-          <Logo className="justify-center" />
-          <div className="space-y-1">
-            <CardTitle className="text-3xl font-headline">
-              {role.charAt(0).toUpperCase() + role.slice(1)} {title}
-            </CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {authType === 'login' && demoAccount && (
-             <Alert className="mb-4 bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600"/>
-                <AlertTitle className="text-blue-800">Demo Account</AlertTitle>
-                <AlertDescription className="text-blue-700 text-xs">
-                  <p><strong>Email:</strong> {demoAccount.email}</p>
-                  <p><strong>Password:</strong> {demoAccount.password}</p>
-                </AlertDescription>
-            </Alert>
-          )}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              {authType === 'signup' && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Alex Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {role === 'customer' && (
-                    <>
-                       <div className="flex gap-2">
-                        <FormField
-                            control={form.control}
-                            name="countryCode"
-                            render={({ field }) => (
-                            <FormItem className="w-1/3">
-                                <FormLabel>Code</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="Code" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="+94">+94 (LK)</SelectItem>
-                                    <SelectItem value="+1">+1 (US)</SelectItem>
-                                    <SelectItem value="+44">+44 (UK)</SelectItem>
-                                </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="mobileNumber"
-                            render={({ field }) => (
-                            <FormItem className="w-2/3">
-                                <FormLabel>Mobile Number</FormLabel>
-                                <FormControl>
-                                <Input type="tel" placeholder="771234567" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        </div>
-                      <FormField
-                        control={form.control}
-                        name="cafeNickname"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cafe Nickname (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Lex" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="dateOfBirth"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Date of birth</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PPP")
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  captionLayout="dropdown-buttons"
-                                  fromYear={1920}
-                                  toYear={new Date().getFullYear()}
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date > new Date() || date < new Date("1900-01-01")
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
-                  )}
-                </>
-              )}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="m@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          className="pr-10"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          tabIndex={-1}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {authType === 'signup' && (
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            className="pr-10"
-                            {...field}
-                          />
-                           <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground"
-                            onClick={() => setShowConfirmPassword((prev) => !prev)}
-                            tabIndex={-1}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {authType === 'login' && role === 'customer' && (
-                <div className="flex items-center justify-between">
-                    <FormField
-                    control={form.control}
-                    name="rememberMe"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                            <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                            <FormLabel>Remember me</FormLabel>
-                        </div>
-                        </FormItem>
-                    )}
-                    />
-                     <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="link" className="p-0 h-auto text-sm">Forgot password?</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Reset Password</DialogTitle>
-                                <DialogDescription>
-                                    Enter your email address and we will send you a link to reset your password.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                <Label htmlFor="reset-email">Email</Label>
-                                <Input
-                                    id="reset-email"
-                                    type="email"
-                                    placeholder="m@example.com"
-                                    value={resetEmail}
-                                    onChange={(e) => setResetEmail(e.target.value)}
-                                />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                                </DialogClose>
-                                <DialogClose asChild>
-                                <Button onClick={handlePasswordReset}>Send Reset Link</Button>
-                                </DialogClose>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-              )}
-               {authType === 'signup' && role === 'customer' && (
-                <FormField
-                  control={form.control}
-                  name="privacyPolicy"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          I agree to the <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              )}
-              <Button type="submit" className="w-full">
-                {buttonText}
-              </Button>
-            </form>
-             <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden bg-card">
+        {/* Left Panel */}
+        <div className="relative p-8 text-white hidden md:flex flex-col justify-between">
+            <div className="absolute inset-0">
+                <Image src="https://picsum.photos/seed/auth-hero/1080/1920" alt="Steamsbury Cafe" fill className="object-cover" data-ai-hint="cafe exterior night" />
+                <div className="absolute inset-0 bg-black/60" />
+            </div>
+            <div className="relative z-10">
+                <h2 className="text-4xl font-bold font-headline">STEAMSBURY</h2>
+                <p className="text-sm">by SANTHIYAGU</p>
+            </div>
+             <div className="relative z-10 space-y-4">
+                <Coffee className="w-12 h-12 text-accent" />
+                <h3 className="text-3xl font-bold font-headline">Morning brew, on us.</h3>
+                <p className="text-muted-foreground text-white/80">Join our rewards program today. Earn points for every purchase and get a free drink after just 5 visits.</p>
+                 <div className="inline-flex items-center gap-2 p-2 pr-4 rounded-full bg-black/50 border border-white/20">
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-accent-foreground">
+                        <Award className="h-5 w-5"/>
+                    </div>
+                    <span className="font-semibold">50 Bonus Points on Sign Up</span>
                 </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                <FaGoogle className="mr-2 h-4 w-4" />
-                Google
-            </Button>
-          </Form>
-          <div className="mt-4 text-center text-sm">
-            {authType === 'login' ? (
-              <>
-                {showSignupLink && (
-                  <>
-                    Don&apos;t have an account?{' '}
-                    <Link href={`/signup/${role}`} className="underline">
-                      Sign up
-                    </Link>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <Link href={`/login/${role}`} className="underline">
-                  Log in
-                </Link>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Right Panel */}
+        <div className="p-8">
+            <div className="flex flex-col h-full justify-center">
+                 <div className="mb-6">
+                    <h1 className="text-3xl font-bold font-headline">{title}</h1>
+                    <p className="text-muted-foreground">{description}</p>
+                </div>
+                
+                <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.push(`/${value}/${role}`)}>
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                        <TabsTrigger value="login">Login</TabsTrigger>
+                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    </TabsList>
+
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                        {authType === 'signup' && (
+                            <>
+                            <FormField
+                                control={form.control}
+                                name="fullName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Full Name</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Input placeholder="Alex Doe" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            </>
+                        )}
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type="email" placeholder="name@example.com" className="pl-10" {...field} />
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                            <FormItem>
+                                <div className="flex justify-between items-center">
+                                    <FormLabel>Password</FormLabel>
+                                    {authType === 'login' && (
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="link" className="p-0 h-auto text-sm text-accent">Forgot Password?</Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Reset Password</DialogTitle>
+                                                    <DialogDescription>
+                                                        Enter your email and we will send you a link to reset your password.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="grid gap-2">
+                                                <Label htmlFor="reset-email">Email</Label>
+                                                <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                                                </div>
+                                                <DialogFooter>
+                                                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                                    <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    )}
+                                </div>
+                                <FormControl>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input type={showPassword ? 'text' : 'password'} className="pl-10" {...field} />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        {authType === 'signup' && (
+                            <FormField
+                            control={form.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Confirm Password</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" {...field} />
+                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
+                                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        )}
+                        <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
+                            {authType === 'login' ? 'Sign In' : 'Sign Up'}
+                        </Button>
+                        </form>
+                    </Form>
+                </Tabs>
+
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                        <FaGoogle className="mr-2 h-4 w-4" />
+                        Google
+                    </Button>
+                     <Button variant="outline" className="w-full" disabled>
+                        <FaApple className="mr-2 h-4 w-4" />
+                        Apple
+                    </Button>
+                </div>
+            </div>
+        </div>
+      </div>
     </div>
   );
 }
