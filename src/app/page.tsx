@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from "next/image";
@@ -75,8 +76,8 @@ export default function LandingPage() {
               key={link.href} 
               href={link.href} 
               className={cn(
-                "text-sm font-medium hover:text-accent underline-offset-4",
-                pathname === link.href ? "text-accent underline" : ""
+                "text-sm font-medium hover:text-accent",
+                pathname === link.href ? "text-accent" : ""
               )}
             >
               {link.label}
