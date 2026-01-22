@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
+import OffersHighlight from "@/components/home/OffersHighlight";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -231,6 +232,8 @@ export default function LandingPage() {
         </section>
 
         <HighlightsSection />
+
+        <OffersHighlight />
 
       </main>
       <Footer />
