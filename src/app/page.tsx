@@ -28,6 +28,13 @@ export default function LandingPage() {
   const clubSectionRef = useRef<HTMLDivElement>(null);
   const [isClubSectionVisible, setIsClubSectionVisible] = useState(false);
 
+  const quotes = [
+    { line1: "Coffee is a language in itself.", line2: "We speak it fluently." },
+    { line1: "A yawn is a silent scream", line2: "for coffee." },
+    { line1: "Life begins after", line2: "the first cup." },
+  ];
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -45,13 +52,18 @@ export default function LandingPage() {
     if (clubSectionRef.current) {
       observer.observe(clubSectionRef.current);
     }
+    
+    const quoteInterval = setInterval(() => {
+        setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
+    }, 3000);
 
     return () => {
       if (clubSectionRef.current) {
         observer.unobserve(clubSectionRef.current);
       }
+      clearInterval(quoteInterval);
     };
-  }, []);
+  }, [quotes.length]);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -185,6 +197,35 @@ export default function LandingPage() {
                 <div className="absolute bottom-20 -right-10 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-1.5s]">+ Oat Milk</div>
                 <div className="absolute bottom-10 left-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-0.5s]">+ Extra Shot</div>
             </div>
+          </div>
+        </section>
+
+        <section className="bg-[#211811] text-white py-20 lg:py-24">
+          <div className="container mx-auto px-4 md:px-6 text-center">
+              <p className="text-5xl font-headline text-accent">❞</p>
+              <div className="mt-4 h-24 relative">
+                  {quotes.map((quote, index) => (
+                      <div
+                          key={index}
+                          className={cn(
+                              "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000",
+                              index === currentQuoteIndex ? "opacity-100" : "opacity-0"
+                          )}
+                      >
+                          <h2 className="text-3xl font-headline font-bold sm:text-4xl">
+                              {quote.line1}
+                          </h2>
+                          <p className="text-3xl font-headline text-accent sm:text-4xl">
+                              {quote.line2}
+                          </p>
+                      </div>
+                  ))}
+              </div>
+              <div className="mt-8 text-sm text-white/70 tracking-widest">
+                  <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
+                  <span className="mx-4">Since 2023</span>
+                  <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
+              </div>
           </div>
         </section>
 
