@@ -217,13 +217,16 @@ export default function AboutPage() {
                     </div>
                 </div>
                  <div className="relative h-96 w-full rounded-lg overflow-hidden shadow-lg">
-                    <Image
-                        src="https://picsum.photos/seed/map/800/600"
-                        alt="Map showing cafe location"
-                        fill
-                        className="object-cover"
-                        data-ai-hint="city map"
-                    />
+                    <iframe
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.787144869857!2d79.919339775875!3d6.915993518475263!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2570006aabb6d%3A0x14590eb0b2ce876f!2sSteamsbury%20Tea%20%26%20Coffee%20House!5e0!3m2!1sen!2slk!4v1710000000000!5m2!1sen!2slk"
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Steamsbury Cafe Location"
+                        className="transition-all duration-700 hover:contrast-125"
+                    ></iframe>
                 </div>
             </div>
             
