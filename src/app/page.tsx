@@ -25,7 +25,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-       <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-foreground text-primary-foreground">
+       <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-[#211811] text-primary-foreground">
         <Logo />
         <nav className="hidden lg:flex gap-6">
           {navLinks.map(link => (

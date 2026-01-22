@@ -6,7 +6,7 @@ export function Logo({ className, link = "/" }: { className?: string; link?: str
   return (
     <Link href={link} className={cn("flex items-center", className)} prefetch={false}>
       <Image
-        src="/logo.png"
+        src="/logo.webp"
         alt="Steams Bury Logo"
         width={160}
         height={40}
