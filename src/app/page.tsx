@@ -208,7 +208,7 @@ export default function LandingPage() {
                       <div
                           key={index}
                           className={cn(
-                              "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000",
+                              "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-3000",
                               index === currentQuoteIndex ? "opacity-100" : "opacity-0"
                           )}
                       >
