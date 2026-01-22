@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect } from 'react';
@@ -6,6 +5,7 @@ import Link from 'next/link';
 import { ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
+import Footer from '@/components/layout/Footer';
 
 export default function RewardsPage() {
   useEffect(() => {
@@ -211,9 +211,7 @@ export default function RewardsPage() {
         </section>
 
       </main>
-      <footer className="py-12 border-t border-white/5 text-center text-gray-600 text-sm">
-          &copy; {new Date().getFullYear()} Steamsbury. All rights reserved. 
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -297,7 +297,7 @@ export default function AboutPage() {
             </p>
             <div className="mt-8 flex justify-center gap-4">
                 <Button asChild variant="secondary">
-                    <Link href="/contact">Find a Location</Link>
+                    <Link href="/about">Find a Location</Link>
                 </Button>
                 <Button asChild variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
                     <Link href="/menu">Order Online</Link>
