@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 
 function OffersPageContent() {
     const firestore = useFirestore();
