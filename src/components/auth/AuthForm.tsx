@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award } from 'lucide-react';
+import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3 } from 'lucide-react';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -30,7 +30,9 @@ import { Separator } from '../ui/separator';
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from '../ui/checkbox';
 
+// Base schema with all possible fields as optional
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -40,29 +42,35 @@ const formSchema = z.object({
   countryCode: z.string().optional(),
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
+  agreeToTerms: z.boolean().optional(),
 });
 
-// The unrefined object for generic signup
-const genericSignupObject = formSchema.extend({
-    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
-});
+// Schema for just login
+const loginSchema = formSchema.pick({ email: true, password: true });
 
-// The refined schema for generic signup
-const genericSignupSchema = genericSignupObject.refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-});
-
-// The refined schema for customer signup
-const customerSignupSchema = genericSignupObject.extend({
+// Schema for admin/staff signup
+const genericSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true })
+  .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
-    mobileNumber: z.string().min(9, { message: "Please enter a valid phone number." }),
-    countryCode: z.string(),
-    dateOfBirth: z.date({ required_error: "Date of birth is required." }),
-}).refine((data) => data.password === data.confirmPassword, {
+    confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
-});
+  });
+
+// Schema for customer signup, based on new design
+const customerSignupSchema = formSchema.pick({ email: true, password: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true })
+  .extend({
+    fullName: z.string().min(1, { message: "Full name is required." }),
+    mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
+    countryCode: z.string(),
+    cafeNickname: z.string().optional(),
+    dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+    agreeToTerms: z.literal(true, {
+        errorMap: () => ({ message: "You must agree to the Privacy Policy." }),
+    }),
+  });
 
 
 type AuthFormValues = z.infer<typeof formSchema>;
@@ -89,7 +97,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const getSchema = () => {
     if (authType === 'login') {
-      return formSchema;
+      return loginSchema;
     }
     // It's a signup
     if (role === 'customer') {
@@ -102,7 +110,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined },
+    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -478,7 +486,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   };
 
   const title = authType === 'login' ? 'Welcome Back' : 'Create an Account';
-  const description = authType === 'login' ? 'Please enter your details to sign in.' : 'Please enter your details to sign up.';
+  const description = authType === 'login' ? 'Please enter your details to sign in.' : 'Join us for exclusive rewards.';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -522,8 +530,131 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-                        {authType === 'signup' && (
-                            <>
+                        {authType === 'signup' && role === 'customer' && (
+                           <>
+                             <FormField
+                                control={form.control}
+                                name="fullName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Full Name</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input placeholder="John Doe" className="pl-10" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="mobileNumber"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>Mobile Number</FormLabel>
+                                        <div className="flex gap-2">
+                                            <FormField
+                                                control={form.control}
+                                                name="countryCode"
+                                                render={({ field }) => (
+                                                    <FormItem className="w-1/3">
+                                                        <FormControl>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <SelectTrigger><SelectValue placeholder="+94" /></SelectTrigger>
+                                                                <SelectContent><SelectItem value="+94">+94 (LK)</SelectItem></SelectContent>
+                                                            </Select>
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="mobileNumber"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormControl>
+                                                             <div className="relative">
+                                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                                <Input placeholder="77 123 4567" className="pl-10" {...field} />
+                                                            </div>
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormMessage>{form.formState.errors.mobileNumber?.message}</FormMessage>
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="cafeNickname"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Nickname</FormLabel>
+                                        <span className="text-xs text-muted-foreground">Optional</span>
+                                    </div>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input placeholder="Enter your nickname" className="pl-10" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="dateOfBirth"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Date of Birth</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                            "w-full pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value ? (
+                                            format(field.value, "PPP")
+                                            ) : (
+                                            <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                        mode="single"
+                                        captionLayout="dropdown-buttons"
+                                        fromYear={new Date().getFullYear() - 100}
+                                        toYear={new Date().getFullYear()}
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                            date > new Date() || date < new Date("1900-01-01")
+                                        }
+                                        initialFocus
+                                        />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                           </>
+                        )}
+
+                        {authType === 'signup' && role !== 'customer' && (
                             <FormField
                                 control={form.control}
                                 name="fullName"
@@ -539,7 +670,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 </FormItem>
                                 )}
                             />
-                            </>
                         )}
                         <FormField
                             control={form.control}
@@ -591,7 +721,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 <FormControl>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input type={showPassword ? 'text' : 'password'} className="pl-10" {...field} />
+                                    <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Create a password" {...field} />
                                     <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
@@ -601,7 +731,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             </FormItem>
                             )}
                         />
-                        {authType === 'signup' && (
+                        {authType === 'signup' && role !== 'customer' && (
                             <FormField
                             control={form.control}
                             name="confirmPassword"
@@ -622,8 +752,30 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             )}
                             />
                         )}
+                        {authType === 'signup' && role === 'customer' && (
+                             <FormField
+                                control={form.control}
+                                name="agreeToTerms"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                        I agree to the <Link href="#" className="underline">Privacy Policy</Link>
+                                        </FormLabel>
+                                        <FormMessage />
+                                    </div>
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                         <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
-                            {authType === 'login' ? 'Sign In' : 'Sign Up'}
+                            {authType === 'login' ? 'Sign In' : 'Create Account'}
                         </Button>
                         </form>
                     </Form>
