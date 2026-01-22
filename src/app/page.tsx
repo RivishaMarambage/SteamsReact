@@ -10,6 +10,7 @@ import Footer from "@/components/layout/Footer";
 import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -22,6 +23,34 @@ export default function LandingPage() {
     { href: "/updates", label: "Updates" },
     { href: "/about", label: "About Us" },
   ];
+
+  const clubSectionRef = useRef<HTMLDivElement>(null);
+  const [isClubSectionVisible, setIsClubSectionVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsClubSectionVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      {
+        rootMargin: '0px',
+        threshold: 0.1,
+      }
+    );
+
+    if (clubSectionRef.current) {
+      observer.observe(clubSectionRef.current);
+    }
+
+    return () => {
+      if (clubSectionRef.current) {
+        observer.unobserve(clubSectionRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -86,7 +115,13 @@ export default function LandingPage() {
           </div>
         </section>
         
-        <section className="bg-card text-card-foreground py-16 lg:py-24">
+        <section
+          ref={clubSectionRef}
+          className={cn(
+            "bg-card text-card-foreground py-16 lg:py-24 transition-all duration-1000 ease-out",
+            isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          )}
+        >
           <div className="container mx-auto px-4 md:px-6 text-center space-y-6">
             <h2 className="text-3xl font-headline font-bold sm:text-4xl">The Steamsbury Club</h2>
             <p className="text-lg font-semibold text-primary">Loyalty & Rewards Program | Steam Points</p>
