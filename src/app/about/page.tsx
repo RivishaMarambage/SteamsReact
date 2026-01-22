@@ -240,7 +240,7 @@ export default function AboutPage() {
                     </CardHeader>
                     <CardContent>
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="first-name">First Name</Label>
                             <Input id="first-name" placeholder="John" />

@@ -154,7 +154,7 @@ function OffersPageContent() {
 
                                 return (
                                     <Card key={offer.id} className={cn("overflow-hidden", "border-primary")}>
-                                        <CardHeader className="flex-row gap-4 items-start p-4">
+                                        <CardHeader className="flex-col sm:flex-row gap-4 items-start p-4">
                                              <Image
                                                 src={offer.menuItem.imageUrl || `https://picsum.photos/seed/${offer.menuItem.id}/100/100`}
                                                 alt={offer.menuItem.name}

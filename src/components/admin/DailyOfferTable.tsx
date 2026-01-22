@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -218,63 +217,112 @@ export default function DailyOfferTable() {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date Range</TableHead>
-              <TableHead>Offer Title</TableHead>
-              <TableHead>Menu Item</TableHead>
-              <TableHead>Order Type</TableHead>
-              <TableHead>Discounts</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {offers?.sort((a,b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || '')).map(offer => {
-              return (
-                <TableRow key={offer.id}>
-                  <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
-                  <TableCell className="font-medium">{offer.title}</TableCell>
-                  <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
-                  <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {loyaltyLevels?.map(level => {
-                        const discount = offer.tierDiscounts?.[level.id];
-                        if (discount > 0) {
-                          return (
-                            <div key={level.id} className="text-xs">
-                              <span className="font-semibold capitalize">{level.name}: </span> 
-                              {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
-                            </div>
-                          )
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(offer)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+        {/* Desktop View */}
+        <div className="hidden md:block">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Date Range</TableHead>
+                <TableHead>Offer Title</TableHead>
+                <TableHead>Menu Item</TableHead>
+                <TableHead>Order Type</TableHead>
+                <TableHead>Discounts</TableHead>
+                <TableHead>
+                    <span className="sr-only">Actions</span>
+                </TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+                {offers?.sort((a,b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || '')).map(offer => {
+                return (
+                    <TableRow key={offer.id}>
+                    <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
+                    <TableCell className="font-medium">{offer.title}</TableCell>
+                    <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
+                    <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
+                    <TableCell>
+                        <div className="flex flex-col gap-1">
+                        {loyaltyLevels?.map(level => {
+                            const discount = offer.tierDiscounts?.[level.id];
+                            if (discount > 0) {
+                            return (
+                                <div key={level.id} className="text-xs">
+                                <span className="font-semibold capitalize">{level.name}: </span> 
+                                {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
+                                </div>
+                            )
+                            }
+                            return null;
+                        })}
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(offer)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                );
+                })}
+            </TableBody>
+            </Table>
+        </div>
+        {/* Mobile View */}
+        <div className="grid grid-cols-1 gap-4 md:hidden">
+            {offers?.sort((a,b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || '')).map(offer => (
+                <Card key={offer.id}>
+                    <CardHeader>
+                        <CardTitle>{offer.title}</CardTitle>
+                        <CardDescription>{getMenuItemName(offer.menuItemId)}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Dates: </span><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></p>
+                        <p><span className="font-semibold">Order Type: </span><Badge variant="secondary">{offer.orderType}</Badge></p>
+                        <div>
+                            <p className="font-semibold">Discounts:</p>
+                             <div className="flex flex-col gap-1 pl-2">
+                                {loyaltyLevels?.map(level => {
+                                    const discount = offer.tierDiscounts?.[level.id];
+                                    if (discount > 0) {
+                                    return (
+                                        <div key={level.id} className="text-xs">
+                                        <span className="font-semibold capitalize">{level.name}: </span> 
+                                        {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
+                                        </div>
+                                    )
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-end">
+                         <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="sm" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4 mr-2" /> Actions
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(offer)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(offer)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
@@ -290,7 +338,7 @@ export default function DailyOfferTable() {
                 <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required placeholder="e.g., Muffin Monday" />
               </div>
 
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="grid gap-2">
                     <Label htmlFor="menuItemId">Menu Item</Label>
                     <select

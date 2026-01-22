@@ -92,7 +92,7 @@ export default function RewardsPage() {
         <section className="py-24 bg-black/30">
             <div className="max-w-6xl mx-auto px-6">
                 <h2 className="text-4xl font-bold text-center mb-16 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
-                <div className="grid md:grid-cols-4 gap-8 relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative">
                     <div className="text-center reveal" style={{ transitionDelay: '0.1s' }}>
                         <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">1</div>
                         <h3 className="font-semibold mb-2 font-headline">Visit & Sign Up</h3>
