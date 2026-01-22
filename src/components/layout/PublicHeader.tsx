@@ -20,7 +20,7 @@ export default function PublicHeader() {
 
   return (
     <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-foreground text-primary-foreground">
-        <Logo className="text-primary-foreground" />
+        <Logo />
         <nav className="hidden lg:flex gap-6">
           {navLinks.map(link => (
             <Link 
