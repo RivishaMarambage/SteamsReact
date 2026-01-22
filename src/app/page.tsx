@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -12,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight } from "lucide-react";
+import HighlightsSection from "@/components/home/HighlightsSection";
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
@@ -228,6 +228,8 @@ export default function LandingPage() {
               </div>
           </div>
         </section>
+
+        <HighlightsSection />
 
       </main>
       <Footer />
