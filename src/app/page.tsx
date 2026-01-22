@@ -146,7 +146,7 @@ export default function LandingPage() {
           </div>
         </section>
         
-        <section className="bg-accent text-accent-foreground py-20 lg:py-24 overflow-hidden relative">
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-20 lg:py-24 overflow-hidden relative">
           <div className="absolute -top-20 -left-40 w-80 h-80 bg-white/10 rounded-full opacity-50" />
           <div className="absolute -bottom-20 -right-40 w-96 h-96 bg-white/10 rounded-full opacity-50" />
           <div className="container mx-auto px-4 md:px-6 grid md:grid-cols-2 gap-12 items-center relative">
