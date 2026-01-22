@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, Loader2, MapPin, AlertTriangle } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
@@ -38,27 +38,6 @@ const WELCOME_OFFERS = [
     { order: 2, discount: 15 }, // 3rd order (orderCount is 2)
 ];
 
-const CAFE_LATITUDE = 6.900472;
-const CAFE_LONGITUDE = 79.921554;
-const GEOFENCE_RADIUS_METERS = 50;
-
-// Helper function to calculate distance using Haversine formula
-const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-};
-
-
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, offerToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType'] | null>(null);
@@ -79,8 +58,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   const [isOrderTypeDialogOpen, setOrderTypeDialogOpen] = useState(true);
-  const [dialogStep, setDialogStep] = useState<'type' | 'location_check' | 'table' | 'out_of_range' | 'location_error'>('type');
-  const [locationError, setLocationError] = useState('');
+  const [dialogStep, setDialogStep] = useState<'type' | 'table'>('type');
 
 
   const { toast } = useToast();
@@ -104,43 +82,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
   const handleTypeSelect = (type: Order['orderType']) => {
     if (type === 'Dine-in') {
-        if (!navigator.geolocation) {
-            setLocationError("Geolocation is not supported by your browser.");
-            setDialogStep('location_error');
-            return;
-        }
-
-        setDialogStep('location_check');
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                const distance = getDistanceInMeters(latitude, longitude, CAFE_LATITUDE, CAFE_LONGITUDE);
-
-                if (distance <= GEOFENCE_RADIUS_METERS) {
-                    setOrderType('Dine-in');
-                    setDialogStep('table');
-                } else {
-                    setDialogStep('out_of_range');
-                }
-            },
-            (error) => {
-                let message = "Could not get your location.";
-                if (error.code === 1) { // PERMISSION_DENIED
-                    message = "Location permission denied. To place a dine-in order, please enable location services for this site in your browser settings.";
-                } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                    message = "Location information is unavailable. Please check your connection or GPS signal.";
-                } else if (error.code === 3) { // TIMEOUT
-                    message = "The request to get user location timed out.";
-                }
-                setLocationError(message);
-                setDialogStep('location_error');
-            }
-        );
-
+      setOrderType('Dine-in');
+      setDialogStep('table');
     } else { // Takeaway
-        setOrderType('Takeaway');
-        setOrderTypeDialogOpen(false);
+      setOrderType('Takeaway');
+      setOrderTypeDialogOpen(false);
     }
   };
 
@@ -625,38 +571,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     </Button>
                 </div>
              </>
-           )}
-           {dialogStep === 'location_check' && (
-                <div className="flex flex-col items-center justify-center gap-4 py-8">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <p className="text-muted-foreground">Checking your location...</p>
-                </div>
-           )}
-           {dialogStep === 'out_of_range' && (
-                <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-                    <MapPin className="h-12 w-12 text-destructive" />
-                     <DialogHeader>
-                        <DialogTitle className="font-headline text-2xl">You're Too Far Away</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-muted-foreground">Dine-in orders can only be placed from within the cafe. Please switch to a takeaway order if you'd like to order now.</p>
-                    <DialogFooter className="flex-row gap-2 w-full justify-center">
-                        <Button variant="outline" onClick={() => handleTypeSelect('Dine-in')}>Try Again</Button>
-                        <Button onClick={() => handleTypeSelect('Takeaway')}>Order Takeaway</Button>
-                    </DialogFooter>
-                </div>
-           )}
-           {dialogStep === 'location_error' && (
-                <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-                    <AlertTriangle className="h-12 w-12 text-destructive" />
-                    <DialogHeader>
-                        <DialogTitle className="font-headline text-2xl">Location Error</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-muted-foreground">{locationError}</p>
-                    <DialogFooter className="flex-row gap-2 w-full justify-center">
-                        <Button variant="outline" onClick={() => handleTypeSelect('Dine-in')}>Try Again</Button>
-                        <Button onClick={() => handleTypeSelect('Takeaway')}>Order Takeaway</Button>
-                    </DialogFooter>
-                </div>
            )}
            {dialogStep === 'table' && (
                <>
