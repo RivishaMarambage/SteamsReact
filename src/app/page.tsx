@@ -5,8 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import PublicMenuDisplay from "@/components/order/PublicMenuDisplay";
 import { Logo } from "@/components/Logo";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Footer from "@/components/layout/Footer";
@@ -21,26 +19,11 @@ export default function LandingPage() {
         <Logo className="text-white" />
         <nav className="hidden lg:flex gap-6">
           <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">Home</Link>
-          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About</Link>
+          <Link href="/menu" className="text-sm font-medium hover:underline underline-offset-4">Menu</Link>
           <Link href="/rewards" className="text-sm font-medium hover:underline underline-offset-4">Rewards</Link>
           <Link href="/offers" className="text-sm font-medium hover:underline underline-offset-4">Offers</Link>
           <Link href="/updates" className="text-sm font-medium hover:underline underline-offset-4">Updates</Link>
-          <Dialog>
-            <DialogTrigger asChild>
-              <button className="text-sm font-medium hover:underline underline-offset-4">Menu</button>
-            </DialogTrigger>
-            <DialogContent className="h-dvh w-screen max-w-full flex flex-col p-0 gap-0">
-                <DialogHeader className="p-4 border-b">
-                    <DialogTitle className="font-headline text-2xl">Our Menu</DialogTitle>
-                    <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                        <span className="sr-only">Close</span>
-                    </DialogClose>
-                </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    <PublicMenuDisplay />
-                </div>
-            </DialogContent>
-          </Dialog>
+          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">About Us</Link>
         </nav>
         <nav className="flex items-center gap-2 sm:gap-4">
           <DropdownMenu>
@@ -80,22 +63,9 @@ export default function LandingPage() {
               Join our loyalty program and get rewarded! Enjoy 10% off your first order, 5% off your second, and 15% off your third as a warm welcome from us.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-                <Dialog>
-                    <DialogTrigger asChild>
-                         <Button size="lg" variant="secondary">View Menu</Button>
-                    </DialogTrigger>
-                    <DialogContent className="h-dvh w-screen max-w-full flex flex-col p-0 gap-0">
-                         <DialogHeader className="p-4 border-b">
-                            <DialogTitle className="font-headline text-2xl">Our Menu</DialogTitle>
-                             <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                                <span className="sr-only">Close</span>
-                            </DialogClose>
-                        </DialogHeader>
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                             <PublicMenuDisplay />
-                        </div>
-                    </DialogContent>
-                </Dialog>
+              <Button asChild size="lg" variant="secondary">
+                <Link href="/menu">View Menu</Link>
+              </Button>
               <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
