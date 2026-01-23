@@ -93,40 +93,48 @@ export default function RewardsPage() {
         </section>
 
         <section className="py-24 bg-black/30">
-            <div className="max-w-3xl mx-auto px-6">
-                <h2 className="text-4xl font-bold text-center mb-16 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
-                <div className="pipeline flex flex-col items-center space-y-16">
-                    {/* Step 1 */}
-                    <div className="text-center reveal">
-                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float">
-                            <Store className="w-10 h-10 text-brass"/>
+            <div className="max-w-6xl mx-auto px-6">
+                <h2 className="text-4xl font-bold text-center mb-24 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
+                <div className="relative">
+                    {/* The connecting line for desktop */}
+                    <div className="hidden md:block absolute top-10 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-brass to-transparent z-0" />
+                    
+                    {/* Vertical line for mobile */}
+                    <div className="md:hidden absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-transparent via-brass to-transparent" />
+
+                    <div className="flex flex-col md:flex-row justify-between items-center space-y-16 md:space-y-0">
+                        {/* Step 1 */}
+                        <div className="text-center reveal relative">
+                            <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float">
+                                <Store className="w-10 h-10 text-brass"/>
+                            </div>
+                            <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">1. Visit & Sign Up</h3>
+                            <p className="text-lg text-gray-400 max-w-xs mx-auto">In-store or online via our digital portal.</p>
                         </div>
-                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">1. Visit & Sign Up</h3>
-                        <p className="text-lg text-gray-400 max-w-sm mx-auto">In-store or online via our digital portal.</p>
-                    </div>
-                    {/* Step 2 */}
-                    <div className="text-center reveal">
-                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.25s' }}>
-                            <ClipboardEdit className="w-10 h-10 text-brass"/>
+                        {/* Step 2 */}
+                        <div className="text-center reveal relative" style={{ transitionDelay: '0.2s' }}>
+                            <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.25s' }}>
+                                <ClipboardEdit className="w-10 h-10 text-brass"/>
+                            </div>
+                            <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">2. Register</h3>
+                            <p className="text-lg text-gray-400 max-w-xs mx-auto">A simple form to get your journey started.</p>
                         </div>
-                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">2. Register</h3>
-                        <p className="text-lg text-gray-400 max-w-sm mx-auto">A simple form to get your journey started.</p>
-                    </div>
-                    {/* Step 3 */}
-                    <div className="text-center reveal">
-                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.5s' }}>
-                            <CreditCard className="w-10 h-10 text-brass"/>
+                        {/* Step 3 */}
+                        <div className="text-center reveal relative" style={{ transitionDelay: '0.4s' }}>
+                            <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.5s' }}>
+                                <CreditCard className="w-10 h-10 text-brass"/>
+                            </div>
+                            <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">3. Get Your ID</h3>
+                            <p className="text-lg text-gray-400 max-w-xs mx-auto">Instant digital card or premium physical card.</p>
                         </div>
-                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">3. Get Your ID</h3>
-                        <p className="text-lg text-gray-400 max-w-sm mx-auto">Instant digital card or premium physical card.</p>
-                    </div>
-                    {/* Step 4 */}
-                    <div className="text-center reveal">
-                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.75s' }}>
-                            <Coins className="w-10 h-10 text-brass"/>
+                        {/* Step 4 */}
+                        <div className="text-center reveal relative" style={{ transitionDelay: '0.6s' }}>
+                            <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.75s' }}>
+                                <Coins className="w-10 h-10 text-brass"/>
+                            </div>
+                            <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">4. Earn</h3>
+                            <p className="text-lg text-gray-400 max-w-xs mx-auto">Points start accumulating from your first LKR.</p>
                         </div>
-                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">4. Earn</h3>
-                        <p className="text-lg text-gray-400 max-w-sm mx-auto">Points start accumulating from your first LKR.</p>
                     </div>
                 </div>
             </div>

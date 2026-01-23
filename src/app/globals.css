@@ -136,20 +136,6 @@
     border-color: hsl(var(--brass));
 }
 
-.pipeline {
-    position: relative;
-}
-.pipeline::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 2px;
-    background: linear-gradient(to bottom, transparent, hsl(var(--brass)), transparent);
-    z-index: -1;
-}
-
 .gauge-bar {
     height: 12px;
     background: #222;
