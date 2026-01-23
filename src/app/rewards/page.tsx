@@ -6,6 +6,7 @@ import { ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
+import GoldDustCursor from '@/components/effects/GoldDustCursor';
 
 export default function RewardsPage() {
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function RewardsPage() {
   return (
     <div className="antialiased font-body text-gray-200 bg-charcoal overflow-x-hidden">
       <PublicHeader />
+      <GoldDustCursor />
       <div className="steam-container">
         <div className="cloud" style={{ top: '-10%', left: '-10%' }}></div>
         <div className="cloud" style={{ top: '60%', left: '80%', animationDelay: '-5s' }}></div>
@@ -49,7 +51,7 @@ export default function RewardsPage() {
 
       <header className="relative min-h-screen flex flex-col items-center justify-center text-center px-4">
         <div className="z-10">
-          <h1 className="text-5xl md:text-8xl font-bold mb-4 tracking-tight uppercase font-headline">
+          <h1 className="text-5xl md:text-8xl font-bold mb-4 tracking-tight uppercase font-headline gold-glow">
             The <span className="gold-gradient italic">Steamsbury</span> Club
           </h1>
           <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
