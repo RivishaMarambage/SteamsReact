@@ -224,41 +224,41 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     const category = categories?.find(c => c.id === item.categoryId);
     const isBeverage = category?.type === 'Beverages';
 
-    // If no addon groups, add directly to cart
-    if(!item.addonGroups || item.addonGroups.length === 0) {
-        setCart(prevCart => {
-            if (isBeverage) {
-                const isInCart = prevCart.some(cartItem => cartItem.menuItem.id === item.id);
-                if (isInCart) {
-                    toast({
-                        title: "Item already in order",
-                        description: "Beverages can only be ordered in single quantities.",
-                    });
-                    return prevCart;
-                }
-            }
-            
-            const cartId = `${item.id}-${Date.now()}`;
-            const newCartItem: CartItem = {
-                id: cartId,
-                menuItem: item,
-                addons: [],
-                quantity: 1,
-                totalPrice: displayPrice,
-                appliedDailyOfferId: appliedDailyOfferId,
-            };
+    if (!item.addonGroups || item.addonGroups.length === 0) {
+      if (isBeverage) {
+        const isInCart = cart.some(cartItem => cartItem.menuItem.id === item.id);
+        if (isInCart) {
+          setTimeout(() => {
             toast({
-                title: "Added to order",
-                description: `${item.name} is now in your cart.`,
+              title: "Item already in order",
+              description: "Beverages can only be ordered in single quantities.",
             });
-            return [...prevCart, newCartItem];
-        });
-        return;
-    }
-    // Otherwise, open customization dialog
-    handleOpenCustomization(item, displayPrice, appliedDailyOfferId);
-  }, [categories, toast, handleOpenCustomization]);
+          }, 0);
+          return;
+        }
+      }
 
+      const cartId = `${item.id}-${Date.now()}`;
+      const newCartItem: CartItem = {
+        id: cartId,
+        menuItem: item,
+        addons: [],
+        quantity: 1,
+        totalPrice: displayPrice,
+        appliedDailyOfferId: appliedDailyOfferId,
+      };
+      setCart(prev => [...prev, newCartItem]);
+      setTimeout(() => {
+        toast({
+          title: "Added to order",
+          description: `${item.name} is now in your cart.`,
+        });
+      }, 0);
+      return;
+    }
+    
+    handleOpenCustomization(item, displayPrice, appliedDailyOfferId);
+  }, [categories, cart, toast, handleOpenCustomization]);
 
   useEffect(() => {
     if (freebieToClaim && freebieToClaim !== processedFreebieIdRef.current && menuItems.length > 0 && userProfile && !isProfileLoading) {
@@ -280,16 +280,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             if (userDocRef) {
                 updateDoc(userDocRef, { birthdayFreebieMenuItemIds: [] });
             }
-            toast({
-                title: "Birthday Reward Added!",
-                description: `Your free ${freebieItem.name} has been added to your cart.`,
-            });
+            setTimeout(() => {
+                toast({
+                    title: "Birthday Reward Added!",
+                    description: `Your free ${freebieItem.name} has been added to your cart.`,
+                });
+            }, 0);
              const params = new URLSearchParams(window.location.search);
             params.delete('claimFreebie');
             router.replace(`${pathname}?${params.toString()}`);
         }
     }
-  }, [freebieToClaim, menuItems, userProfile, isProfileLoading, userDocRef, router, pathname]);
+  }, [freebieToClaim, menuItems, userProfile, isProfileLoading, userDocRef, router, pathname, toast]);
 
   useEffect(() => {
     if (offerToClaim && offerToClaim !== processedOfferIdRef.current && menuItems.length > 0 && dailyOffers.length > 0 && userProfile && !isProfileLoading) {
@@ -298,11 +300,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         if (!offer) return;
 
         if (offer.orderType !== orderType) {
-            toast({
-                variant: "destructive",
-                title: "Offer Not Applicable",
-                description: `This offer is only valid for ${offer.orderType} orders. You have selected a ${orderType} order.`,
-            });
+            setTimeout(() => {
+                toast({
+                    variant: "destructive",
+                    title: "Offer Not Applicable",
+                    description: `This offer is only valid for ${offer.orderType} orders. You have selected a ${orderType} order.`,
+                });
+            }, 0);
             const params = new URLSearchParams(window.location.search);
             params.delete('addOffer');
             router.replace(`${pathname}?${params.toString()}`);
