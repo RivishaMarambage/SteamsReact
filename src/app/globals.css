@@ -97,36 +97,6 @@
     -webkit-text-fill-color: transparent;
 }
 
-.silver-shine {
-    animation: silver-shine-anim 3s ease-in-out infinite;
-}
-
-@keyframes silver-shine-anim {
-  0% {
-    text-shadow:
-      0 0 4px #fff,
-      0 0 10px #fff,
-      0 0 14px #e0e0e0,
-      0 0 20px #e0e0e0;
-  }
-  50% {
-    text-shadow:
-      0 0 8px #fff,
-      0 0 20px #fff,
-      0 0 28px #c0c0c0,
-      0 0 40px #c0c0c0,
-      0 0 55px #c0c0c0;
-  }
-  100% {
-    text-shadow:
-      0 0 4px #fff,
-      0 0 10px #fff,
-      0 0 14px #e0e0e0,
-      0 0 20px #e0e0e0;
-  }
-}
-
-
 .steam-container {
     position: fixed;
     top: 0;
