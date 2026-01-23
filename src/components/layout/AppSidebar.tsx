@@ -12,19 +12,18 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { AreaChart, BookMarked, Calendar, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
-  { href: '/dashboard/offers', label: 'My Offers', icon: Tag },
+  { href: '/dashboard/order', label: 'Menu', icon: BookMarked },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-  { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
+  { href: '/dashboard/event', label: 'Event', icon: Calendar },
 ];
 
 const staffMenuItems = [
@@ -45,7 +44,9 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user: authUser, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
@@ -54,11 +55,16 @@ export default function AppSidebar() {
   const userRole = userProfile?.role;
   const isLoading = isUserLoading || isProfileLoading;
 
+  const handleLogout = async () => {
+    if(auth) {
+      await auth.signOut();
+    }
+    router.push('/');
+  };
+
   const handleNavigate = () => {
     if (isMobile) {
       setOpenMobile(false);
-    } else {
-      setOpen(false);
     }
   };
 
@@ -67,7 +73,7 @@ export default function AppSidebar() {
     return pathname.startsWith(href);
   };
 
-  let menuItemsToShow: typeof customerMenuItems = [];
+  let menuItemsToShow: (typeof customerMenuItems | typeof staffMenuItems) = [];
   const adminSectionItems: typeof adminMenuItems = [];
 
   if (userRole === 'customer') {
@@ -84,7 +90,7 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarRail />
-      <SidebarHeader>
+      <SidebarHeader className="bg-sidebar-border rounded-lg m-2 p-2 group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:rounded-none">
         <Logo link="/dashboard"/>
       </SidebarHeader>
       <SidebarContent>
@@ -96,6 +102,11 @@ export default function AppSidebar() {
           </div>
         ) : (
         <SidebarMenu>
+          {userRole === 'customer' && (
+            <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+                Main
+            </div>
+          )}
           {userRole === 'admin' && (
             <>
                 <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
@@ -111,9 +122,10 @@ export default function AppSidebar() {
                 asChild
                 tooltip={item.label}
               >
-                <Link href={item.href} onClick={handleNavigate}>
+                <Link href={item.href} onClick={handleNavigate} className="relative">
                   <item.icon />
                   <span>{item.label}</span>
+                  {userRole === 'customer' && isActive(item.href) && <span className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-sidebar-accent-foreground group-data-[collapsible=icon]:hidden" />}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -142,8 +154,15 @@ export default function AppSidebar() {
         </SidebarMenu>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        {/* Can add elements to footer here */}
+      <SidebarFooter className="border-t border-sidebar-border mt-auto">
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
+                    <LogOut />
+                    <span>Logout</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

@@ -12,11 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { LifeBuoy, Settings, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
-import { useAuth, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 
 function getPageTitle(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
@@ -28,15 +28,8 @@ function getPageTitle(pathname: string) {
 export default function AppHeader() {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
-  const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
-
-
-  const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/');
-  };
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#211811] px-4 text-primary-foreground md:px-6">
@@ -80,10 +73,6 @@ export default function AppHeader() {
               <Link href="#">
                 <LifeBuoy /> Support
               </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut /> Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
