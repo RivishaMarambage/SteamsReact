@@ -92,7 +92,7 @@
 
 /* Custom styles for new rewards page design */
 .gold-gradient {
-    background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+    background: linear-gradient(90deg, #bf953f 0%, #fcf6ba 45%, #b38728 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
