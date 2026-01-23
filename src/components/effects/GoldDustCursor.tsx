@@ -39,6 +39,16 @@ const GoldDustCursor: React.FC<GoldDustCursorProps> = ({ className }) => {
             // Eject particles with less velocity
             const speed = Math.random() * 1.5;
             
+            // New color logic to approximate the user's gradient
+            // linear-gradient(90deg, #bf953f 0%, #fcf6ba 45%, #b38728 100%);
+            // #bf953f -> hsl(45, 53%, 49%)
+            // #fcf6ba -> hsl(56, 88%, 85%)
+            // #b38728 -> hsl(45, 65%, 43%)
+            const hue = Math.random() * 11 + 45; // 45-56
+            const saturation = Math.random() * 35 + 53; // 53-88
+            const lightness = Math.random() * 42 + 43; // 43-85
+            const alpha = Math.random() * 0.5 + 0.5;
+            
             particles.current.push({
                 x: cursor.current.x,
                 y: cursor.current.y,
@@ -47,8 +57,7 @@ const GoldDustCursor: React.FC<GoldDustCursorProps> = ({ className }) => {
                 size: size,
                 life: life,
                 initialLife: life,
-                // Shorter hue range for more consistent gold color
-                color: `hsla(${Math.random() * 10 + 40}, 90%, 65%, ${Math.random() * 0.5 + 0.5})`
+                color: `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`
             });
         };
 
