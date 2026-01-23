@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -97,7 +98,7 @@ export default function RewardsPage() {
                 <div className="pipeline flex flex-col items-center space-y-16">
                     {/* Step 1 */}
                     <div className="text-center reveal">
-                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float">
                             <Store className="w-10 h-10 text-brass"/>
                         </div>
                         <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">1. Visit & Sign Up</h3>
@@ -105,7 +106,7 @@ export default function RewardsPage() {
                     </div>
                     {/* Step 2 */}
                     <div className="text-center reveal">
-                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.25s' }}>
                             <ClipboardEdit className="w-10 h-10 text-brass"/>
                         </div>
                         <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">2. Register</h3>
@@ -113,7 +114,7 @@ export default function RewardsPage() {
                     </div>
                     {/* Step 3 */}
                     <div className="text-center reveal">
-                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.5s' }}>
                             <CreditCard className="w-10 h-10 text-brass"/>
                         </div>
                         <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">3. Get Your ID</h3>
@@ -121,7 +122,7 @@ export default function RewardsPage() {
                     </div>
                     {/* Step 4 */}
                     <div className="text-center reveal">
-                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)] animate-float" style={{ animationDelay: '0.75s' }}>
                             <Coins className="w-10 h-10 text-brass"/>
                         </div>
                         <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">4. Earn</h3>
