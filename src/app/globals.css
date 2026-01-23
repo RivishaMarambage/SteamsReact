@@ -98,22 +98,31 @@
 }
 
 .gold-glow {
-    animation: gold-flicker 4s infinite alternate;
+    animation: gold-shine 3s ease-in-out infinite;
 }
 
-@keyframes gold-flicker {
-  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+@keyframes gold-shine {
+  0% {
     text-shadow:
       0 0 4px #fff,
       0 0 10px #fff,
-      0 0 14px #fff,
-      0 0 20px hsl(var(--brass)),
-      0 0 30px hsl(var(--brass)),
-      0 0 40px hsl(var(--brass)),
-      0 0 50px hsl(var(--brass));
+      0 0 14px hsl(var(--brass)),
+      0 0 20px hsl(var(--brass));
   }
-  20%, 24%, 55% {       
-    text-shadow: none;
+  50% {
+    text-shadow:
+      0 0 8px #fff,
+      0 0 20px #fff,
+      0 0 28px hsl(var(--brass)),
+      0 0 40px hsl(var(--brass)),
+      0 0 55px hsl(var(--brass));
+  }
+  100% {
+    text-shadow:
+      0 0 4px #fff,
+      0 0 10px #fff,
+      0 0 14px hsl(var(--brass)),
+      0 0 20px hsl(var(--brass));
   }
 }
 
