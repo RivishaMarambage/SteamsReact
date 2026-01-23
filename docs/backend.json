@@ -176,6 +176,28 @@
         "pointsToEarn": {
           "type": "number",
           "description": "The number of loyalty points to be awarded when the order is completed."
+        },
+        "birthdayDiscountApplied": {
+            "description": "Details of the birthday reward applied to this order, if any.",
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": { "enum": ["fixed", "percentage"] },
+                        "value": { "type": "number" }
+                    },
+                    "required": ["type", "value"]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": { "enum": ["free-item"] },
+                        "menuItemIds": { "type": "array", "items": { "type": "string" } }
+                    },
+                    "required": ["type", "menuItemIds"]
+                },
+                { "type": "null" }
+            ]
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]
