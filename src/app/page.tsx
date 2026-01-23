@@ -11,7 +11,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight } from "lucide-react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Utensils } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
 import OffersHighlight from "@/components/home/OffersHighlight";
 
@@ -117,9 +117,9 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <Button asChild size="lg" variant="secondary">
-                <Link href="/menu">View Menu</Link>
+                <Link href="/menu">View Menu <Utensils className="ml-2 h-5 w-5" /></Link>
               </Button>
-              <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button asChild size="lg" className="bg-brass hover:bg-brass/90 text-black">
                 <Link href="/signup/customer">Become a Member</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
