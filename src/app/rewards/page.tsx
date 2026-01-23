@@ -40,6 +40,13 @@ export default function RewardsPage() {
     return () => window.removeEventListener('scroll', reveal);
   }, []);
 
+  const steps = [
+    { number: 1, title: 'Visit & Sign Up', description: 'In-store or online via our digital portal.' },
+    { number: 2, title: 'Register', description: 'A simple form to get your journey started.' },
+    { number: 3, title: 'Get Your ID', description: 'Instant digital card or premium physical card.' },
+    { number: 4, title: 'Earn', description: 'Points start accumulating from your first LKR.' },
+];
+
   return (
     <div className="antialiased font-body text-gray-200 bg-charcoal overflow-x-hidden">
       <PublicHeader />
@@ -52,7 +59,7 @@ export default function RewardsPage() {
       <header className="relative min-h-screen flex flex-col items-center justify-center text-center px-4">
         <div className="z-10">
           <h1 className="text-5xl md:text-8xl font-bold mb-4 tracking-tight uppercase font-headline">
-            The <span className="gold-gradient italic">Steamsbury</span> Club
+            The <span className="gold-gradient">Steamsbury</span> Club
           </h1>
           <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
             Loyalty & Rewards redefined. An exclusive journey designed for our most dedicated patrons.
@@ -91,30 +98,21 @@ export default function RewardsPage() {
             </div>
         </section>
 
-        <section className="py-24 bg-black/30">
-            <div className="max-w-6xl mx-auto px-6">
-                <h2 className="text-4xl font-bold text-center mb-16 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative">
-                    <div className="text-center reveal" style={{ transitionDelay: '0.1s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">1</div>
-                        <h3 className="font-semibold mb-2 font-headline">Visit & Sign Up</h3>
-                        <p className="text-sm text-gray-500">In-store or online via our digital portal.</p>
-                    </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.3s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">2</div>
-                        <h3 className="font-semibold mb-2 font-headline">Register</h3>
-                        <p className="text-sm text-gray-500">A simple form to get your journey started.</p>
-                    </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.5s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">3</div>
-                        <h3 className="font-semibold mb-2 font-headline">Get Your ID</h3>
-                        <p className="text-sm text-gray-500">Instant digital card or premium physical card.</p>
-                    </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.7s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">4</div>
-                        <h3 className="font-semibold mb-2 font-headline">Earn</h3>
-                        <p className="text-sm text-gray-500">Points start accumulating from your first LKR.</p>
-                    </div>
+        <section className="py-24 bg-black/30 overflow-hidden">
+            <div className="max-w-4xl mx-auto px-6">
+                <h2 className="text-4xl font-bold text-center mb-24 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
+                <div className="relative pipeline flex flex-col items-center">
+                    {steps.map((step, index) => (
+                        <div key={index} className={`reveal w-full md:w-[calc(50%+2.5rem)] mb-12 flex items-center gap-6 ${index % 2 === 0 ? 'md:self-start md:flex-row' : 'md:self-end md:flex-row-reverse'}`}>
+                            <div className="w-20 h-20 bg-brass text-black rounded-full flex-shrink-0 flex items-center justify-center text-2xl font-bold shadow-[0_0_20px_rgba(212,175,55,0.4)] relative z-10">
+                                {step.number}
+                            </div>
+                            <div className="p-6 glass-card rounded-xl flex-grow">
+                                <h3 className="font-semibold mb-2 font-headline text-xl">{step.title}</h3>
+                                <p className="text-sm text-gray-400">{step.description}</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>
