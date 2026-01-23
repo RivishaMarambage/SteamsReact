@@ -290,7 +290,7 @@ export default function AboutPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="bg-accent text-accent-foreground p-12 rounded-2xl text-center" style={{ backgroundColor: '#cf6d17' }}>
+        <section className="bg-accent text-accent-foreground p-12 rounded-2xl text-center">
             <h2 className="text-4xl font-bold">Experience Steamsbury Today</h2>
             <p className="mt-2 max-w-2xl mx-auto">
                 Whether you're looking for your morning jolt or a peaceful afternoon retreat, we have a seat waiting for you.

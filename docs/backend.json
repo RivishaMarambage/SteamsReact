@@ -23,12 +23,7 @@
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
-        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." },
-        "dailyOffersRedeemed": {
-          "type": "object",
-          "description": "A map of daily offer IDs to the date (YYYY-MM-DD) they were redeemed.",
-          "additionalProperties": { "type": "string" }
-        }
+        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." }
       },
       "required": ["id", "email", "name", "role"]
     },
@@ -146,7 +141,7 @@
         "customerId": { "type": "string", "description": "The UID of the user who placed the order." },
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
-        "status": { "type": "string", "enum": ["Placed", "Accepting", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
+        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
         "orderItems": {
           "type": "array",
           "items": { "$ref": "#/entities/OrderItem" },
@@ -176,28 +171,6 @@
         "pointsToEarn": {
           "type": "number",
           "description": "The number of loyalty points to be awarded when the order is completed."
-        },
-        "birthdayDiscountApplied": {
-            "description": "Details of the birthday reward applied to this order, if any.",
-            "oneOf": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "type": { "enum": ["fixed", "percentage"] },
-                        "value": { "type": "number" }
-                    },
-                    "required": ["type", "value"]
-                },
-                {
-                    "type": "object",
-                    "properties": {
-                        "type": { "enum": ["free-item"] },
-                        "menuItemIds": { "type": "array", "items": { "type": "string" } }
-                    },
-                    "required": ["type", "menuItemIds"]
-                },
-                { "type": "null" }
-            ]
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]

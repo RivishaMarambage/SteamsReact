@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,7 +11,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, Calendar, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut, Flame } from 'lucide-react';
+import { AreaChart, BookMarked, Calendar, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -24,7 +23,6 @@ const customerMenuItems = [
   { href: '/dashboard/order', label: 'Menu', icon: BookMarked },
   { href: '/dashboard/offers', label: 'Offers', icon: Tag },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-  { href: '/dashboard/game-zone', label: 'Game Zone', icon: Flame },
 ];
 
 const staffMenuItems = [
