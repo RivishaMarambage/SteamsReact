@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
@@ -203,8 +203,11 @@ export default function RewardsPage() {
                 <p className="text-gray-400 mb-10 max-w-xl mx-auto">
                     Join The Steamsbury Club today and turn your daily ritual into a journey of rewards.
                 </p>
-                 <Button asChild size="lg" className="bg-brass text-black font-bold py-4 px-12 rounded-full text-lg hover:scale-105 transition-transform shadow-[0_10px_30px_rgba(212,175,55,0.3)] hover:bg-brass/90 h-auto">
-                    <Link href="/signup/customer">JOIN THE CLUB TODAY</Link>
+                 <Button asChild size="lg" className="bg-charcoal text-white border-2 border-brass font-bold py-4 px-10 rounded-full text-lg transition-colors duration-300 ease-in-out hover:bg-brass hover:text-charcoal h-auto shadow-[0_10px_30px_rgba(212,175,55,0.3)]">
+                    <Link href="/signup/customer">
+                        JOIN THE CLUB TODAY
+                        <ArrowRight className="h-5 w-5" />
+                    </Link>
                 </Button>
                 <p className="mt-8 text-xs text-gray-600 uppercase tracking-widest">Terms & Conditions Apply</p>
             </div>
