@@ -6,6 +6,7 @@ import { ArrowDown, Store, ClipboardEdit, CreditCard, Coins } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
+import GoldDustCursor from '@/components/effects/GoldDustCursor';
 
 export default function RewardsPage() {
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function RewardsPage() {
   return (
     <div className="antialiased font-body text-gray-200 bg-charcoal overflow-x-hidden">
       <PublicHeader />
+      <GoldDustCursor />
       <div className="steam-container">
         <div className="cloud" style={{ top: '-10%', left: '-10%' }}></div>
         <div className="cloud" style={{ top: '60%', left: '80%', animationDelay: '-5s' }}></div>
