@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Store, ClipboardEdit, CreditCard, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
@@ -90,28 +90,40 @@ export default function RewardsPage() {
         </section>
 
         <section className="py-24 bg-black/30">
-            <div className="max-w-6xl mx-auto px-6">
+            <div className="max-w-3xl mx-auto px-6">
                 <h2 className="text-4xl font-bold text-center mb-16 font-headline">The Path to <span className="gold-gradient">Privilege</span></h2>
-                <div className="grid md:grid-cols-4 gap-8 relative">
-                    <div className="text-center reveal" style={{ transitionDelay: '0.1s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">1</div>
-                        <h3 className="font-semibold mb-2 font-headline">Visit & Sign Up</h3>
-                        <p className="text-sm text-gray-500">In-store or online via our digital portal.</p>
+                <div className="pipeline flex flex-col items-center space-y-16">
+                    {/* Step 1 */}
+                    <div className="text-center reveal">
+                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                            <Store className="w-10 h-10 text-brass"/>
+                        </div>
+                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">1. Visit & Sign Up</h3>
+                        <p className="text-lg text-gray-400 max-w-sm mx-auto">In-store or online via our digital portal.</p>
                     </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.3s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">2</div>
-                        <h3 className="font-semibold mb-2 font-headline">Register</h3>
-                        <p className="text-sm text-gray-500">A simple form to get your journey started.</p>
+                    {/* Step 2 */}
+                    <div className="text-center reveal">
+                        <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                            <ClipboardEdit className="w-10 h-10 text-brass"/>
+                        </div>
+                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">2. Register</h3>
+                        <p className="text-lg text-gray-400 max-w-sm mx-auto">A simple form to get your journey started.</p>
                     </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.5s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">3</div>
-                        <h3 className="font-semibold mb-2 font-headline">Get Your ID</h3>
-                        <p className="text-sm text-gray-500">Instant digital card or premium physical card.</p>
+                    {/* Step 3 */}
+                    <div className="text-center reveal">
+                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                            <CreditCard className="w-10 h-10 text-brass"/>
+                        </div>
+                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">3. Get Your ID</h3>
+                        <p className="text-lg text-gray-400 max-w-sm mx-auto">Instant digital card or premium physical card.</p>
                     </div>
-                    <div className="text-center reveal" style={{ transitionDelay: '0.7s' }}>
-                        <div className="w-16 h-16 bg-brass text-black rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">4</div>
-                        <h3 className="font-semibold mb-2 font-headline">Earn</h3>
-                        <p className="text-sm text-gray-500">Points start accumulating from your first LKR.</p>
+                    {/* Step 4 */}
+                    <div className="text-center reveal">
+                         <div className="w-20 h-20 bg-charcoal border-2 border-brass rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(212,175,55,0.4)]">
+                            <Coins className="w-10 h-10 text-brass"/>
+                        </div>
+                        <h3 className="font-semibold mb-2 font-headline text-2xl text-brass">4. Earn</h3>
+                        <p className="text-lg text-gray-400 max-w-sm mx-auto">Points start accumulating from your first LKR.</p>
                     </div>
                 </div>
             </div>
