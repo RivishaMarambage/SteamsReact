@@ -46,7 +46,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Welcome back, {user.name?.split(' ')[0]}!</h1>
+        <h1 className="text-3xl font-bold">Welcome back, {user.name?.split(' ')[0]}!</h1>
         <p className="text-muted-foreground">Here's a look at your loyalty journey with us.</p>
       </div>
 
@@ -54,9 +54,9 @@ export default function DashboardPage() {
         <BirthdayReward user={user} />
         <DailyOffersPreview userProfile={user} />
         <div className="grid md:grid-cols-3 gap-8">
-            <Card className="shadow-lg flex flex-col justify-between">
+            <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Order Again</CardTitle>
+                    <CardTitle>Order Again</CardTitle>
                     <CardDescription>Ready for another coffee? Your usual is just a click away.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -65,9 +65,9 @@ export default function DashboardPage() {
                     </Button>
                 </CardContent>
             </Card>
-             <Card className="shadow-lg flex flex-col justify-between bg-primary/5 border-primary/20">
+             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Create Your Own</CardTitle>
+                    <CardTitle>Create Your Own</CardTitle>
                     <CardDescription>Feeling creative? Build your perfect custom drink from scratch.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -76,9 +76,9 @@ export default function DashboardPage() {
                     </Button>
                 </CardContent>
             </Card>
-            <Card className="shadow-lg flex flex-col justify-between">
+            <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Your Profile</CardTitle>
+                    <CardTitle>Your Profile</CardTitle>
                     <CardDescription>Keep your details and preferences up to date.</CardDescription>
                 </CardHeader>
                 <CardContent>

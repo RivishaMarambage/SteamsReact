@@ -1,7 +1,6 @@
 'use client';
 import Image from "next/image";
 import { Award, Users, Check, Diamond, FileText } from "lucide-react";
-import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
@@ -43,14 +42,15 @@ export default function AboutPage() {
   ];
 
   return (
-    <PublicPageLayout title="About Us">
+    <div className="container mx-auto px-4 md:px-6 py-12">
+      <h1 className="text-4xl font-bold mb-8">About Us</h1>
       <div className="space-y-24">
         
         {/* Our Story Section */}
         <section className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-4">
             <span className="text-sm font-semibold text-primary tracking-widest">SINCE 2012</span>
-            <h2 className="text-4xl font-bold font-headline">Our Story</h2>
+            <h2 className="text-4xl font-bold">Our Story</h2>
             <p className="text-muted-foreground text-lg">
               From a single small roaster in a dusty garage to a beloved community hub, our journey has been fueled by a relentless passion for the perfect cup. We believe that coffee is more than a beverage; it's a catalyst for connection.
             </p>
@@ -84,7 +84,7 @@ export default function AboutPage() {
 
         {/* Our Values Section */}
         <section className="text-center">
-          <h2 className="text-4xl font-bold font-headline">Our Values</h2>
+          <h2 className="text-4xl font-bold">Our Values</h2>
           <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
             The principles that guide every roast and every pour we make.
           </p>
@@ -92,7 +92,7 @@ export default function AboutPage() {
             <Card className="shadow-md hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-row items-start gap-4">
                 <div className="p-3 bg-primary/10 rounded-lg text-primary"><Award className="h-6 w-6"/></div>
-                <CardTitle className="font-headline text-2xl pt-2">Quality First</CardTitle>
+                <CardTitle className="pt-2">Quality First</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -103,7 +103,7 @@ export default function AboutPage() {
              <Card className="shadow-md hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-row items-start gap-4">
                  <div className="p-3 bg-primary/10 rounded-lg text-primary"><Diamond className="h-6 w-6"/></div>
-                <CardTitle className="font-headline text-2xl pt-2">Ethical Sourcing</CardTitle>
+                <CardTitle className="pt-2">Ethical Sourcing</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -114,7 +114,7 @@ export default function AboutPage() {
              <Card className="shadow-md hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-row items-start gap-4">
                  <div className="p-3 bg-primary/10 rounded-lg text-primary"><Users className="h-6 w-6"/></div>
-                <CardTitle className="font-headline text-2xl pt-2">Community Space</CardTitle>
+                <CardTitle className="pt-2">Community Space</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -133,7 +133,7 @@ export default function AboutPage() {
               ))}
             </div>
             <div className="space-y-6">
-              <h2 className="text-4xl font-bold font-headline">Sensory Science</h2>
+              <h2 className="text-4xl font-bold">Sensory Science</h2>
               <p className="text-muted-foreground text-lg">
                 Roasting is where chemistry meets art. Our roast masters monitor the temperature and timing of every batch to highlight the unique terroir of the beans, from the citrus notes of Ethiopia to the chocolate undertones of Brazil.
               </p>
@@ -162,7 +162,7 @@ export default function AboutPage() {
 
         {/* Meet the Team Section */}
         <section className="text-center">
-            <h2 className="text-4xl font-bold font-headline">Meet the Team</h2>
+            <h2 className="text-4xl font-bold">Meet the Team</h2>
             <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
                 The passionate experts behind your daily cup.
             </p>
@@ -193,7 +193,7 @@ export default function AboutPage() {
         {/* Contact Us Section */}
         <section className="text-center space-y-12">
             <div>
-                <h2 className="text-4xl font-bold font-headline">Contact & Location</h2>
+                <h2 className="text-4xl font-bold">Contact & Location</h2>
                 <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
                     Find us at our Battaramulla location or send us a message.
                 </p>
@@ -236,7 +236,7 @@ export default function AboutPage() {
               </p>
                 <Card className="shadow-lg">
                     <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Send us a Message</CardTitle>
+                    <CardTitle>Send us a Message</CardTitle>
                     </CardHeader>
                     <CardContent>
                     <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
@@ -290,8 +290,8 @@ export default function AboutPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="bg-accent text-accent-foreground p-12 rounded-2xl text-center">
-            <h2 className="text-4xl font-bold font-headline">Experience Steamsbury Today</h2>
+        <section className="bg-accent text-accent-foreground p-12 rounded-2xl text-center" style={{ backgroundColor: '#cf6d17' }}>
+            <h2 className="text-4xl font-bold">Experience Steamsbury Today</h2>
             <p className="mt-2 max-w-2xl mx-auto">
                 Whether you're looking for your morning jolt or a peaceful afternoon retreat, we have a seat waiting for you.
             </p>
@@ -303,6 +303,6 @@ export default function AboutPage() {
             </div>
         </section>
       </div>
-    </PublicPageLayout>
+    </div>
   );
 }
