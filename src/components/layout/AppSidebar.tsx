@@ -22,8 +22,8 @@ import { doc } from 'firebase/firestore';
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Menu', icon: BookMarked },
+  { href: '/dashboard/offers', label: 'Offers', icon: Tag },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-  { href: '/dashboard/event', label: 'Event', icon: Calendar },
 ];
 
 const staffMenuItems = [
@@ -88,28 +88,23 @@ export default function AppSidebar() {
 
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar>
       <SidebarRail />
-      <SidebarHeader className="bg-sidebar-border rounded-lg m-2 p-2 group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:rounded-none">
+      <SidebarHeader>
         <Logo link="/dashboard"/>
       </SidebarHeader>
       <SidebarContent>
         {isLoading ? (
           <div className="p-2 space-y-2">
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
           </div>
         ) : (
         <SidebarMenu>
-          {userRole === 'customer' && (
-            <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-                Main
-            </div>
-          )}
           {userRole === 'admin' && (
             <>
-                <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+                <div className="px-2 py-2 text-xs font-semibold text-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                     Staff View
                 </div>
             </>
@@ -125,14 +120,13 @@ export default function AppSidebar() {
                 <Link href={item.href} onClick={handleNavigate} className="relative">
                   <item.icon />
                   <span>{item.label}</span>
-                  {userRole === 'customer' && isActive(item.href) && <span className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-sidebar-accent-foreground group-data-[collapsible=icon]:hidden" />}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
           {userRole === 'admin' && (
             <>
-              <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+              <div className="px-2 py-2 text-xs font-semibold text-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                 Admin
               </div>
               {adminMenuItems.map((item) => (
@@ -154,7 +148,7 @@ export default function AppSidebar() {
         </SidebarMenu>
         )}
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border mt-auto">
+      <SidebarFooter className="border-t mt-auto">
         <SidebarMenu>
             <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
