@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -36,6 +35,8 @@ type SidebarContext = {
   isMobile: boolean
   toggleSidebar: () => void
   isMounted: boolean
+  handleMouseEnter: () => void
+  handleMouseLeave: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -77,6 +78,8 @@ const SidebarProvider = React.forwardRef<
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
+    const wasHoverExpanded = React.useRef(false);
+
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
@@ -96,12 +99,35 @@ const SidebarProvider = React.forwardRef<
         setIsMounted(true);
     }, [])
 
+    const handleMouseEnter = () => {
+        if (!open) { // if collapsed
+            wasHoverExpanded.current = true;
+            setOpen(true);
+        }
+    }
+
+    const handleMouseLeave = () => {
+        if (wasHoverExpanded.current) {
+            setOpen(false);
+            wasHoverExpanded.current = false;
+        }
+    }
+
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+        if (isMobile) {
+            setOpenMobile(o => !o);
+            return;
+        }
+
+        if (wasHoverExpanded.current) {
+            // It was hover-expanded, so a click means "pin it".
+            wasHoverExpanded.current = false;
+        } else {
+            // Normal toggle behavior
+            setOpen(o => !o);
+        }
+    }, [isMobile, setOpen, setOpenMobile, wasHoverExpanded])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -133,6 +159,8 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
         isMounted,
+        handleMouseEnter,
+        handleMouseLeave,
       }),
       [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, isMounted]
     )
@@ -183,7 +211,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile, isMounted } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, isMounted, handleMouseEnter, handleMouseLeave } = useSidebar()
 
     if (!isMounted) {
         return null;
@@ -232,6 +260,8 @@ const Sidebar = React.forwardRef<
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -773,5 +803,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
