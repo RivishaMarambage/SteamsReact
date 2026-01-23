@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -22,6 +21,7 @@ import { doc } from 'firebase/firestore';
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
+  { href: '/dashboard/offers', label: 'My Offers', icon: Tag },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
