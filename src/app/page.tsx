@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -11,7 +10,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Utensils } from "lucide-react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Utensils, Award, Tag } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
 import OffersHighlight from "@/components/home/OffersHighlight";
 
@@ -120,10 +119,10 @@ export default function LandingPage() {
                 <Link href="/menu">View Menu <Utensils className="ml-2 h-5 w-5" /></Link>
               </Button>
               <Button asChild size="lg" className="bg-brass hover:bg-brass/90 text-black">
-                <Link href="/signup/customer">Become a Member</Link>
+                <Link href="/signup/customer">Become a Member <Award className="ml-2 h-5 w-5" /></Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="/offers">Our Offers</Link>
+                <Link href="/offers">Our Offers <Tag className="ml-2 h-5 w-5" /></Link>
               </Button>
 
             </div>
