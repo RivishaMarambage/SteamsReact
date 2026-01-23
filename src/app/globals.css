@@ -173,3 +173,8 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+.btn-join:hover {
+    background: linear-gradient(90deg, #bf953f 0%, #fcf6ba 45%, #b38728 100%);
+    color: hsl(var(--charcoal));
+}

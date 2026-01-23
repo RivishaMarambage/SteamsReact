@@ -203,7 +203,7 @@ export default function RewardsPage() {
                 <p className="text-gray-400 mb-10 max-w-xl mx-auto">
                     Join The Steamsbury Club today and turn your daily ritual into a journey of rewards.
                 </p>
-                 <Button asChild size="lg" className="bg-charcoal text-white border-2 border-brass font-bold py-4 px-10 rounded-full text-lg transition-colors duration-300 ease-in-out hover:bg-brass hover:text-charcoal h-auto shadow-[0_10px_30px_rgba(212,175,55,0.3)]">
+                 <Button asChild size="lg" className="btn-join bg-charcoal text-white border-2 border-brass font-bold py-4 px-10 rounded-full text-lg transition-colors duration-300 ease-in-out h-auto shadow-[0_10px_30px_rgba(212,175,55,0.3)]">
                     <Link href="/signup/customer">
                         JOIN THE CLUB TODAY
                         <ArrowRight className="h-5 w-5" />
