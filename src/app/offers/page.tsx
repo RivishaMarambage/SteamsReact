@@ -5,6 +5,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { DailyOffer, MenuItem } from "@/lib/types";
 import { collection, query, where } from "firebase/firestore";
 import { format, isWithinInterval, parseISO } from 'date-fns';
+import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tag } from "lucide-react";
@@ -99,7 +100,7 @@ function OffersPageContent() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                             <div className="absolute bottom-0 left-0 p-4">
-                                <h3 className="text-2xl font-bold text-white">{offer.title}</h3>
+                                <h3 className="text-2xl font-headline font-bold text-white">{offer.title}</h3>
                                 <p className="text-white/90">{offer.menuItem.name}</p>
                             </div>
                             <div className="absolute top-2 right-2">
@@ -139,9 +140,8 @@ function OffersPageContent() {
 
 export default function OffersPage() {
     return (
-        <div className="container mx-auto px-4 md:px-6 py-12">
-           <h1 className="text-4xl font-bold mb-8">Special Offers</h1>
+        <PublicPageLayout title="Special Offers">
            <OffersPageContent />
-        </div>
+        </PublicPageLayout>
     )
 }

@@ -16,6 +16,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        headline: ["Playfair Display", "serif"],
+        body: ["Montserrat", "sans-serif"],
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -57,6 +61,9 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+         // For rewards page
+        brass: 'hsl(var(--brass))',
+        charcoal: 'hsl(var(--charcoal))',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -80,10 +87,16 @@ export default {
             height: '0',
           },
         },
+        'float': {
+            '0%': { transform: 'translateY(0px)' },
+            '50%': { transform: 'translateY(-10px)' },
+            '100%': { transform: 'translateY(0px)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'float': 'float 3s ease-in-out infinite',
       },
     },
   },

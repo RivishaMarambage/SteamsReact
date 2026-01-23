@@ -1,4 +1,5 @@
 
+import PublicPageLayout from "@/components/layout/PublicPageLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -34,35 +35,34 @@ const updatesItems = [
 
 export default function UpdatesPage() {
   return (
-    <div className="container mx-auto px-4 md:px-6 py-12">
-        <h1 className="text-4xl font-bold mb-8">Latest Updates</h1>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {updatesItems.map(item => (
-            <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg">
-                <div className="relative h-56 w-full">
-                <Image 
-                    src={item.imageUrl}
-                    alt={item.title}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={item.imageHint}
-                />
-                </div>
-                <CardHeader>
-                <CardTitle>{item.title}</CardTitle>
-                <CardDescription>{item.date}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                <p className="text-muted-foreground">{item.excerpt}</p>
-                </CardContent>
-                <CardFooter>
-                <Button asChild variant="link" className="p-0">
-                    <Link href="#">Read More</Link>
-                </Button>
-                </CardFooter>
-            </Card>
-            ))}
-        </div>
-    </div>
+    <PublicPageLayout title="Latest Updates">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {updatesItems.map(item => (
+          <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg">
+            <div className="relative h-56 w-full">
+              <Image 
+                src={item.imageUrl}
+                alt={item.title}
+                fill
+                className="object-cover"
+                data-ai-hint={item.imageHint}
+              />
+            </div>
+            <CardHeader>
+              <CardTitle className="font-headline text-xl">{item.title}</CardTitle>
+              <CardDescription>{item.date}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-muted-foreground">{item.excerpt}</p>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="link" className="p-0">
+                <Link href="#">Read More</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </PublicPageLayout>
   );
 }

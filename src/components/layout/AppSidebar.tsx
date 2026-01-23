@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -11,18 +12,18 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, Calendar, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
-import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/order', label: 'Menu', icon: BookMarked },
-  { href: '/dashboard/offers', label: 'Offers', icon: Tag },
+  { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
 
 const staffMenuItems = [
@@ -43,9 +44,7 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user: authUser, isUserLoading } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
@@ -54,16 +53,11 @@ export default function AppSidebar() {
   const userRole = userProfile?.role;
   const isLoading = isUserLoading || isProfileLoading;
 
-  const handleLogout = async () => {
-    if(auth) {
-      await auth.signOut();
-    }
-    router.push('/');
-  };
-
   const handleNavigate = () => {
     if (isMobile) {
       setOpenMobile(false);
+    } else {
+      setOpen(false);
     }
   };
 
@@ -72,7 +66,7 @@ export default function AppSidebar() {
     return pathname.startsWith(href);
   };
 
-  let menuItemsToShow: (typeof customerMenuItems | typeof staffMenuItems) = [];
+  let menuItemsToShow: typeof customerMenuItems = [];
   const adminSectionItems: typeof adminMenuItems = [];
 
   if (userRole === 'customer') {
@@ -87,7 +81,7 @@ export default function AppSidebar() {
 
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarRail />
       <SidebarHeader>
         <Logo link="/dashboard"/>
@@ -95,15 +89,15 @@ export default function AppSidebar() {
       <SidebarContent>
         {isLoading ? (
           <div className="p-2 space-y-2">
-            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
           </div>
         ) : (
         <SidebarMenu>
           {userRole === 'admin' && (
             <>
-                <div className="px-2 py-2 text-xs font-semibold text-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+                <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                     Staff View
                 </div>
             </>
@@ -116,7 +110,7 @@ export default function AppSidebar() {
                 asChild
                 tooltip={item.label}
               >
-                <Link href={item.href} onClick={handleNavigate} className="relative">
+                <Link href={item.href} onClick={handleNavigate}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
@@ -125,7 +119,7 @@ export default function AppSidebar() {
           ))}
           {userRole === 'admin' && (
             <>
-              <div className="px-2 py-2 text-xs font-semibold text-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+              <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                 Admin
               </div>
               {adminMenuItems.map((item) => (
@@ -147,15 +141,8 @@ export default function AppSidebar() {
         </SidebarMenu>
         )}
       </SidebarContent>
-      <SidebarFooter className="border-t mt-auto">
-        <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
-                    <LogOut />
-                    <span>Logout</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter>
+        {/* Can add elements to footer here */}
       </SidebarFooter>
     </Sidebar>
   );

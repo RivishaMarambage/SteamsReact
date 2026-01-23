@@ -12,11 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { LifeBuoy, Settings, User as UserIcon } from 'lucide-react';
+import { LifeBuoy, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
-import { useUser } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 
 function getPageTitle(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
@@ -28,11 +28,18 @@ function getPageTitle(pathname: string) {
 export default function AppHeader() {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
+  const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
 
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/');
+  };
+
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#211811] px-4 text-primary-foreground md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <div className="hidden md:block">
@@ -43,7 +50,7 @@ export default function AppHeader() {
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-sidebar-accent">
               <Avatar className="h-10 w-10">
                 {user && <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.displayName || user.email || ''} />}
                 <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
@@ -73,6 +80,10 @@ export default function AppHeader() {
               <Link href="#">
                 <LifeBuoy /> Support
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut /> Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
