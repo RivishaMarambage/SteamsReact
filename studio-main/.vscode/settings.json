@@ -1,0 +1,20 @@
+{
+    "css.customData": [],
+    "css.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore",
+    "less.lint.unknownAtRules": "ignore",
+    "files.associations": {
+        "*.css": "tailwindcss"
+    },
+    "stylelint.validate": [
+        "css",
+        "scss"
+    ],
+    "css.validate": false,
+    "scss.validate": false,
+    "tailwindCSS.emmetCompletions": true,
+    "tailwindCSS.includeLanguages": {
+        "typescriptreact": "typescriptreact",
+        "css": "css"
+    }
+}
