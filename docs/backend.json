@@ -23,9 +23,34 @@
         "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
         "referralCode": { "type": "string", "description": "Unique code for referring friends." },
         "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
-        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." }
+        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." },
+        "dailyOffersRedeemed": {
+          "type": "object",
+          "description": "A map of daily offer IDs to the date (YYYY-MM-DD) they were redeemed.",
+          "additionalProperties": { "type": "string" }
+        }
       },
       "required": ["id", "email", "name", "role"]
+    },
+    "GameProfile": {
+      "title": "User Game Profile",
+      "type": "object",
+      "description": "Stores a user's daily game-related stats.",
+      "properties": {
+        "lastPlayedDate": { "type": "string", "description": "The last date (YYYY-MM-DD) the user played a game, used for resetting daily limits." },
+        "triviaCount": { "type": "number", "description": "Number of trivia questions answered today." }
+      },
+      "required": ["lastPlayedDate", "triviaCount"]
+    },
+    "DailyGameWinners": {
+      "title": "Daily Game Winners",
+      "type": "object",
+      "description": "A document storing the UID of the daily grand prize winner for each game. The document ID is the date (YYYY-MM-DD).",
+      "properties": {
+        "spinWinner": { "type": ["string", "null"], "description": "UID of the user who won the Spin to Win grand prize." },
+        "scratchWinner": { "type": ["string", "null"], "description": "UID of the user who won the Scratch Card grand prize." },
+        "triviaWinner": { "type": ["string", "null"], "description": "UID of the user who won the Trivia Quest grand prize." }
+      }
     },
     "MenuItemAddonGroup": {
       "title": "Menu Item Add-on Group",
@@ -235,6 +260,14 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores user profile data. Secured by user ID."
+    },
+    "/users/{userId}/data/game_profile": {
+      "schema": { "$ref": "#/entities/GameProfile" },
+      "description": "Stores a user's private game profile data. Subcollection for extensibility."
+    },
+    "/daily_game_winners/{date}": {
+      "schema": { "$ref": "#/entities/DailyGameWinners" },
+      "description": "Publicly readable list of daily game winners. Writable only via transaction."
     },
     "/menu_items/{menuItemId}": {
       "schema": { "$ref": "#/entities/MenuItem" },

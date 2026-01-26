@@ -11,7 +11,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, Dices } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ const customerMenuItems = [
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
   { href: '/dashboard/offers', label: 'My Offers', icon: Tag },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/dashboard/game-zone', label: 'Game Zone', icon: Dices },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
 
@@ -46,7 +47,7 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { setOpen, setOpenMobile, isMobile } = useSidebar();
+  const { setOpen, setOpenMobile, isMobile, handleMouseEnter, handleMouseLeave } = useSidebar();
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
@@ -56,8 +57,6 @@ export default function AppSidebar() {
   const handleNavigate = () => {
     if (isMobile) {
       setOpenMobile(false);
-    } else {
-      setOpen(false);
     }
   };
 
@@ -81,7 +80,7 @@ export default function AppSidebar() {
 
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       <SidebarRail />
       <SidebarHeader>
         <Logo link="/dashboard"/>

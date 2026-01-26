@@ -24,6 +24,17 @@ export type UserProfile = {
   dailyOffersRedeemed?: Record<string, string>; // e.g. { "offerId": "YYYY-MM-DD" }
 };
 
+export type GameProfile = {
+  lastPlayedDate: string; // YYYY-MM-DD
+  triviaCount: number;
+};
+
+export type DailyGameWinners = {
+  spinWinner: string | null;
+  scratchWinner: string | null;
+  triviaWinner: string | null;
+}
+
 export type AddonCategory = {
   id: string;
   name: string;

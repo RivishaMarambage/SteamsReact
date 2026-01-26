@@ -14,6 +14,15 @@ service cloud.firestore {
       allow update: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
       allow delete: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    match /users/{userId}/data/game_profile {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /daily_game_winners/{date} {
+      allow read: if true;
+      allow write: if isSignedIn(); // Writes are protected by transaction logic in code
+    }
 
     match /menu_items/{menuItemId} {
       allow read: if true;
