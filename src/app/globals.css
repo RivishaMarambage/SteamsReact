@@ -10,30 +10,30 @@
     --card-foreground: 220 15% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 15%;
-    --primary: 205 80% 50%;
+    --primary: 30 90% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 15% 94%;
     --secondary-foreground: 220 10% 40%;
     --muted: 220 15% 94%;
     --muted-foreground: 220 10% 55%;
-    --accent: 30 90% 55%;
+    --accent: 205 80% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 15% 90%;
     --input: 220 15% 92%;
-    --ring: 205 80% 50%;
+    --ring: 30 90% 55%;
     --radius: 0.5rem;
 
     /* Sidebar dark theme for light mode */
     --sidebar-background: 220 15% 18%;
     --sidebar-foreground: 220 20% 85%;
-    --sidebar-primary: 205 80% 50%;
+    --sidebar-primary: 30 90% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 25%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 15% 25%;
-    --sidebar-ring: 205 80% 50%;
+    --sidebar-ring: 30 90% 55%;
 
     /* New colors from rewards page design */
     --brass: 45 53% 47%;
@@ -47,29 +47,29 @@
     --card-foreground: 220 20% 95%;
     --popover: 220 15% 15%;
     --popover-foreground: 220 20% 95%;
-    --primary: 205 80% 60%;
+    --primary: 30 90% 60%;
     --primary-foreground: 220 15% 10%;
     --secondary: 220 15% 20%;
     --secondary-foreground: 220 20% 90%;
     --muted: 220 15% 20%;
     --muted-foreground: 220 10% 60%;
-    --accent: 30 90% 60%;
+    --accent: 205 80% 60%;
     --accent-foreground: 220 15% 10%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 15% 25%;
     --input: 220 15% 22%;
-    --ring: 205 80% 60%;
+    --ring: 30 90% 60%;
 
     /* Sidebar dark theme */
     --sidebar-background: 220 15% 10%;
     --sidebar-foreground: 220 20% 95%;
-    --sidebar-primary: 205 80% 60%;
+    --sidebar-primary: 30 90% 60%;
     --sidebar-primary-foreground: 220 15% 10%;
     --sidebar-accent: 220 15% 18%;
     --sidebar-accent-foreground: 220 20% 95%;
     --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 205 80% 60%;
+    --sidebar-ring: 30 90% 60%;
   }
 }
 
