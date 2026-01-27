@@ -1,5 +1,6 @@
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import BirthdayReminders from "@/components/dashboard/BirthdayReminders";
+import GameWinnerVerification from "@/components/admin/GameWinnerVerification";
 
 export default function AdminAnalyticsPage() {
   return (
@@ -11,6 +12,7 @@ export default function AdminAnalyticsPage() {
         </p>
       </div>
       <AnalyticsDashboard />
+      <GameWinnerVerification />
       <div className="mt-8">
         <BirthdayReminders />
       </div>
