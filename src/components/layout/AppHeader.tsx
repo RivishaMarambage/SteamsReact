@@ -39,7 +39,7 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#211811] px-4 text-primary-foreground md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <div className="hidden md:block">
