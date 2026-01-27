@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt, QrCode } from 'lucide-react';
+import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt, QrCode, CreditCard } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import QrScanner from '@/components/wallet/QrScanner';
+import { Label } from '../ui/label';
 
 
 const POINT_REWARDS = {
@@ -174,7 +175,7 @@ export default function WalletPage() {
                 <p className="text-muted-foreground">Manage your points and earn more rewards.</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-3 gap-8">
                 <Card className="shadow-lg">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2"><WalletIcon /> Current Balance</CardTitle>
@@ -198,6 +199,15 @@ export default function WalletPage() {
                                 <QrScanner />
                             </DialogContent>
                         </Dialog>
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><CreditCard /> Top Up Balance</CardTitle>
+                        <CardDescription>Add credit to your account for faster checkout.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button className="w-full" disabled>Coming Soon</Button>
                     </CardContent>
                 </Card>
             </div>
@@ -329,3 +339,4 @@ export default function WalletPage() {
              </Card>
         </div>
     );
+}
