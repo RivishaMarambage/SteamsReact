@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -8,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt } from 'lucide-react';
+import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt, QrCode } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import QrScanner from '@/components/wallet/QrScanner';
 
 
 const POINT_REWARDS = {
@@ -184,16 +185,19 @@ export default function WalletPage() {
                     </CardContent>
                 </Card>
                 <Card className="shadow-lg bg-primary/5 border-primary/20">
-                     <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">Top Up Your Wallet</CardTitle>
-                        <CardDescription>Add funds to use for future purchases.</CardDescription>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><QrCode /> Scan &amp; Pay</CardTitle>
+                        <CardDescription>Use your loyalty points to pay in-store instantly.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex items-center gap-2">
-                            <Input type="number" placeholder="LKR Amount" disabled />
-                            <Button disabled>Top Up</Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">Wallet top-up functionality is coming soon.</p>
+                         <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="w-full">Open Scanner</Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <QrScanner />
+                            </DialogContent>
+                        </Dialog>
                     </CardContent>
                 </Card>
             </div>
@@ -325,4 +329,3 @@ export default function WalletPage() {
              </Card>
         </div>
     );
-}
