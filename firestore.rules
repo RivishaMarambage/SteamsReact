@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     match /daily_game_winners/{date} {
-      allow read: if true;
+      allow read: if isSignedIn();
       allow write: if isSignedIn(); // Writes are protected by transaction logic in code
     }
 

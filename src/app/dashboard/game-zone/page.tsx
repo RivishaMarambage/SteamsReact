@@ -60,13 +60,20 @@ function GameZoneContent() {
         const data = docSnap.data() as GameProfile;
         if (data.lastPlayedDate !== today) {
           // Reset daily limits on a new day
-          updateDoc(gameProfileRef, { lastPlayedDate: today, triviaCount: 0 });
+          const updateData = { lastPlayedDate: today, triviaCount: 0 };
+          updateDoc(gameProfileRef, updateData)
+            .catch(e => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'update', requestResourceData: updateData}));
+            });
         }
         setGameProfile(data);
       } else {
         // Create initial game profile
         const initialProfile: GameProfile = { lastPlayedDate: today, triviaCount: 0 };
-        setDoc(gameProfileRef, initialProfile);
+        setDoc(gameProfileRef, initialProfile)
+            .catch(e => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'create', requestResourceData: initialProfile}));
+            });
       }
     }, (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'get'}));
@@ -79,7 +86,10 @@ function GameZoneContent() {
         setGlobalWinners(docSnap.data() as DailyGameWinners);
       } else {
         const initialWinners: DailyGameWinners = { spinWinner: null, scratchWinner: null, triviaWinner: null };
-        setDoc(globalRef, initialWinners);
+        setDoc(globalRef, initialWinners)
+            .catch(e => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({path: globalRef.path, operation: 'create', requestResourceData: initialWinners}));
+            });
       }
     }, (error) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({path: globalRef.path, operation: 'get'}));
