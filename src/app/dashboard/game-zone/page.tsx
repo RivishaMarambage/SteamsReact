@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -9,10 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { UserProfile, GameProfile, DailyGameWinners } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 // --- CONSTANTS ---
 const TRIVIA_DAILY_LIMIT = 5;
 const TRIVIA_QUEST_GOAL = 5;
+const SPIN_COST = 10;
 
 const QUESTION_BANK = [
   { category: 'Ancient History', q: 'Which king made Sigiriya his capital in the 5th century AD?', options: ['King Kashyapa', 'King Parakramabahu', 'King Dutugemunu', 'King Devanampiya Tissa'], correct: 0, fact: "King Kashyapa built his palace on the summit of Sigiriya rock." },
@@ -25,6 +28,7 @@ const QUESTION_BANK = [
 function GameZonePageContent() {
   const { user: authUser, isUserLoading: authLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [activeGame, setActiveGame] = useState('spin');
   const [isSpinning, setIsSpinning] = useState(false);
@@ -47,11 +51,12 @@ function GameZonePageContent() {
 
 
   useEffect(() => {
+    const defaultProfile = { lastPlayedDate: today, triviaCount: 0, spinCount: 0 };
     // Initialize game profile on first load for a new day
     if (gameProfileRef && gameProfile && gameProfile.lastPlayedDate !== today) {
-        updateDoc(gameProfileRef, { lastPlayedDate: today, triviaCount: 0 });
+        updateDoc(gameProfileRef, defaultProfile);
     } else if (gameProfileRef && !gameProfile && !gameProfileLoading && authUser) {
-        setDoc(gameProfileRef, { lastPlayedDate: today, triviaCount: 0 });
+        setDoc(gameProfileRef, defaultProfile);
     }
   }, [gameProfile, gameProfileRef, gameProfileLoading, today, authUser]);
 
@@ -102,20 +107,49 @@ function GameZonePageContent() {
   
   // --- GAME LOGIC ---
   const playSpin = async () => {
-    if (isSpinning || !authUser) return;
+    if (isSpinning || !authUser || !userProfile || !gameProfile || !gameProfileRef) return;
+
+    const isFreeSpin = (gameProfile.spinCount ?? 0) === 0;
+
+    if (!isFreeSpin) {
+        if ((userProfile.loyaltyPoints ?? 0) < SPIN_COST) {
+            toast({
+                variant: 'destructive',
+                title: 'Not enough points',
+                description: `You need ${SPIN_COST} points for another spin.`,
+            });
+            return;
+        }
+    }
+
     setIsSpinning(true);
     setSpinResult(null);
 
+    // Deduct points if it's not a free spin
+    if (!isFreeSpin) {
+        // This function handles the batch write for points and transaction log
+        await updatePoints(-SPIN_COST, "Paid Spin to Win");
+    }
+
+    // Increment spin count
+    await updateDoc(gameProfileRef, { spinCount: increment(1) });
+
+    // Wait for spin animation
     await new Promise(r => setTimeout(r, 2000));
 
+    // Determine result
     const rng = Math.random();
     if (rng < 0.05 && !globalWinners?.spinWinner) {
       const won = await handleGrandWin('spinWinner', 'Free Coffee');
-      if (won) setSpinResult({ type: 'GRAND', val: 'FREE COFFEE' });
-      else setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
+      if (won) {
+          setSpinResult({ type: 'GRAND', val: 'FREE COFFEE' });
+      } else { 
+          // If grand prize was already taken in the transaction, it's a loss
+          setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
+      }
     } else if (rng < 0.3) {
       const pts = Math.floor(Math.random() * 5) + 1;
-      await updatePoints(pts, "Lucky Spin");
+      await updatePoints(pts, "Lucky Spin Win"); // This is a separate update to give points
       setSpinResult({ type: 'POINTS', val: `${pts} PTS` });
     } else {
       setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
@@ -186,7 +220,9 @@ function GameZonePageContent() {
       )
   }
   
-  if (!userProfile) return <p>Could not load user profile.</p>
+  if (!userProfile) return <p>Could not load user profile.</p>;
+
+  const hasFreeSpin = (gameProfile?.spinCount ?? 0) === 0;
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
@@ -254,9 +290,11 @@ function GameZonePageContent() {
             )}
 
             <Button size="lg" className="w-full" onClick={playSpin} disabled={isSpinning}>
-              {isSpinning ? 'Spinning...' : 'SPIN FOR FREE'}
+              {isSpinning ? 'Spinning...' : hasFreeSpin ? 'SPIN FOR FREE' : `SPIN FOR ${SPIN_COST} PTS`}
             </Button>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">Most outcomes are "Try Again" or small points</p>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+              First spin of the day is FREE! Subsequent spins cost points.
+            </p>
           </Card>
         </div>
       )}

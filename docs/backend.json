@@ -38,9 +38,10 @@
       "description": "Stores a user's daily game-related stats.",
       "properties": {
         "lastPlayedDate": { "type": "string", "description": "The last date (YYYY-MM-DD) the user played a game, used for resetting daily limits." },
-        "triviaCount": { "type": "number", "description": "Number of trivia questions answered today." }
+        "triviaCount": { "type": "number", "description": "Number of trivia questions answered today." },
+        "spinCount": { "type": "number", "description": "Number of times the user has played the spin game today." }
       },
-      "required": ["lastPlayedDate", "triviaCount"]
+      "required": ["lastPlayedDate", "triviaCount", "spinCount"]
     },
     "DailyGameWinners": {
       "title": "Daily Game Winners",
