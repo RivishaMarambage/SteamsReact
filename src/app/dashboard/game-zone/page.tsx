@@ -1,384 +1,362 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useUser, errorEmitter } from '@/firebase';
-import { doc, setDoc, updateDoc, increment, collection, onSnapshot, runTransaction, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { Trophy, Coins, Lock, Sparkles, Dices, Coffee } from 'lucide-react';
+import { useUser, useFirestore, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, setDoc, updateDoc, increment, collection, onSnapshot, runTransaction, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
+import { Trophy, Coins, Lock, Sparkles, Dices, Coffee, Ticket, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { Card } from '@/components/ui/card';
+import type { UserProfile, GameProfile, DailyGameWinners } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { UserProfile, GameProfile, DailyGameWinners, PointTransaction } from '@/lib/types';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { Ticket } from 'lucide-react';
 
 // --- CONSTANTS ---
-const DAILY_LIMIT = 5; // Free daily attempts for trivia
-const TRIVIA_QUEST_GOAL = 5; // Correct answers needed for prize
+const TRIVIA_DAILY_LIMIT = 5;
+const TRIVIA_QUEST_GOAL = 5;
 
 const QUESTION_BANK = [
   { category: 'Ancient History', q: 'Which king made Sigiriya his capital in the 5th century AD?', options: ['King Kashyapa', 'King Parakramabahu', 'King Dutugemunu', 'King Devanampiya Tissa'], correct: 0, fact: "King Kashyapa built his palace on the summit of Sigiriya rock." },
   { category: 'Tea & Coffee', q: 'Who first planted coffee in Sri Lanka on a commercial scale?', options: ['The Portuguese', 'The Dutch', 'The British', 'The Kandyans'], correct: 1, fact: 'The Dutch were the first to attempt commercial coffee cultivation.' },
   { category: 'Culture', q: 'The Temple of the Tooth in Kandy holds a relic of whom?', options: ['Shiva', 'Vishnu', 'The Buddha', 'Ganesha'], correct: 2, fact: 'The Sacred Tooth Relic is one of the most revered objects in Buddhism.' },
-  { category: 'Ancient History', q: 'What was the first capital of Sri Lanka?', options: ['Polonnaruwa', 'Kandy', 'Anuradhapura', 'Galle'], correct: 2, fact: 'Anuradhapura was the capital for over 1000 years.' },
-  { category: 'Culture', q: 'The "Bridge in the Sky" is another name for which landmark?', options: ['Galle Face', 'Nine Arch Bridge', 'Victoria Dam', 'Adam\'s Peak'], correct: 1, fact: 'It is located in Ella and was built without any steel.' }
+  { category: 'Geography', q: 'What is the highest mountain in Sri Lanka?', options: ['Adam\'s Peak', 'Pidurutalagala', 'Knuckles Range', 'Horton Plains'], correct: 1, fact: 'Pidurutalagala stands at 2,524 meters.' }
 ];
 
-function GameZoneContent() {
-  const { user, isUserLoading } = useUser();
+
+function GameZonePageContent() {
+  const { user: authUser, isUserLoading: authLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
-  
-  const [gameProfile, setGameProfile] = useState<GameProfile | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [globalWinners, setGlobalWinners] = useState<DailyGameWinners | null>(null);
+
   const [activeGame, setActiveGame] = useState('spin');
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinResult, setSpinResult] = useState<{ type: string; val: string } | null>(null);
 
-  // Trivia State
   const [triviaProgress, setTriviaProgress] = useState(0);
-  const [currentTrivia, setCurrentTrivia] = useState<(typeof QUESTION_BANK)[number] | null>(null);
-  const [triviaFeedback, setTriviaFeedback] = useState<{ correct: boolean; text: string; fact?: string; reset?: boolean } | null>(null);
-
+  const [currentTrivia, setCurrentTrivia] = useState<(typeof QUESTION_BANK)[0] | null>(null);
+  const [triviaFeedback, setTriviaFeedback] = useState<{ correct: boolean; text: string; reset?: boolean } | null>(null);
+  
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  
+  const userProfileRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  
+  const gameProfileRef = useMemoFirebase(() => authUser ? doc(firestore, `users/${authUser.uid}/data/game_profile`) : null, [authUser, firestore]);
+  const { data: gameProfile, isLoading: gameProfileLoading } = useDoc<GameProfile>(gameProfileRef);
 
-  // Data Listeners
+  const globalWinnersRef = useMemoFirebase(() => doc(firestore, 'daily_game_winners', today), [firestore, today]);
+  const { data: globalWinners, isLoading: winnersLoading } = useDoc<DailyGameWinners>(globalWinnersRef);
+
+
   useEffect(() => {
-    if (!user || !firestore) return;
+    // Initialize game profile on first load for a new day
+    if (gameProfileRef && gameProfile && gameProfile.lastPlayedDate !== today) {
+        updateDoc(gameProfileRef, { lastPlayedDate: today, triviaCount: 0 });
+    } else if (gameProfileRef && !gameProfile && !gameProfileLoading && authUser) {
+        setDoc(gameProfileRef, { lastPlayedDate: today, triviaCount: 0 });
+    }
+  }, [gameProfile, gameProfileRef, gameProfileLoading, today, authUser]);
 
-    // User Profile Listener
-    const userRef = doc(firestore, 'users', user.uid);
-    const unsubUser = onSnapshot(userRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setUserProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
-      }
+  const isLoading = authLoading || profileLoading || gameProfileLoading || winnersLoading;
+  
+  const updatePoints = async (amount: number, desc: string) => {
+    if (!authUser || !firestore || !userProfileRef) return;
+    const batch = writeBatch(firestore);
+    batch.update(userProfileRef, { 
+      loyaltyPoints: increment(amount),
+      lifetimePoints: increment(amount > 0 ? amount : 0) 
     });
-    
-    // Game Profile Listener
-    const gameProfileRef = doc(firestore, 'users', user.uid, 'data', 'game_profile');
-    const unsubGameProfile = onSnapshot(gameProfileRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as GameProfile;
-        if (data.lastPlayedDate !== today) {
-          // Reset daily limits on a new day
-          const updateData = { lastPlayedDate: today, triviaCount: 0 };
-          updateDoc(gameProfileRef, updateData)
-            .catch(e => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'update', requestResourceData: updateData}));
-            });
-        }
-        setGameProfile(data);
-      } else {
-        // Create initial game profile
-        const initialProfile: GameProfile = { lastPlayedDate: today, triviaCount: 0 };
-        setDoc(gameProfileRef, initialProfile)
-            .catch(e => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'create', requestResourceData: initialProfile}));
-            });
-      }
-    }, (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({path: gameProfileRef.path, operation: 'get'}));
+    const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
+    batch.set(transactionRef, {
+      date: serverTimestamp(),
+      description: desc,
+      amount: amount,
+      type: amount > 0 ? 'earn' : 'redeem',
     });
-
-    // Global Winners Listener
-    const globalRef = doc(firestore, 'daily_game_winners', today);
-    const unsubGlobal = onSnapshot(globalRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setGlobalWinners(docSnap.data() as DailyGameWinners);
-      } else {
-        const initialWinners: DailyGameWinners = { spinWinner: null, scratchWinner: null, triviaWinner: null };
-        setDoc(globalRef, initialWinners)
-            .catch(e => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({path: globalRef.path, operation: 'create', requestResourceData: initialWinners}));
-            });
-      }
-    }, (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({path: globalRef.path, operation: 'get'}));
+    await batch.commit().catch(e => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({path: userProfileRef.path, operation: 'update', requestResourceData: {loyaltyPoints: increment(amount)}}));
     });
+  };
 
-    return () => { unsubUser(); unsubGameProfile(); unsubGlobal(); };
-  }, [user, firestore, today]);
-
-  const isLoading = isUserLoading || !gameProfile || !userProfile;
-
-  // --- CORE GAME ENGINE ---
-  const handleGrandWin = async (gameKey: 'spinWinner' | 'scratchWinner' | 'triviaWinner', prizeName: string) => {
-    if (!user || !firestore) return false;
-
-    const globalRef = doc(firestore, 'daily_game_winners', today);
-    const userRef = doc(firestore, 'users', user.uid);
+  const handleGrandWin = async (gameKey: keyof DailyGameWinners, prizeName: string) => {
+    if (!authUser || !globalWinnersRef || !userProfileRef) return false;
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        const globalSnap = await transaction.get(globalRef);
-        const currentData = (globalSnap.data() || {}) as DailyGameWinners;
-
-        if (currentData[gameKey]) {
-          throw new Error("Grand prize already claimed today!");
+        const globalSnap = await transaction.get(globalWinnersRef);
+        
+        if (!globalSnap.exists()) {
+             transaction.set(globalWinnersRef, { spinWinner: null, scratchWinner: null, triviaWinner: null });
         }
         
-        const updateData = { [gameKey]: user.uid };
-        transaction.set(globalRef, updateData, { merge: true });
-        transaction.update(userRef, { loyaltyPoints: increment(50) }); // Bonus for grand win
-      });
+        const winners = globalSnap.data() as DailyGameWinners | undefined ?? { spinWinner: null, scratchWinner: null, triviaWinner: null };
 
-      toast({ title: "GRAND PRIZE!", description: `You won ${prizeName}! 50 Bonus Points added.` });
+        if (winners[gameKey]) throw new Error("Taken");
+        
+        transaction.update(globalWinnersRef, { [gameKey]: authUser.uid });
+        transaction.update(userProfileRef, { loyaltyPoints: increment(50) });
+      });
       return true;
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Prize Claimed", description: "Someone else just claimed the daily prize!" });
+    } catch (e) {
       return false;
     }
   };
+  
+  // --- GAME LOGIC ---
+  const playSpin = async () => {
+    if (isSpinning || !authUser) return;
+    setIsSpinning(true);
+    setSpinResult(null);
 
-  const updatePoints = async (amount: number, description: string) => {
-     if (!user || !firestore) return;
-    const userRef = doc(firestore, 'users', user.uid);
-    const transactionRef = doc(collection(firestore, `users/${user.uid}/point_transactions`));
+    await new Promise(r => setTimeout(r, 2000));
+
+    const rng = Math.random();
+    if (rng < 0.05 && !globalWinners?.spinWinner) {
+      const won = await handleGrandWin('spinWinner', 'Free Coffee');
+      if (won) setSpinResult({ type: 'GRAND', val: 'FREE COFFEE' });
+      else setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
+    } else if (rng < 0.3) {
+      const pts = Math.floor(Math.random() * 5) + 1;
+      await updatePoints(pts, "Lucky Spin");
+      setSpinResult({ type: 'POINTS', val: `${pts} PTS` });
+    } else {
+      setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
+    }
+    setIsSpinning(false);
+  };
+  
+  const playScratch = async () => {
+    if (!authUser) return;
+    const rng = Math.random();
     
-    const batch = writeBatch(firestore);
-
-    batch.update(userRef, { loyaltyPoints: increment(amount) });
-
-    const transactionData: Omit<PointTransaction, 'id'> = {
-        date: serverTimestamp() as any,
-        description: description,
-        amount: amount,
-        type: 'earn'
-    };
-    batch.set(transactionRef, transactionData);
+    if (rng < 0.03 && !globalWinners?.scratchWinner) {
+      const won = await handleGrandWin('scratchWinner', 'Club Sandwich');
+      if (won) return;
+    }
     
-    await batch.commit().catch(e => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({path: userRef.path, operation: 'write'}));
-    });
+    if (Math.random() > 0.5) {
+      await updatePoints(2, "Scratch Consolation");
+    }
   };
 
-  // --- TRIVIA LOGIC ---
   const startTrivia = () => {
-    if (!gameProfile) return;
-    if (gameProfile.triviaCount >= DAILY_LIMIT) {
-      setActiveGame('trivia_limit');
-    } else {
+    if ((gameProfile?.triviaCount ?? 0) >= TRIVIA_DAILY_LIMIT) setActiveGame('trivia_limit');
+    else {
       getNextQuestion();
       setActiveGame('trivia');
     }
   };
 
   const getNextQuestion = () => {
-    const random = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
-    setCurrentTrivia(random);
+    const q = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
+    setCurrentTrivia(q);
     setTriviaFeedback(null);
   };
 
-  const handleTriviaAnswer = async (index: number) => {
-    if (!currentTrivia || !user || !firestore) return;
+  const handleTriviaAnswer = async (idx: number) => {
+    if (!currentTrivia || !authUser || !gameProfileRef) return;
+    const isCorrect = idx === currentTrivia.correct;
 
-    const isCorrect = index === currentTrivia.correct;
     if (isCorrect) {
       const nextProgress = triviaProgress + 1;
-      const gameProfileRef = doc(firestore, 'users', user.uid, 'data', 'game_profile');
       await updateDoc(gameProfileRef, { triviaCount: increment(1) });
 
       if (nextProgress >= TRIVIA_QUEST_GOAL) {
         setTriviaProgress(0);
-        const won = await handleGrandWin('triviaWinner', '40% Total Discount');
-        if (!won) await updatePoints(10, 'Trivia Consolation Prize');
-        setTriviaFeedback({ correct: true, text: "Quest Complete!", fact: currentTrivia.fact, reset: true });
+        const won = !globalWinners?.triviaWinner 
+          ? await handleGrandWin('triviaWinner', '40% Discount') 
+          : false;
+        
+        if (!won) await updatePoints(10, 'Trivia Master');
+        setTriviaFeedback({ correct: true, text: won ? "QUEST COMPLETE: GRAND PRIZE!" : "QUEST COMPLETE: 10 PTS", reset: true });
       } else {
         setTriviaProgress(nextProgress);
-        setTriviaFeedback({ correct: true, text: `Correct! (${nextProgress}/${TRIVIA_QUEST_GOAL})`, fact: currentTrivia.fact });
+        setTriviaFeedback({ correct: true, text: `Correct! (${nextProgress}/${TRIVIA_QUEST_GOAL})` });
       }
     } else {
-      setTriviaFeedback({ correct: false, text: "Incorrect answer." });
+      setTriviaFeedback({ correct: false, text: "Try again next time!" });
     }
   };
 
   if (isLoading) {
-    return (
-        <div className="space-y-6">
-            <Skeleton className="h-10 w-1/3" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-64 w-full" />
-        </div>
-    );
+      return (
+          <div className="space-y-6">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-96 w-full" />
+          </div>
+      )
   }
+  
+  if (!userProfile) return <p>Could not load user profile.</p>
 
   return (
-    <div className="space-y-6">
-      <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="font-headline text-3xl">Game Zone</CardTitle>
-                <CardDescription>Win daily rewards and points!</CardDescription>
-              </div>
-              <div className="bg-muted px-4 py-2 rounded-lg flex items-center gap-2">
-                <Coins size={18} className="text-primary" />
-                <span className="font-bold text-xl">{userProfile?.loyaltyPoints ?? 0}</span>
-            </div>
-          </CardHeader>
-      </Card>
-      
-        {/* Game Navigation */}
-        <div className="flex bg-muted p-1.5 rounded-xl border">
-          <NavBtn active={activeGame === 'spin'} onClick={() => setActiveGame('spin')} icon={<Dices size={16}/>} label="Spin" />
-          <NavBtn active={activeGame === 'scratch'} onClick={() => setActiveGame('scratch')} icon={<Ticket size={16}/>} label="Scratch" />
-          <NavBtn active={activeGame === 'trivia_limit' || activeGame === 'trivia'} onClick={startTrivia} icon={<Trophy size={16}/>} label="Trivia" />
-        </div>
-
-        {/* SPIN VIEW */}
-        {activeGame === 'spin' && (
-          <Card className="animate-in fade-in zoom-in-95 duration-300">
-            <CardHeader className="text-center">
-              <CardTitle className="font-headline text-2xl">The Lucky Wheel</CardTitle>
-              <CardDescription>One Free Coffee available globally per day.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <div className="flex justify-center mb-8 relative">
-                 <div className={`w-48 h-48 rounded-full border-8 border-primary/20 relative flex items-center justify-center overflow-hidden transition-transform duration-1000`}>
-                   <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-                      <div className="bg-muted/30 border border-border flex items-center justify-center font-bold text-xs">5 PTS</div>
-                      <div className="bg-background border border-border flex items-center justify-center font-bold text-xs">1 PT</div>
-                      <div className="bg-muted/50 border border-border flex items-center justify-center font-bold text-xs">10 PTS</div>
-                      <div className={`${globalWinners?.spinWinner ? 'bg-zinc-100 text-zinc-400' : 'bg-green-100 text-green-700'} border border-border flex flex-col items-center justify-center font-black text-[9px]`}>
-                        {globalWinners?.spinWinner ? <Lock size={12}/> : <Coffee size={12}/>}
-                        {globalWinners?.spinWinner ? 'TAKEN' : 'COFFEE'}
-                      </div>
-                   </div>
-                 </div>
-                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 border-x-8 border-x-transparent border-t-8 border-t-red-600 w-0 h-0 z-10" />
-              </div>
-              <Button 
-                onClick={async () => {
-                  const outcomes = [1, 5, 10, 'GRAND'];
-                  const pick = outcomes[Math.floor(Math.random() * outcomes.length)];
-                  if (pick === 'GRAND' && !globalWinners?.spinWinner) {
-                    await handleGrandWin('spinWinner', 'Free Daily Coffee');
-                  } else {
-                    const pts = typeof pick === 'number' ? pick : 2;
-                    await updatePoints(pts, "Lucky Wheel Spin");
-                    toast({title: `+${pts} Points won!`});
-                  }
-                }}
-                className="w-full"
-                size="lg"
-              >
-                SPIN FOR FREE
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* SCRATCH VIEW */}
-        {activeGame === 'scratch' && (
-           <Card className="bg-foreground text-background p-10 rounded-2xl shadow-xl text-center min-h-[320px] flex flex-col items-center justify-center border-4 border-card animate-in fade-in zoom-in-95 duration-300">
-                <Sparkles className="text-primary mb-4" size={48} />
-                <h3 className="font-headline text-2xl uppercase mb-2">Silver Ticket</h3>
-                <p className="text-muted-foreground text-xs mb-8">Grand Prize: Free Club Sandwich</p>
-                {globalWinners?.scratchWinner ? (
-                  <div className="bg-muted/20 p-4 rounded-xl flex items-center gap-2">
-                    <Lock size={16} className="text-muted-foreground" />
-                    <span className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Prize Claimed Today</span>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={async () => {
-                      if (Math.random() < 0.1 && !globalWinners?.scratchWinner) await handleGrandWin('scratchWinner', 'Free Club Sandwich');
-                      else { await updatePoints(5, "Scratch Card"); toast({description: "+5 Points added."}); }
-                    }}
-                  >
-                    Scratch to Reveal
-                  </Button>
-                )}
-             </Card>
-        )}
-
-        {/* TRIVIA VIEW */}
-        {(activeGame === 'trivia' && currentTrivia) && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-             <div className="flex justify-between items-center px-2">
-               <div className="flex items-center gap-2">
-                 <div className="w-8 h-8 bg-green-600/10 rounded-lg flex items-center justify-center text-green-600"><Trophy size={14}/></div>
-                 <span className="text-xs font-bold uppercase tracking-widest text-green-600">Quest: {triviaProgress}/{TRIVIA_QUEST_GOAL}</span>
-               </div>
-               <span className="text-xs font-bold text-muted-foreground">Daily: {gameProfile?.triviaCount ?? 0}/{DAILY_LIMIT}</span>
-             </div>
-
-             <Card>
-                <CardHeader>
-                  <p className="text-xs font-bold text-green-600 uppercase tracking-widest">{currentTrivia.category}</p>
-                  <CardTitle className="text-xl leading-tight">{currentTrivia.q}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                   {!triviaFeedback ? (
-                     currentTrivia.options.map((opt, i) => (
-                       <Button key={i} onClick={() => handleTriviaAnswer(i)} variant="outline" className="w-full text-left p-4 h-auto justify-start">
-                         {opt}
-                       </Button>
-                     ))
-                   ) : (
-                     <div className="animate-in slide-in-from-bottom-4">
-                        <div className={`p-4 rounded-xl ${triviaFeedback.correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} mb-4`}>
-                           <p className="font-bold uppercase mb-1">{triviaFeedback.correct ? 'Correct!' : 'Incorrect'}</p>
-                           <p className="text-sm">{triviaFeedback.text}</p>
-                           {triviaFeedback.fact && <p className="text-xs mt-2 italic opacity-70">Did you know: {triviaFeedback.fact}</p>}
-                        </div>
-                        <Button 
-                          onClick={triviaFeedback.reset ? () => setActiveGame('spin') : getNextQuestion} 
-                          className="w-full"
-                        >
-                          {triviaFeedback.reset ? "CLOSE" : "CONTINUE"}
-                        </Button>
-                     </div>
-                   )}
-                </CardContent>
-             </Card>
+    <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
+      <Card className="p-6 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">GAME ZONE</h1>
+            <p className="text-primary-foreground/80 text-xs font-medium uppercase tracking-widest">Win Daily Rewards</p>
           </div>
-        )}
+          <div className="bg-background/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2">
+            <Coins size={16} className="text-amber-300" />
+            <span className="font-bold text-sm">{userProfile.loyaltyPoints}</span>
+          </div>
+        </div>
+      </Card>
 
-        {/* LIMIT VIEW */}
-        {activeGame === 'trivia_limit' && (
-          <Card className="text-center animate-in zoom-in-95">
-            <CardHeader>
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
-                    <Lock size={32} />
+      <div className="flex bg-muted p-1 rounded-2xl">
+        <button 
+          onClick={() => setActiveGame('spin')}
+          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'spin' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+        >
+          <Dices size={18} /> Spin
+        </button>
+        <button 
+          onClick={() => setActiveGame('scratch')}
+          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'scratch' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+        >
+          <Ticket size={18} /> Scratch
+        </button>
+        <button 
+          onClick={startTrivia}
+          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame.includes('trivia') ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+        >
+          <Trophy size={18} /> Trivia
+        </button>
+      </div>
+
+      {activeGame === 'spin' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <Card className="p-8 text-center space-y-6">
+            <div className="relative mx-auto w-48 h-48">
+              <div 
+                className={`w-full h-full rounded-full border-8 border-muted/50 dark:border-zinc-800 relative flex items-center justify-center transition-transform duration-[2000ms] ease-out ${isSpinning ? 'rotate-[1080deg]' : 'rotate-0'}`}
+                style={{ transitionTimingFunction: 'cubic-bezier(0.15, 0, 0.15, 1)' }}
+              >
+                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 rotate-45">
+                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-background/50 dark:bg-zinc-900"><RotateCcw size={16} className="opacity-20"/></div>
+                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-primary/10 dark:bg-blue-900/20"><Coins size={16} className="text-primary/60 opacity-40"/></div>
+                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-background/50 dark:bg-zinc-900"><RotateCcw size={16} className="opacity-20"/></div>
+                  <div className={`border border-muted dark:border-zinc-800 flex items-center justify-center ${globalWinners?.spinWinner ? 'bg-muted' : 'bg-green-100 text-green-600'}`}>
+                    {globalWinners?.spinWinner ? <Lock size={16} /> : <Coffee size={16} />}
+                  </div>
                 </div>
-                <CardTitle className="font-headline text-2xl">Limit Reached</CardTitle>
-                <CardDescription className="leading-relaxed">You've used your {DAILY_LIMIT} daily free trivia attempts. Want to keep playing to finish your quest?</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-             <Button 
-               onClick={async () => {
-                 if ((userProfile?.loyaltyPoints ?? 0) >= 10) {
-                   await updatePoints(-10, "Unlock Trivia Attempts");
-                   const gameProfileRef = doc(firestore, 'users', user!.uid, 'data', 'game_profile');
-                   await updateDoc(gameProfileRef, { triviaCount: 0 }); // Unlock
-                   getNextQuestion();
-                   setActiveGame('trivia');
-                 } else { toast({ variant:"destructive", title: "Insufficient Points" }); }
-               }}
-               size="lg"
-             >
-               UNLOCK (10 PTS)
-             </Button>
-             <Button onClick={() => setActiveGame('spin')} variant="link">Try another game</Button>
-            </CardContent>
+                <div className="w-4 h-4 bg-foreground rounded-full z-10 border-2 border-background shadow-lg" />
+              </div>
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[15px] border-t-red-500 z-20" />
+            </div>
+
+            {spinResult && (
+              <div className="animate-bounce">
+                <p className={`text-xl font-black ${spinResult.type === 'LOSE' ? 'text-muted-foreground' : 'text-primary'}`}>
+                  {spinResult.val}
+                </p>
+              </div>
+            )}
+
+            <Button size="lg" className="w-full" onClick={playSpin} disabled={isSpinning}>
+              {isSpinning ? 'Spinning...' : 'SPIN FOR FREE'}
+            </Button>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">Most outcomes are "Try Again" or small points</p>
           </Card>
-        )}
+        </div>
+      )}
+
+      {activeGame === 'scratch' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <Card className="p-1 text-zinc-100 bg-foreground overflow-hidden relative min-h-[300px] flex flex-col items-center justify-center text-center">
+             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent" />
+             <Sparkles className="text-primary mb-4" size={48} />
+             <h3 className="text-2xl font-black italic tracking-tighter">SILVER TICKET</h3>
+             <p className="text-xs text-muted-foreground mb-8 max-w-[200px]">Grand Prize: Free Club Sandwich (1 per day)</p>
+             
+             {globalWinners?.scratchWinner ? (
+               <div className="flex flex-col items-center gap-2 bg-background/50 p-6 rounded-2xl border border-border">
+                  <Lock className="text-muted-foreground" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Daily Prize Claimed</span>
+               </div>
+             ) : (
+               <Button variant="default" size="lg" onClick={playScratch}>
+                 SCRATCH NOW
+               </Button>
+             )}
+          </Card>
+        </div>
+      )}
+
+      {activeGame === 'trivia' && currentTrivia && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+           <div className="flex justify-between items-center px-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary/10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-primary"><Trophy size={14}/></div>
+                <span className="text-[10px] font-black uppercase tracking-widest">Quest: {triviaProgress}/{TRIVIA_QUEST_GOAL}</span>
+              </div>
+              <span className="text-[10px] font-black text-muted-foreground">Daily: {gameProfile?.triviaCount ?? 0}/{TRIVIA_DAILY_LIMIT}</span>
+           </div>
+
+           <Card className="p-6">
+              {!triviaFeedback ? (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{currentTrivia.category}</p>
+                    <h2 className="text-lg font-bold leading-snug">{currentTrivia.q}</h2>
+                  </div>
+                  <div className="grid gap-2">
+                    {currentTrivia.options.map((opt, i) => (
+                      <Button key={i} variant="outline" className="justify-start text-left h-auto py-4 px-4" onClick={() => handleTriviaAnswer(i)}>
+                        {opt}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center space-y-6 py-4">
+                  <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${triviaFeedback.correct ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                    {triviaFeedback.correct ? <CheckCircle2 size={32}/> : <AlertCircle size={32}/>}
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black uppercase tracking-tight">{triviaFeedback.correct ? 'Excellent!' : 'Wrong!'}</h3>
+                    <p className="text-sm text-muted-foreground">{triviaFeedback.text}</p>
+                  </div>
+                  <Button className="w-full" onClick={triviaFeedback.reset ? () => setActiveGame('spin') : getNextQuestion}>
+                    {triviaFeedback.reset ? 'GO BACK' : 'CONTINUE'}
+                  </Button>
+                </div>
+              )}
+           </Card>
+        </div>
+      )}
+
+      {activeGame === 'trivia_limit' && (
+        <Card className="p-8 text-center space-y-6 animate-in zoom-in-95">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto text-muted-foreground">
+            <Lock size={40} />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black tracking-tight uppercase">Daily Limit</h2>
+            <p className="text-sm text-muted-foreground">You've used all 5 free daily trivia attempts. Unlock more to finish your quest!</p>
+          </div>
+          <div className="space-y-2">
+            <Button size="lg" className="w-full" onClick={async () => {
+              if ((userProfile?.loyaltyPoints ?? 0) >= 10) {
+                await updatePoints(-10, "Trivia Unlock");
+                if(gameProfileRef) {
+                    await updateDoc(gameProfileRef, { triviaCount: 0 });
+                }
+                startTrivia();
+              }
+            }}>
+              UNLOCK (10 PTS)
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setActiveGame('spin')}>Try Another Game</Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
 
-const NavBtn = ({ active, onClick, icon, label }: {active: boolean, onClick: () => void, icon: React.ReactNode, label: string}) => (
-  <Button 
-    onClick={onClick}
-    variant={active ? 'secondary' : 'ghost'}
-    className="flex-1 flex items-center justify-center gap-2 rounded-lg transition-all"
-  >
-    {icon}
-    <span className="text-xs font-bold uppercase tracking-tight">{label}</span>
-  </Button>
-);
-
 export default function GameZonePage() {
-    return (
-        <GameZoneContent />
-    )
+    return <GameZonePageContent />
 }
+
+    
