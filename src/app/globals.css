@@ -25,12 +25,12 @@
     --ring: 25 95% 53%;
 
     /* Sidebar dark theme for light mode */
-    --sidebar-background: 0 0% 5%;
+    --sidebar-background: 0 0% 5% / 0.76;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 25 95% 53%;
     --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: transparent;
-    --sidebar-accent-foreground: 25 80% 30%;
+    --sidebar-accent: 25 100% 50% / 0.71;
+    --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 25 95% 53%;
 
@@ -61,12 +61,12 @@
     --ring: 25 95% 53%;
 
     /* Sidebar dark theme */
-    --sidebar-background: 0 0% 5%;
+    --sidebar-background: 0 0% 5% / 0.76;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 25 95% 53%;
     --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: transparent;
-    --sidebar-accent-foreground: 25 80% 30%;
+    --sidebar-accent: 25 100% 50% / 0.71;
+    --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 25 95% 53%;
   }
