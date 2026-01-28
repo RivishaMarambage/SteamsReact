@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,18 +13,31 @@ import type { Order, CartItem, UserProfile, PointTransaction, OrderItem } from '
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
-// Mock Ginue API payment function
-const processGinuePayment = async (amount: number): Promise<{ success: boolean; transactionId?: string }> => {
-  console.log(`Processing payment of LKR ${amount.toFixed(2)} with Ginue API...`);
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+// Mock Genie API payment function that simulates a secure, multi-step production flow.
+const processGeniePayment = async (amount: number): Promise<{ success: boolean; transactionId?: string }> => {
+  console.log("Frontend: Collecting order details...");
+  console.log("Frontend: Calling backend bridge to get payment token...");
+
+  // Simulate calling the backend bridge to securely get a token
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  const mockPaymentToken = `genie_token_${Date.now()}`;
+  console.log(`Backend Bridge (Mock): Sent request to Genie with secret credentials and received token: ${mockPaymentToken}`);
   
-  // Simulate a successful payment
+  console.log("Frontend: Received payment token. Simulating redirect to Genie web checkout for user to complete payment...");
+  
+  // Simulate the user taking time to pay on the Genie page
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  
+  // Simulate Genie sending a callback to our backend webhook, and our backend verifying it.
+  console.log("Genie (Mock): Payment successful. Sending callback to merchant's webhook...");
+  console.log("Backend (Mock): Webhook received. Verifying signature and preparing to confirm payment...");
+
+  // Simulate final success/failure
   if (Math.random() > 0.1) { // 90% success rate
-    console.log("Payment successful");
-    return { success: true, transactionId: `ginue_${Date.now()}` };
+    console.log("Frontend: Payment verification successful.");
+    return { success: true, transactionId: `genie_txn_${Date.now()}` };
   } else {
-    console.log("Payment failed");
+    console.log("Frontend: Payment verification failed.");
     return { success: false };
   }
 };
@@ -55,8 +69,8 @@ export default function CheckoutPage() {
     
     setIsProcessing(true);
 
-    // Step 1: Process payment
-    const paymentResult = await processGinuePayment(checkoutData.cartTotal);
+    // Step 1: Process payment using the simulated secure Genie flow
+    const paymentResult = await processGeniePayment(checkoutData.cartTotal);
 
     if (!paymentResult.success) {
       toast({
@@ -155,7 +169,9 @@ export default function CheckoutPage() {
             });
         }
 
-        batch.update(userDocRef, updates);
+        if (Object.keys(updates).length > 0) {
+            batch.update(userDocRef, updates);
+        }
         
         await batch.commit();
 
@@ -260,7 +276,7 @@ export default function CheckoutPage() {
                     )}
                 </Button>
                  <div className="mt-4 text-center text-xs text-muted-foreground">
-                    Powered by Ginue API
+                    Powered by Genie
                 </div>
             </CardContent>
         </Card>
