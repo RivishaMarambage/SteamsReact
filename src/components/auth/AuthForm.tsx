@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -701,7 +702,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     {authType === 'login' && (
                                         <Dialog>
                                             <DialogTrigger asChild>
-                                                <Button variant="link" className="p-0 h-auto text-sm text-accent">Forgot Password?</Button>
+                                                <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
                                             </DialogTrigger>
                                             <DialogContent>
                                                 <DialogHeader>
@@ -778,7 +779,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 )}
                             />
                         )}
-                        <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
+                        <Button type="submit" className="w-full" size="lg">
                             {authType === 'login' ? 'Sign In' : 'Create Account'}
                         </Button>
                         </form>

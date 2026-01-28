@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from "next/image";
@@ -85,7 +86,7 @@ export default function LandingPage() {
           ))}
         </nav>
         <nav className="flex items-center gap-2 sm:gap-4">
-          <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button asChild>
             <Link href="/login/customer">Sign In</Link>
           </Button>
           <Button asChild variant="outline" className="bg-primary-foreground border-accent text-accent hover:bg-primary-foreground/90">
