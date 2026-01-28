@@ -112,6 +112,7 @@ export type Order = {
       type: 'free-item';
       menuItemIds: string[];
     } | null;
+    paymentStatus?: 'Paid' | 'Unpaid';
 }
 
 export type DailyOffer = {

@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -417,155 +417,34 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const cartTotal = totalBeforeDiscounts - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
-  const handlePlaceOrder = async () => {
-    if (!authUser || !firestore || !userProfile) {
-        toast({ variant: 'destructive', title: "Not Logged In", description: "You must be logged in to place an order."});
-        return;
-    }
-    
-    try {
-        const batch = writeBatch(firestore);
-        
-        if (!userDocRef) return;
-
-        const rootOrderRef = doc(collection(firestore, 'orders'));
-
-        let pointsToEarn = 0;
-        if (cartTotal > 10000) {
-            pointsToEarn = Math.floor(cartTotal / 100) * 2;
-        } else if (cartTotal >= 5000) {
-            pointsToEarn = Math.floor(cartTotal / 100);
-        } else if (cartTotal >= 1000) {
-            pointsToEarn = Math.floor(cartTotal / 200);
-        } else if (cartTotal > 0) {
-            pointsToEarn = Math.floor(cartTotal / 400);
-        }
-
-        const orderItems: OrderItem[] = cart.map(cartItem => {
-          const item: OrderItem = {
-            menuItemId: cartItem.menuItem.id,
-            menuItemName: cartItem.menuItem.name,
-            quantity: cartItem.quantity,
-            basePrice: cartItem.menuItem.price,
-            addons: cartItem.addons.map(addon => ({
-                addonId: addon.id,
-                addonName: addon.name,
-                addonPrice: addon.price
-            })),
-            totalPrice: cartItem.totalPrice,
-          };
-          // Only add appliedDailyOfferId if it's not undefined
-          if (cartItem.appliedDailyOfferId) {
-            item.appliedDailyOfferId = cartItem.appliedDailyOfferId;
-          }
-          return item;
-        });
-        
-        let birthdayDiscountAppliedValue: Order['birthdayDiscountApplied'] = null;
-        if (birthdayDiscountAmount > 0) {
-           birthdayDiscountAppliedValue = {
-             type: userProfile.birthdayDiscountType!,
-             value: userProfile.birthdayDiscountValue!,
-           }
-        } else if (freebieToClaim && userProfile.birthdayFreebieMenuItemIds?.includes(freebieToClaim)) {
-            birthdayDiscountAppliedValue = {
-                type: 'free-item',
-                menuItemIds: userProfile.birthdayFreebieMenuItemIds,
-            }
-        }
-
-
-        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
-            customerId: authUser.uid,
-            orderDate: serverTimestamp(),
-            totalAmount: cartTotal,
-            status: "Placed" as const,
-            orderItems: orderItems,
-            orderType: orderType!,
-            pointsRedeemed: loyaltyDiscount,
-            discountApplied: totalDiscount,
-            serviceCharge: serviceCharge,
-            pointsToEarn: pointsToEarn,
-            birthdayDiscountApplied: birthdayDiscountAppliedValue,
-            tableNumber: orderType === 'Dine-in' ? tableNumber : undefined,
-        };
-        
-        // This loop removes any keys with `undefined` values from the top level of orderData
-        Object.keys(orderData).forEach(keyStr => {
-            const key = keyStr as keyof typeof orderData;
-            if (orderData[key] === undefined) {
-                delete (orderData as any)[key];
-            }
-        });
-
-
-        batch.set(rootOrderRef, orderData);
-        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
-        batch.set(userOrderRef, orderData);
-
-        // Point spending and offer redemption logic
-        const updates: any = {
-            loyaltyPoints: increment(-loyaltyDiscount),
-        };
-        
-        if (loyaltyDiscount > 0) {
-            const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
-            const transactionData: Omit<PointTransaction, 'id'> = {
-                date: serverTimestamp() as any,
-                description: `Redeemed on Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
-                amount: -loyaltyDiscount,
-                type: 'redeem'
-            };
-            batch.set(transactionRef, transactionData);
-        }
-
-        if (birthdayDiscountAmount > 0) {
-            updates.birthdayDiscountValue = null;
-            updates.birthdayDiscountType = null;
-        }
-
-        if (applicableWelcomeOffer) {
-            updates.orderCount = increment(1);
-        }
-        
-        const redeemedDailyOffers = orderItems
-            .map(item => item.appliedDailyOfferId)
-            .filter((id): id is string => !!id);
-        
-        if (redeemedDailyOffers.length > 0) {
-            const todayString = format(new Date(), 'yyyy-MM-dd');
-            redeemedDailyOffers.forEach(offerId => {
-                updates[`dailyOffersRedeemed.${offerId}`] = todayString;
-            });
-        }
-
-
-        batch.update(userDocRef, updates);
-        
-        await batch.commit();
-
-        toast({
-            title: "Order Placed!",
-            description: `Your ${orderType} order is confirmed.`,
-        });
-        setCart([]);
-        setPointsToRedeemInput('');
-        setTableNumber('');
-        setAppliedPoints(0);
-        
-        const params = new URLSearchParams(window.location.search);
-        params.delete('claimFreebie');
-        router.replace(`${pathname}?${params.toString()}`);
-
-    } catch (error) {
-        console.error("Error placing order: ", error);
+  const handleProceedToCheckout = () => {
+    if (cart.length === 0) {
         toast({
             variant: "destructive",
-            title: "Order Failed",
-            description: "There was a problem placing your order. Please try again.",
+            title: "Your cart is empty",
+            description: "Please add items to your cart before proceeding.",
         });
+        return;
     }
-}
+
+    const checkoutData = {
+        cart,
+        subtotal,
+        serviceCharge,
+        appliedPoints,
+        loyaltyDiscount,
+        birthdayDiscountAmount,
+        welcomeDiscountAmount,
+        totalDiscount,
+        cartTotal,
+        orderType,
+        tableNumber,
+    };
+
+    localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
+    router.push('/dashboard/checkout');
+};
+
 
   return (
     <>
@@ -887,7 +766,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                           <span>LKR {cartTotal.toFixed(2)}</span>
                       </div>
                   </div>
-                  <Button size="lg" className="w-full" disabled={cart.length === 0 || !firestore} onClick={handlePlaceOrder}>Place {orderType} Order</Button>
+                  <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={handleProceedToCheckout}>
+                      Proceed to Checkout <ArrowRight className="ml-2" />
+                  </Button>
               </div>
             </SheetFooter>
           )}

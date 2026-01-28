@@ -118,7 +118,7 @@ export default function AppSidebar() {
           ))}
           {userRole === 'admin' && (
             <>
-              <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
+              <div className="px-2 py-2 text-xs font-semibold text-sidebar-primery-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                 Admin
               </div>
               {adminMenuItems.map((item) => (

@@ -168,6 +168,7 @@
         "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
         "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
+        "paymentStatus": { "type": "string", "enum": ["Paid", "Unpaid"], "description": "The payment status of the order." },
         "orderItems": {
           "type": "array",
           "items": { "$ref": "#/entities/OrderItem" },

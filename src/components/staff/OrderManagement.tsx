@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -238,6 +239,7 @@ export default function OrderManagement() {
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -270,6 +272,11 @@ export default function OrderManagement() {
                   <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                  </TableCell>
+                   <TableCell>
+                    <Badge variant={order.paymentStatus === 'Paid' ? 'default' : 'destructive'} className={order.paymentStatus === 'Paid' ? 'bg-green-600' : ''}>
+                      {order.paymentStatus || 'Unpaid'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
