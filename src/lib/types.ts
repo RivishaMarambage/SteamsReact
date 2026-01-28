@@ -113,6 +113,7 @@ export type Order = {
       menuItemIds: string[];
     } | null;
     paymentStatus?: 'Paid' | 'Unpaid';
+    welcomeOfferApplied?: boolean;
 }
 
 export type DailyOffer = {

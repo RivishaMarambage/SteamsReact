@@ -198,6 +198,10 @@
         "pointsToEarn": {
           "type": "number",
           "description": "The number of loyalty points to be awarded when the order is completed."
+        },
+        "welcomeOfferApplied": {
+          "type": "boolean",
+          "description": "Whether a welcome offer discount was applied to this order."
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]

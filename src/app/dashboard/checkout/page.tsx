@@ -114,6 +114,7 @@ export default function CheckoutPage() {
             serviceCharge: checkoutData.serviceCharge,
             pointsToEarn: pointsToEarn,
             ...(checkoutData.orderType === 'Dine-in' && checkoutData.tableNumber && { tableNumber: checkoutData.tableNumber }),
+            ...(checkoutData.welcomeDiscountAmount > 0 && { welcomeOfferApplied: true }),
         };
         
         batch.set(rootOrderRef, orderData);

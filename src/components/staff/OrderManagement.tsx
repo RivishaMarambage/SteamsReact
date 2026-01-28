@@ -115,33 +115,54 @@ export default function OrderManagement() {
         batch.update(userProfileRef, updates);
     }
 
-    // If order is being rejected, refund any points or credits used
     if (status === 'Rejected' && order.status !== 'Rejected') {
-        const pointsToRefund = order.pointsRedeemed || 0;
-        if (pointsToRefund > 0) {
-            batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
-             // Log the point transaction
-            const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
-            const transactionData: Omit<PointTransaction, 'id'> = {
-                date: serverTimestamp() as any,
-                description: `Refund for Rejected Order #${order.id.substring(0, 7).toUpperCase()}`,
-                amount: pointsToRefund,
-                type: 'earn' // It's an "earn" from the user's perspective
-            };
-            batch.set(transactionRef, transactionData);
-        }
-        
-        // If a birthday reward was applied to this order, restore it.
-        if (order.birthdayDiscountApplied) {
-            const rewardToRestore = order.birthdayDiscountApplied;
-            let updates: Partial<UserProfile> = {};
-            if (rewardToRestore.type === 'free-item') {
-                updates.birthdayFreebieMenuItemIds = rewardToRestore.menuItemIds;
-            } else { // fixed or percentage
-                updates.birthdayDiscountType = rewardToRestore.type;
-                updates.birthdayDiscountValue = rewardToRestore.value;
+        try {
+            const userProfileSnap = await getDoc(userProfileRef);
+            if (userProfileSnap.exists()) {
+                const userProfileData = userProfileSnap.data() as UserProfile;
+                const incrementUpdates: {[key:string]: any} = {};
+                const regularUpdates: {[key:string]: any} = {};
+
+                // 1. Refund loyalty points
+                const pointsToRefund = order.pointsRedeemed || 0;
+                if (pointsToRefund > 0) {
+                    incrementUpdates.loyaltyPoints = increment(pointsToRefund);
+                    const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
+                    batch.set(transactionRef, {
+                        date: serverTimestamp(),
+                        description: `Refund for Rejected Order #${order.id.substring(0, 7).toUpperCase()}`,
+                        amount: pointsToRefund,
+                        type: 'earn'
+                    });
+                }
+
+                // 2. Restore welcome offer
+                if (order.welcomeOfferApplied) {
+                    incrementUpdates.orderCount = increment(-1);
+                }
+
+                // 3. Restore daily offers
+                const redeemedDailyOffers = order.orderItems.map(item => item.appliedDailyOfferId).filter(Boolean) as string[];
+                if (redeemedDailyOffers.length > 0) {
+                    const currentRedeemed = userProfileData.dailyOffersRedeemed || {};
+                    redeemedDailyOffers.forEach(offerId => {
+                        delete currentRedeemed[offerId];
+                    });
+                    regularUpdates.dailyOffersRedeemed = currentRedeemed;
+                }
+                
+                // TODO: Restore birthday reward logic here if it's ever added to the order object upon creation
+
+                // Apply updates in separate calls within the batch
+                if (Object.keys(regularUpdates).length > 0) {
+                    batch.update(userProfileRef, regularUpdates);
+                }
+                if (Object.keys(incrementUpdates).length > 0) {
+                    batch.update(userProfileRef, incrementUpdates);
+                }
             }
-             batch.update(userProfileRef, updates);
+        } catch(e) {
+            console.error("Could not process order rejection refunds:", e);
         }
     }
     
