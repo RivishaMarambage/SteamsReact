@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, getDoc } from 'firebase/firestore';
-import type { Order, CartItem, UserProfile, PointTransaction } from '@/lib/types';
+import type { Order, CartItem, UserProfile, PointTransaction, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
@@ -87,7 +87,7 @@ export default function CheckoutPage() {
             pointsToEarn = Math.floor(checkoutData.cartTotal / 400);
         }
 
-        const orderItems = checkoutData.cart.map((cartItem: CartItem) => ({
+        const orderItems: OrderItem[] = checkoutData.cart.map((cartItem: CartItem) => ({
           menuItemId: cartItem.menuItem.id,
           menuItemName: cartItem.menuItem.name,
           quantity: cartItem.quantity,
@@ -98,7 +98,7 @@ export default function CheckoutPage() {
               addonPrice: addon.price
           })),
           totalPrice: cartItem.totalPrice,
-          appliedDailyOfferId: cartItem.appliedDailyOfferId,
+          ...(cartItem.appliedDailyOfferId && { appliedDailyOfferId: cartItem.appliedDailyOfferId }),
         }));
         
         const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
             discountApplied: checkoutData.totalDiscount,
             serviceCharge: checkoutData.serviceCharge,
             pointsToEarn: pointsToEarn,
-            tableNumber: checkoutData.orderType === 'Dine-in' ? checkoutData.tableNumber : undefined,
+            ...(checkoutData.orderType === 'Dine-in' && checkoutData.tableNumber && { tableNumber: checkoutData.tableNumber }),
         };
         
         batch.set(rootOrderRef, orderData);
