@@ -7,40 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, getDoc } from 'firebase/firestore';
-import type { Order, CartItem, UserProfile, PointTransaction, OrderItem } from '@/lib/types';
-import { format } from 'date-fns';
+import { useUser } from '@/firebase';
+import type { CartItem } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-
-// Mock Genie API payment function that simulates a secure, multi-step production flow.
-const processGeniePayment = async (amount: number): Promise<{ success: boolean; transactionId?: string }> => {
-  console.log("Frontend: Collecting order details...");
-  console.log("Frontend: Calling backend bridge to get payment token...");
-
-  // Simulate calling the backend bridge to securely get a token
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  const mockPaymentToken = `genie_token_${Date.now()}`;
-  console.log(`Backend Bridge (Mock): Sent request to Genie with secret credentials and received token: ${mockPaymentToken}`);
-  
-  console.log("Frontend: Received payment token. Simulating redirect to Genie web checkout for user to complete payment...");
-  
-  // Simulate the user taking time to pay on the Genie page
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  
-  // Simulate Genie sending a callback to our backend webhook, and our backend verifying it.
-  console.log("Genie (Mock): Payment successful. Sending callback to merchant's webhook...");
-  console.log("Backend (Mock): Webhook received. Verifying signature and preparing to confirm payment...");
-
-  // Simulate final success/failure
-  if (Math.random() > 0.1) { // 90% success rate
-    console.log("Frontend: Payment verification successful.");
-    return { success: true, transactionId: `genie_txn_${Date.now()}` };
-  } else {
-    console.log("Frontend: Payment verification failed.");
-    return { success: false };
-  }
-};
+import { initiatePayment, placeOrderAfterPayment } from '@/ai/flows/payment-flow';
 
 
 export default function CheckoutPage() {
@@ -49,7 +19,6 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user: authUser } = useUser();
-  const firestore = useFirestore();
 
   useEffect(() => {
     const data = localStorage.getItem('checkoutData');
@@ -62,118 +31,38 @@ export default function CheckoutPage() {
   }, [router]);
 
   const handlePlaceOrder = async () => {
-    if (!authUser || !firestore || !checkoutData) {
-        toast({ variant: 'destructive', title: "Error", description: "Could not place order. Please try again."});
+    if (!authUser || !checkoutData) {
+        toast({ variant: 'destructive', title: "Error", description: "Could not place order. Missing user or order data."});
         return;
     }
     
     setIsProcessing(true);
 
-    // Step 1: Process payment using the simulated secure Genie flow
-    const paymentResult = await processGeniePayment(checkoutData.cartTotal);
-
-    if (!paymentResult.success) {
-      toast({
-        variant: "destructive",
-        title: "Payment Failed",
-        description: "There was a problem with your payment. Please try again.",
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    // Step 2: If payment is successful, create order in Firestore
     try {
-        const userDocRef = doc(firestore, 'users', authUser.uid);
-        
-        const batch = writeBatch(firestore);
-        
-        const rootOrderRef = doc(collection(firestore, 'orders'));
+        // Step 1: Call our backend bridge to get a payment token from Genie.
+        console.log("Frontend: Collecting order details...");
+        console.log("Frontend: Calling backend bridge to get payment token...");
+        const paymentResponse = await initiatePayment({ amount: checkoutData.cartTotal });
+        const { paymentToken, checkoutUrl } = paymentResponse;
+        console.log(`Frontend: Received payment token. Simulating redirect to Genie web checkout: ${checkoutUrl}`);
 
-        let pointsToEarn = 0;
-        if (checkoutData.cartTotal > 10000) {
-            pointsToEarn = Math.floor(checkoutData.cartTotal / 100) * 2;
-        } else if (checkoutData.cartTotal >= 5000) {
-            pointsToEarn = Math.floor(checkoutData.cartTotal / 100);
-        } else if (checkoutData.cartTotal >= 1000) {
-            pointsToEarn = Math.floor(checkoutData.cartTotal / 200);
-        } else if (checkoutData.cartTotal > 0) {
-            pointsToEarn = Math.floor(checkoutData.cartTotal / 400);
-        }
-
-        const orderItems: OrderItem[] = checkoutData.cart.map((cartItem: CartItem) => ({
-          menuItemId: cartItem.menuItem.id,
-          menuItemName: cartItem.menuItem.name,
-          quantity: cartItem.quantity,
-          basePrice: cartItem.menuItem.price,
-          addons: cartItem.addons.map(addon => ({
-              addonId: addon.id,
-              addonName: addon.name,
-              addonPrice: addon.price
-          })),
-          totalPrice: cartItem.totalPrice,
-          ...(cartItem.appliedDailyOfferId && { appliedDailyOfferId: cartItem.appliedDailyOfferId }),
-        }));
+        // Step 2: Simulate the user taking time to pay on the Genie page.
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        const orderData: Omit<Order, 'id' | 'orderDate'> & { orderDate: any } = {
-            customerId: authUser.uid,
-            orderDate: serverTimestamp(),
-            totalAmount: checkoutData.cartTotal,
-            status: "Placed",
-            paymentStatus: "Paid", // Set payment status to Paid
-            orderItems: orderItems,
-            orderType: checkoutData.orderType,
-            pointsRedeemed: checkoutData.loyaltyDiscount,
-            discountApplied: checkoutData.totalDiscount,
-            serviceCharge: checkoutData.serviceCharge,
-            pointsToEarn: pointsToEarn,
-            ...(checkoutData.orderType === 'Dine-in' && checkoutData.tableNumber && { tableNumber: checkoutData.tableNumber }),
-            ...(checkoutData.welcomeDiscountAmount > 0 && { welcomeOfferApplied: true }),
+        // Step 3: Simulate a successful payment and get a transaction ID.
+        // In a real app, Genie would redirect back to a success page on your site with this info.
+        const mockTransactionId = `genie_txn_${Date.now()}`;
+        console.log(`Genie (Mock): Payment successful. Redirecting back to merchant with transaction ID: ${mockTransactionId}`);
+        console.log("Frontend: Received successful payment confirmation.");
+
+        // Step 4: Call our backend bridge again to verify the payment and create the order in Firestore.
+        // This is secure because the server verifies the transaction and creates the order, not the client.
+        const placeOrderInput = {
+            userId: authUser.uid,
+            checkoutData: checkoutData,
+            transactionId: mockTransactionId
         };
-        
-        batch.set(rootOrderRef, orderData);
-        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
-        batch.set(userOrderRef, orderData);
-
-        const updates: any = {};
-        
-        if (checkoutData.loyaltyDiscount > 0) {
-            updates.loyaltyPoints = increment(-checkoutData.loyaltyDiscount);
-            const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
-            const transactionData: Omit<PointTransaction, 'id'> = {
-                date: serverTimestamp() as any,
-                description: `Redeemed on Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
-                amount: -checkoutData.loyaltyDiscount,
-                type: 'redeem'
-            };
-            batch.set(transactionRef, transactionData);
-        }
-
-        if (checkoutData.birthdayDiscountAmount > 0) {
-            updates.birthdayDiscountValue = null;
-            updates.birthdayDiscountType = null;
-        }
-
-        if (checkoutData.welcomeDiscountAmount > 0) {
-            updates.orderCount = increment(1);
-        }
-        
-        const redeemedDailyOffers = orderItems
-            .map((item: any) => item.appliedDailyOfferId)
-            .filter((id?: string): id is string => !!id);
-        
-        if (redeemedDailyOffers.length > 0) {
-            const todayString = format(new Date(), 'yyyy-MM-dd');
-            redeemedDailyOffers.forEach((offerId: string) => {
-                updates[`dailyOffersRedeemed.${offerId}`] = todayString;
-            });
-        }
-
-        if (Object.keys(updates).length > 0) {
-            batch.update(userDocRef, updates);
-        }
-        
-        await batch.commit();
+        await placeOrderAfterPayment(placeOrderInput);
 
         toast({
             title: "Order Placed Successfully!",
@@ -183,11 +72,11 @@ export default function CheckoutPage() {
         router.push('/dashboard');
 
     } catch (error) {
-        console.error("Error placing order: ", error);
+        console.error("Error during checkout process: ", error);
         toast({
             variant: "destructive",
             title: "Order Failed",
-            description: "There was a problem saving your order after payment. Please contact support.",
+            description: "There was a problem processing your order. Please contact support.",
         });
     } finally {
         setIsProcessing(false);
