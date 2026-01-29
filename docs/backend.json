@@ -169,6 +169,7 @@
         "totalAmount": { "type": "number", "description": "Total cost of the order." },
         "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
         "paymentStatus": { "type": "string", "enum": ["Paid", "Unpaid"], "description": "The payment status of the order." },
+        "transactionId": { "type": "string", "description": "The transaction ID from the payment gateway." },
         "orderItems": {
           "type": "array",
           "items": { "$ref": "#/entities/OrderItem" },
