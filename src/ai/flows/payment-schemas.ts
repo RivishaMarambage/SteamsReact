@@ -1,28 +1,34 @@
-'use server';
-/**
- * @fileOverview Schemas for Payment and Order Finalization.
- */
-
 import { z } from 'genkit';
 
-// Schema for initiating payment
+/* =========================
+   INITIATE PAYMENT SCHEMAS
+========================= */
+
 export const InitiatePaymentInputSchema = z.object({
-  amount: z.number().describe('The total amount for the payment.'),
+  amount: z.number().positive(),
 });
-export type InitiatePaymentInput = z.infer<typeof InitiatePaymentInputSchema>;
+
+export type InitiatePaymentInput = z.infer<
+  typeof InitiatePaymentInputSchema
+>;
 
 export const InitiatePaymentOutputSchema = z.object({
-  paymentToken: z.string().describe('The secure token generated for this payment session.'),
-  checkoutUrl: z.string().describe('The URL for the user to complete payment.'),
+  paymentToken: z.string().min(1),
+  checkoutUrl: z.string().url(),
 });
-export type InitiatePaymentOutput = z.infer<typeof InitiatePaymentOutputSchema>;
 
+export type InitiatePaymentOutput = z.infer<
+  typeof InitiatePaymentOutputSchema
+>;
 
-// Schemas for placing the order after payment
+/* =========================
+   ORDER PLACEMENT SCHEMAS
+========================= */
+
 const CartItemAddonSchema = z.object({
   id: z.string(),
   name: z.string(),
-  price: z.number(),
+  price: z.number().nonnegative(),
 });
 
 const MenuItemAddonGroupSchema = z.object({
@@ -36,7 +42,7 @@ const MenuItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  price: z.number(),
+  price: z.number().nonnegative(),
   categoryId: z.string(),
   imageUrl: z.string().optional(),
   isOutOfStock: z.boolean().optional(),
@@ -46,25 +52,28 @@ const MenuItemSchema = z.object({
 const CartItemSchema = z.object({
   id: z.string(),
   menuItem: MenuItemSchema,
-  quantity: z.number(),
-  addons: z.array(CartItemAddonSchema),
-  totalPrice: z.number(),
+  quantity: z.number().min(1),
+  addons: z.array(CartItemAddonSchema).optional(),
+  totalPrice: z.number().nonnegative(),
   appliedDailyOfferId: z.string().optional(),
 });
 
 export const PlaceOrderInputSchema = z.object({
-    userId: z.string(),
-    checkoutData: z.object({
-        cartTotal: z.number(),
-        orderType: z.enum(['Dine-in', 'Takeaway']),
-        loyaltyDiscount: z.number(),
-        welcomeDiscountAmount: z.number(),
-        birthdayDiscountAmount: z.number(),
-        totalDiscount: z.number(),
-        serviceCharge: z.number(),
-        tableNumber: z.string().optional(),
-        cart: z.array(CartItemSchema),
-    }),
-    transactionId: z.string().describe("The transaction ID from the payment gateway."),
+  userId: z.string(),
+  checkoutData: z.object({
+    cartTotal: z.number().nonnegative(),
+    orderType: z.enum(['Dine-in', 'Takeaway']),
+    loyaltyDiscount: z.number().nonnegative(),
+    totalDiscount: z.number().nonnegative(),
+    serviceCharge: z.number().nonnegative(),
+    tableNumber: z.string().optional(),
+    welcomeDiscountAmount: z.number().nonnegative(),
+    birthdayDiscountAmount: z.number().nonnegative(),
+    cart: z.array(CartItemSchema).min(1),
+  }),
+  transactionId: z.string().min(1),
 });
-export type PlaceOrderInput = z.infer<typeof PlaceOrderInputSchema>;
+
+export type PlaceOrderInput = z.infer<
+  typeof PlaceOrderInputSchema
+>;
