@@ -5,29 +5,22 @@
  *
  * - initiatePayment - Generates a mock payment token and checkout URL.
  * - placeOrderAfterPayment - Verifies a mock payment and creates the order in Firestore.
- * - InitiatePaymentInput - Input for initiatePayment flow.
- * - InitiatePaymentOutput - Output for initiatePayment flow.
- * - PlaceOrderInput - Input for placeOrderAfterPayment flow.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import {
+  InitiatePaymentInput,
+  InitiatePaymentInputSchema,
+  InitiatePaymentOutput,
+  InitiatePaymentOutputSchema,
+  PlaceOrderInput,
+  PlaceOrderInputSchema,
+} from './payment-schemas';
 import { addDoc, collection, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
-import type { Order, OrderItem, PointTransaction } from '@/lib/types';
+import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
-
-// Schema for initiating payment
-export const InitiatePaymentInputSchema = z.object({
-  amount: z.number().describe('The total amount for the payment.'),
-});
-export type InitiatePaymentInput = z.infer<typeof InitiatePaymentInputSchema>;
-
-export const InitiatePaymentOutputSchema = z.object({
-  paymentToken: z.string().describe('The secure token generated for this payment session.'),
-  checkoutUrl: z.string().describe('The URL for the user to complete payment.'),
-});
-export type InitiatePaymentOutput = z.infer<typeof InitiatePaymentOutputSchema>;
 
 // Flow to initiate payment
 const initiatePaymentFlow = ai.defineFlow(
@@ -64,56 +57,6 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
 }
 
 
-// Schemas for placing the order after payment
-const CartItemAddonSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  price: z.number(),
-});
-
-const MenuItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  price: z.number(),
-  categoryId: z.string(),
-  imageUrl: z.string().optional(),
-  isOutOfStock: z.boolean().optional(),
-  addonGroups: z.array(z.object({
-    addonCategoryId: z.string(),
-    isRequired: z.boolean(),
-    minSelection: z.number(),
-    maxSelection: z.number(),
-  })).optional(),
-});
-
-const CartItemSchema = z.object({
-  id: z.string(),
-  menuItem: MenuItemSchema,
-  quantity: z.number(),
-  addons: z.array(CartItemAddonSchema),
-  totalPrice: z.number(),
-  appliedDailyOfferId: z.string().optional(),
-});
-
-export const PlaceOrderInputSchema = z.object({
-    userId: z.string(),
-    checkoutData: z.object({
-        cartTotal: z.number(),
-        orderType: z.enum(['Dine-in', 'Takeaway']),
-        loyaltyDiscount: z.number(),
-        totalDiscount: z.number(),
-        serviceCharge: z.number(),
-        tableNumber: z.string().optional(),
-        welcomeDiscountAmount: z.number(),
-        birthdayDiscountAmount: z.number(),
-        cart: z.array(CartItemSchema),
-    }),
-    transactionId: z.string().describe("The transaction ID from the payment gateway."),
-});
-export type PlaceOrderInput = z.infer<typeof PlaceOrderInputSchema>;
-
-
 // Flow to place order after successful payment
 const placeOrderAfterPaymentFlow = ai.defineFlow(
   {
@@ -134,7 +77,7 @@ const placeOrderAfterPaymentFlow = ai.defineFlow(
     const rootOrderRef = doc(collection(firestore, 'orders'));
     
     // Transform CartItem[] to OrderItem[]
-    const orderItems: OrderItem[] = checkoutData.cart.map((cartItem: z.infer<typeof CartItemSchema>) => ({
+    const orderItems: OrderItem[] = checkoutData.cart.map((cartItem) => ({
       menuItemId: cartItem.menuItem.id,
       menuItemName: cartItem.menuItem.name,
       quantity: cartItem.quantity,
