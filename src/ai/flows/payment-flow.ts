@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -66,15 +67,58 @@ const initiatePaymentFlow = ai.defineFlow(
     outputSchema: InitiatePaymentOutputSchema,
   },
   async (input) => {
-    // This section is configured for SIMULATION.
-    // Replace with a real fetch call to your payment provider (e.g., Genie) when ready.
-    console.log('Backend Bridge: Simulating payment token generation...');
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // This is now configured for a LIVE connection to Genie.
+    // Ensure your environment variables are set.
+    console.log('Backend Bridge: Initiating live payment with Genie...');
 
-    const paymentToken = `sim_token_${Date.now()}`;
-    const checkoutUrl = `http://localhost:9002/dashboard/checkout?token=${paymentToken}`;
+    const apiKey = process.env.GENIE_API_KEY;
+    const apiSecret = process.env.GENIE_API_SECRET;
 
-    return { paymentToken, checkoutUrl };
+    if (!apiKey || !apiSecret || apiKey === 'your_genie_api_key') {
+      throw new Error("Genie API key or secret is not configured in environment variables.");
+    }
+    
+    // This is a typical structure. You may need to adjust it based on Genie's documentation.
+    const requestBody = {
+      amount: input.amount,
+      currency: 'LKR',
+      orderId: `order_${Date.now()}`, // You should generate a unique order ID
+      returnUrl: 'http://localhost:9002/dashboard/order-success', // IMPORTANT: This URL must be whitelisted with Genie
+      notifyUrl: 'http://localhost:9002/api/payment-webhook' // A webhook endpoint to receive server-to-server updates
+    };
+
+    try {
+      const response = await fetch('https://api.geniebiz.lk/public/v2/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json();
+        console.error("Genie API Error:", errorBody);
+        throw new Error(`Failed to initiate payment with Genie: ${errorBody.message || response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      
+      // IMPORTANT: Adjust these based on the actual response from Genie
+      const paymentToken = responseData.paymentToken; 
+      const checkoutUrl = responseData.checkoutUrl;
+
+      if (!paymentToken || !checkoutUrl) {
+           throw new Error("Invalid response from Genie: missing paymentToken or checkoutUrl.");
+      }
+
+      return { paymentToken, checkoutUrl };
+
+    } catch (error) {
+      console.error("Error connecting to Genie:", error);
+      throw new Error("Could not connect to the payment gateway.");
+    }
   }
 );
 
