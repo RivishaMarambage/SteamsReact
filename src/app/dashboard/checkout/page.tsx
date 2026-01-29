@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import type { CartItem } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { initiatePayment, placeOrderAfterPayment } from '@/ai/flows/payment-flow';
+import { initiatePayment } from '@/ai/flows/payment-flow';
 
 
 export default function CheckoutPage() {
@@ -40,51 +40,24 @@ export default function CheckoutPage() {
 
     try {
         // Step 1: Call our backend bridge to get a payment token from Genie.
-        console.log("Frontend: Collecting order details...");
-        console.log("Frontend: Calling backend bridge to get payment token...");
         const paymentResponse = await initiatePayment({ amount: checkoutData.cartTotal });
-        const { paymentToken, checkoutUrl } = paymentResponse;
+        const { checkoutUrl } = paymentResponse;
         
         // --- REAL REDIRECT ---
-        // In a real application, you would uncomment the following line to redirect the user to Genie.
-        // window.location.href = checkoutUrl;
+        // This will now redirect the user to the Genie payment page.
+        window.location.href = checkoutUrl;
 
-        // For this simulation, we will not redirect and will proceed as if payment was successful.
-        console.log(`Frontend: Received payment token. Simulating redirect to Genie web checkout: ${checkoutUrl}`);
-
-        // Step 2: Simulate the user taking time to pay on the Genie page.
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Step 3: Simulate a successful payment and get a transaction ID.
-        // In a real app, Genie would redirect back to a success page on your site with this info.
-        const mockTransactionId = `genie_txn_${Date.now()}`;
-        console.log(`Genie (Mock): Payment successful. Redirecting back to merchant with transaction ID: ${mockTransactionId}`);
-        console.log("Frontend: Received successful payment confirmation.");
-
-        // Step 4: Call our backend bridge again to verify the payment and create the order in Firestore.
-        // This is secure because the server verifies the transaction and creates the order, not the client.
-        const placeOrderInput = {
-            userId: authUser.uid,
-            checkoutData: checkoutData,
-            transactionId: mockTransactionId
-        };
-        await placeOrderAfterPayment(placeOrderInput);
-
-        toast({
-            title: "Order Placed Successfully!",
-            description: `Your ${checkoutData.orderType} order is confirmed and paid.`,
-        });
-        localStorage.removeItem('checkoutData');
-        router.push('/dashboard');
+        // NOTE: The code below this line will NOT be executed after the redirect.
+        // The order finalization logic must be handled on a new success page
+        // or via a webhook from the payment provider.
 
     } catch (error) {
         console.error("Error during checkout process: ", error);
         toast({
             variant: "destructive",
-            title: "Order Failed",
-            description: "There was a problem processing your order. Please contact support.",
+            title: "Payment Failed",
+            description: "There was a problem initiating the payment. Please try again.",
         });
-    } finally {
         setIsProcessing(false);
     }
   }

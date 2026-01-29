@@ -79,11 +79,8 @@ const initiatePaymentFlow = ai.defineFlow(
     const merchantId = process.env.GENIE_MERCHANT_ID;
     const apiKey = process.env.GENIE_API_KEY; // This should be the Merchant Secret
 
-    // FORCED SIMULATION: The live API call is likely failing due to environment setup 
-    // (e.g., IP whitelisting, incorrect keys) which is outside of the code's control. 
-    // Re-enabling simulation allows development to continue.
-    // To re-enable live mode, change `if (true)` to `if (false)` and debug the `try/catch` block below.
-    if (true) {
+    // To re-enable simulation mode if the live API fails, change `if (false)` to `if (true)`.
+    if (false) {
         console.warn('Genie API call is in SIMULATION MODE to prevent errors.');
         await new Promise(resolve => setTimeout(resolve, 800)); // Simulate latency
         const paymentToken = `sim_token_${Date.now()}`;
@@ -93,22 +90,19 @@ const initiatePaymentFlow = ai.defineFlow(
 
 
     // --- REAL API CALL BLOCK ---
-    // NOTE: This block is currently bypassed by the simulation above.
     if (!merchantId || !apiKey) {
-      // For development, if keys are missing, fallback to simulation.
-      // In production, you would throw an error here.
-      console.warn('Genie Merchant ID or API Key is not configured. Falling back to simulation.');
-      const paymentToken = `sim_token_${Date.now()}`;
-      const checkoutUrl = `https://sandbox.genie.lk/checkout?token=${paymentToken}&mch=${merchantId || 'SIMULATED_MERCHANT'}`;
-      return { paymentToken, checkoutUrl };
+      console.error('Genie Merchant ID or API Key is not configured in .env file.');
+      throw new Error('Payment gateway is not configured on the server.');
     }
 
-    const GENIE_TOKEN_ENDPOINT = "https://sandbox.genie.lk/api/v2/payment/token";
+    // Using the production endpoint based on your request. Note: The path may differ from the sandbox.
+    const GENIE_TOKEN_ENDPOINT = "https://api.geniebiz.lk/public/v2/payment/token";
 
     const payload = {
       amount: input.amount,
       orderId: `order_${Date.now()}`, 
-      returnUrl: 'https://' + (process.env.NEXT_PUBLIC_APP_ID || 'your-app-id') + '.web.app/dashboard',
+      // IMPORTANT: You must configure these URLs in your Genie merchant dashboard.
+      returnUrl: 'https://' + (process.env.NEXT_PUBLIC_APP_ID || 'your-app-id') + '.web.app/dashboard/order-success',
       callbackUrl: 'https://' + (process.env.NEXT_PUBLIC_APP_ID || 'your-app-id') + '.web.app/api/payment-callback'
     };
 
