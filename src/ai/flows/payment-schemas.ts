@@ -1,4 +1,4 @@
-import { z } from 'genkit';
+import { z } from 'zod';
 
 /* =========================
    INITIATE PAYMENT SCHEMAS

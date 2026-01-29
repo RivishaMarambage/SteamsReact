@@ -5,15 +5,10 @@
  * @fileOverview Secure Backend Bridge for Payment and Order Finalization.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import {
   InitiatePaymentInput,
-  InitiatePaymentInputSchema,
   InitiatePaymentOutput,
-  InitiatePaymentOutputSchema,
   PlaceOrderInput,
-  PlaceOrderInputSchema,
 } from './payment-schemas';
 import { 
   collection, 
@@ -54,19 +49,9 @@ async function ensureAuthenticated() {
 }
 
 
-// --- GENKIT FLOWS ---
+// --- EXPORTED SERVER ACTIONS ---
 
-/**
- * Flow: initiatePaymentFlow
- * Connects to a payment gateway to generate a checkout session.
- */
-const initiatePaymentFlow = ai.defineFlow(
-  {
-    name: 'initiatePaymentFlow',
-    inputSchema: InitiatePaymentInputSchema,
-    outputSchema: InitiatePaymentOutputSchema,
-  },
-  async (input) => {
+export async function initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     // This is now configured for a LIVE connection to Genie.
     // Ensure your environment variables are set.
     console.log('Backend Bridge: Initiating live payment with Genie...');
@@ -137,21 +122,10 @@ const initiatePaymentFlow = ai.defineFlow(
       console.error("Error connecting to Genie:", error);
       throw new Error(`Could not connect to the payment gateway. Reason: ${error.message}`);
     }
-  }
-);
+}
 
-
-/**
- * Flow: placeOrderAfterPaymentFlow
- * Finalizes the order in Firestore after a successful payment.
- */
-const placeOrderAfterPaymentFlow = ai.defineFlow(
-  {
-    name: 'placeOrderAfterPaymentFlow',
-    inputSchema: PlaceOrderInputSchema,
-    outputSchema: z.object({ orderId: z.string() }),
-  },
-  async ({ userId, checkoutData, transactionId }) => {
+export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
+    const { userId, checkoutData, transactionId } = input;
     await ensureAuthenticated();
     const batch = writeBatch(db);
     
@@ -222,15 +196,4 @@ const placeOrderAfterPaymentFlow = ai.defineFlow(
 
     await batch.commit();
     return { orderId: rootOrderRef.id };
-  }
-);
-
-// --- EXPORTED SERVER ACTIONS ---
-
-export async function initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-  return initiatePaymentFlow(input);
-}
-
-export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
-  return placeOrderAfterPaymentFlow(input);
 }
