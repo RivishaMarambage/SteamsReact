@@ -27,11 +27,9 @@ import { getApps, initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
+import { firebaseConfig } from '@/firebase/config';
 
 // --- INITIALIZATION CONFIG ---
-const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
 // Initialize Firebase only if no apps exist to avoid "Duplicate App" errors
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
@@ -156,7 +154,8 @@ const placeOrderAfterPaymentFlow = ai.defineFlow(
       quantity: item.quantity,
       basePrice: item.menuItem.price,
       totalPrice: item.totalPrice,
-      addons: item.addons || []
+      addons: item.addons || [],
+      appliedDailyOfferId: item.appliedDailyOfferId,
     }));
 
     // 2. Calculate Loyalty Points
