@@ -9,13 +9,16 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import type { CartItem } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CreditCard, QrCode, Wallet } from 'lucide-react';
 import { initiatePayment } from '@/ai/flows/payment-flow';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 
 export default function CheckoutPage() {
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card');
   const router = useRouter();
   const { toast } = useToast();
   const { user: authUser } = useUser();
@@ -122,12 +125,39 @@ export default function CheckoutPage() {
         <Card>
              <CardHeader>
                 <CardTitle>Payment</CardTitle>
-                <CardDescription>Complete your purchase using our secure payment provider.</CardDescription>
+                <CardDescription>Select a payment method.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button 
-                    size="lg" 
-                    className="w-full" 
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4 mb-6">
+                    <Label htmlFor="card" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <RadioGroupItem value="card" id="card" />
+                        <CreditCard className="h-6 w-6" />
+                        <div className="grid gap-1.5">
+                            <p className="font-medium">Pay with Card</p>
+                            <p className="text-sm text-muted-foreground">Visa, Mastercard, Amex</p>
+                        </div>
+                    </Label>
+                    <Label htmlFor="qr" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <RadioGroupItem value="qr" id="qr" />
+                        <QrCode className="h-6 w-6" />
+                        <div className="grid gap-1.5">
+                            <p className="font-medium">Pay with QR</p>
+                            <p className="text-sm text-muted-foreground">Scan to pay with your mobile</p>
+                        </div>
+                    </Label>
+                    <Label htmlFor="wallet" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <RadioGroupItem value="wallet" id="wallet" />
+                        <Wallet className="h-6 w-6" />
+                        <div className="grid gap-1.5">
+                            <p className="font-medium">Pay with Genie Wallet</p>
+                            <p className="text-sm text-muted-foreground">Use your Genie account balance</p>
+                        </div>
+                    </Label>
+                </RadioGroup>
+
+                <Button
+                    size="lg"
+                    className="w-full"
                     disabled={isProcessing}
                     onClick={handlePlaceOrder}
                 >
@@ -137,11 +167,11 @@ export default function CheckoutPage() {
                             Processing Payment...
                         </>
                     ) : (
-                        `Pay LKR ${checkoutData.cartTotal.toFixed(2)}`
+                        `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`
                     )}
                 </Button>
-                 <div className="mt-4 text-center text-xs text-muted-foreground">
-                    Powered by Genie
+                <div className="mt-4 text-center text-xs text-muted-foreground">
+                    You will be redirected to Genie to complete your payment.
                 </div>
             </CardContent>
         </Card>
