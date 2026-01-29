@@ -98,9 +98,18 @@ const initiatePaymentFlow = ai.defineFlow(
       });
 
       if (!response.ok) {
-        const errorBody = await response.json();
-        console.error("Genie API Error:", errorBody);
-        throw new Error(`Failed to initiate payment with Genie: ${errorBody.message || response.statusText}`);
+        const errorText = await response.text();
+        console.error("Genie API Error:", errorText);
+        let errorMessage = response.statusText;
+        try {
+          // Try to parse as JSON, as many APIs return structured errors
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.error || JSON.stringify(errorJson);
+        } catch (e) {
+          // If not JSON, use the raw text
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(`Failed to initiate payment with Genie: ${errorMessage}`);
       }
 
       const responseData = await response.json();
