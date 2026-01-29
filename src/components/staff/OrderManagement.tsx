@@ -16,6 +16,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useState, useEffect, useMemo } from 'react';
 import AudioNotifier from '../AudioNotifier';
 import { serverTimestamp } from 'firebase/firestore';
+import { requestRefund } from '@/ai/flows/payment-flow';
 
 export default function OrderManagement() {
   const firestore = useFirestore();
@@ -116,6 +117,24 @@ export default function OrderManagement() {
     }
 
     if (status === 'Rejected' && order.status !== 'Rejected') {
+        // Initiate refund via Genie if it was a paid order
+        if (order.paymentStatus === 'Paid' && order.transactionId) {
+            try {
+                await requestRefund(order.transactionId, order.totalAmount);
+                toast({
+                    title: 'Refund Processed',
+                    description: 'The refund has been successfully requested through the payment gateway.'
+                });
+            } catch (error: any) {
+                console.error("Refund failed:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Refund Failed',
+                    description: `Could not process the refund via Genie. Please do it manually. Reason: ${error.message}`
+                });
+            }
+        }
+        
         try {
             const userProfileSnap = await getDoc(userProfileRef);
             if (userProfileSnap.exists()) {
@@ -162,7 +181,7 @@ export default function OrderManagement() {
                 }
             }
         } catch(e) {
-            console.error("Could not process order rejection refunds:", e);
+            console.error("Could not process order rejection database rollbacks:", e);
         }
     }
     

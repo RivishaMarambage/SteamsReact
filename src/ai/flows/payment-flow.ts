@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -10,43 +9,20 @@ import {
   InitiatePaymentOutput,
   PlaceOrderInput,
 } from './payment-schemas';
-import { 
-  collection, 
-  doc, 
-  writeBatch, 
-  serverTimestamp, 
-  increment, 
-  getFirestore 
+import {
+  collection,
+  doc,
+  writeBatch,
+  serverTimestamp,
+  increment,
 } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { initializeFirebaseAdmin } from '@/firebase/server-init';
 import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
-import { initializeFirebaseAdmin } from '@/firebase/server-init';
 
 // --- INITIALIZATION ---
 // This block ensures Firebase is initialized for server-side execution.
-const { firestore: db, auth } = initializeFirebaseAdmin();
-
-// --- AUTHENTICATION ---
-/**
- * Ensures the backend process is authenticated as an admin before running flows.
- */
-async function ensureAuthenticated() {
-  if (auth.currentUser && (await auth.currentUser.getIdTokenResult()).claims.role === 'admin') {
-    return auth.currentUser;
-  }
-  
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
-
-  try {
-    const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-    return userCred.user;
-  } catch (error) {
-    console.error("Failed to authenticate backend admin:", error);
-    throw new Error("Backend authentication failed. Check ADMIN_EMAIL and ADMIN_PASSWORD.");
-  }
-}
+const { firestore: db } = initializeFirebaseAdmin();
 
 
 // --- EXPORTED SERVER ACTIONS ---
@@ -59,7 +35,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
     if (!apiKey) {
       throw new Error("Genie API key is not configured in environment variables.");
     }
-    
+
     const requestBody = {
       amount: input.amount * 100, // Genie expects amount in cents
       currency: 'LKR',
@@ -70,7 +46,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': apiKey, // As per documentation example
+      'Authorization': apiKey,
     };
 
     console.log("--- Genie Payment Request ---");
@@ -100,7 +76,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
       }
 
       const responseData = await response.json();
-      
+
       const checkoutUrl = responseData.url;
 
       if (!checkoutUrl) {
@@ -117,9 +93,8 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
 
 export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
     const { userId, checkoutData, transactionId } = input;
-    await ensureAuthenticated();
     const batch = writeBatch(db);
-    
+
     const rootOrderRef = doc(collection(db, 'orders'));
     const userOrderRef = doc(db, 'users', userId, 'orders', rootOrderRef.id);
     const userProfileRef = doc(db, 'users', userId);
@@ -162,7 +137,7 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
       serviceCharge: checkoutData.serviceCharge || 0,
       welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
     };
-    
+
     batch.set(rootOrderRef, orderData);
     batch.set(userOrderRef, orderData);
 
@@ -187,4 +162,66 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
 
     await batch.commit();
     return { orderId: rootOrderRef.id };
+}
+
+
+export async function requestRefund(
+  transactionId: string,
+  amount: number
+): Promise<{ success: boolean; message: string }> {
+  console.log(`Backend Bridge: Initiating refund for transaction ${transactionId}...`);
+
+  const apiKey = process.env.GENIE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Genie API key is not configured in environment variables.");
+  }
+
+  const requestBody = {
+    refundAmount: amount * 100, // Genie expects amount in cents
+    refundReason: "Order rejected by staff.",
+  };
+
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': apiKey,
+  };
+
+  const url = `https://api.geniebiz.lk/public/v2/transactions/${transactionId}/refunds`;
+
+  console.log("--- Genie Refund Request ---");
+  console.log(`Endpoint: POST ${url}`);
+  console.log("Headers:", JSON.stringify(requestHeaders, null, 2));
+  console.log("Request Body:", JSON.stringify(requestBody, null, 2));
+  console.log("---------------------------");
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Genie API Raw Error Response:", errorText);
+      let errorMessage = `Status ${response.status}: ${response.statusText}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || JSON.stringify(errorJson);
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(`Failed to process refund with Genie: ${errorMessage}`);
+    }
+
+    const responseData = await response.json();
+    console.log("Genie Refund Response:", responseData);
+    return { success: true, message: "Refund requested successfully." };
+
+  } catch (error: any) {
+    console.error("Error connecting to Genie for refund:", error);
+    throw new Error(`Could not connect to the payment gateway for refund. Reason: ${error.message}`);
+  }
 }
