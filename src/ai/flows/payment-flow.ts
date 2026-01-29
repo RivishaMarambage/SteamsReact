@@ -25,11 +25,11 @@ import {
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebaseAdmin } from '@/firebase/server-init';
 
 // --- INITIALIZATION ---
 // This block ensures Firebase is initialized for server-side execution.
-const { firestore: db, auth } = initializeFirebase();
+const { firestore: db, auth } = initializeFirebaseAdmin();
 
 // --- AUTHENTICATION ---
 /**
