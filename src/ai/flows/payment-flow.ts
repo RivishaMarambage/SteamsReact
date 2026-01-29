@@ -72,7 +72,7 @@ const initiatePaymentFlow = ai.defineFlow(
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const paymentToken = `sim_token_${Date.now()}`;
-    const checkoutUrl = `/dashboard/checkout?token=${paymentToken}`;
+    const checkoutUrl = `http://localhost:9002/dashboard/checkout?token=${paymentToken}`;
 
     return { paymentToken, checkoutUrl };
   }
