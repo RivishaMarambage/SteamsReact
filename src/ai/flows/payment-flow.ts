@@ -74,7 +74,7 @@ const initiatePaymentFlow = ai.defineFlow(
     const apiKey = process.env.GENIE_API_KEY;
     const apiSecret = process.env.GENIE_API_SECRET;
 
-    if (!apiKey || !apiSecret || apiKey === 'your_genie_api_key') {
+    if (!apiKey || !apiSecret ) {
       throw new Error("Genie API key or secret is not configured in environment variables.");
     }
     
@@ -115,9 +115,9 @@ const initiatePaymentFlow = ai.defineFlow(
 
       return { paymentToken, checkoutUrl };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error connecting to Genie:", error);
-      throw new Error("Could not connect to the payment gateway.");
+      throw new Error(`Could not connect to the payment gateway. Reason: ${error.message}`);
     }
   }
 );
