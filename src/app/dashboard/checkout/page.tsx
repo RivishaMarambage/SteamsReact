@@ -39,13 +39,27 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-        // Step 1: Call our backend bridge to get a payment token from Genie.
+        // --- DEVELOPMENT WORKAROUND ---
+        // The live `initiatePayment` call is being bypassed because it is consistently
+        // returning a 'Forbidden' error. This is likely due to a configuration issue
+        // on the Genie merchant dashboard (e.g., incorrect API keys, IP not whitelisted).
+        // This simulation allows development to continue on the rest of the app.
+        console.log("--- Bypassing live payment gateway for development ---");
+        const paymentResponse = {
+          paymentToken: `sim_token_${Date.now()}`,
+          checkoutUrl: `/dashboard/order-success?sim_transaction=true`
+        };
+        console.log("--- Using mock payment response ---");
+        // --- END WORKAROUND ---
+
+        // To re-enable the live payment gateway, comment out the workaround above and uncomment the block below.
+        /*
         console.log("Frontend: Collecting order details...");
         console.log("Frontend: Calling backend bridge to get payment token...");
         const paymentResponse = await initiatePayment({ amount: checkoutData.cartTotal });
+        */
         const { paymentToken, checkoutUrl } = paymentResponse;
         
-        // --- REAL REDIRECT ---
         // In a real application, you would uncomment the following line to redirect the user to Genie.
         // window.location.href = checkoutUrl;
 
@@ -77,12 +91,12 @@ export default function CheckoutPage() {
         localStorage.removeItem('checkoutData');
         router.push('/dashboard');
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error during checkout process: ", error);
         toast({
             variant: "destructive",
             title: "Order Failed",
-            description: "There was a problem processing your order. Please contact support.",
+            description: error.message || "There was a problem processing your order. Please contact support.",
         });
     } finally {
         setIsProcessing(false);
