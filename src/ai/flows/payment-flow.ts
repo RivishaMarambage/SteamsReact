@@ -73,9 +73,10 @@ const initiatePaymentFlow = ai.defineFlow(
 
     const apiKey = process.env.GENIE_API_KEY;
     const apiSecret = process.env.GENIE_API_SECRET;
+    const publicKey = process.env.GENIE_PUBLIC_KEY;
 
-    if (!apiKey || !apiSecret ) {
-      throw new Error("Genie API key or secret is not configured in environment variables.");
+    if (!apiKey || !apiSecret || !publicKey) {
+      throw new Error("Genie API key, secret, or public key is not configured in environment variables.");
     }
     
     // This is a typical structure. You may need to adjust it based on Genie's documentation.
@@ -83,6 +84,7 @@ const initiatePaymentFlow = ai.defineFlow(
       amount: input.amount,
       currency: 'LKR',
       orderId: `order_${Date.now()}`, // You should generate a unique order ID
+      publicKey: publicKey, // Including public key in the request body
       returnUrl: 'http://localhost:9002/dashboard/order-success', // IMPORTANT: This URL must be whitelisted with Genie
       notifyUrl: 'http://localhost:9002/api/payment-webhook' // A webhook endpoint to receive server-to-server updates
     };
