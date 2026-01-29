@@ -31,18 +31,36 @@ const initiatePaymentFlow = ai.defineFlow(
   },
   async (input) => {
     console.log('Backend Bridge: Received request to generate payment token.');
-    // In a real scenario, you would use secret credentials here to contact Genie.
-    // const merchantId = process.env.GENIE_MERCHANT_ID;
-    // const merchantSecret = process.env.GENIE_MERCHANT_SECRET;
-    console.log('Backend Bridge: Sending secure request to Genie API...');
+    
+    // In a real scenario, you would use your secret credentials from .env here to contact Genie.
+    const merchantId = process.env.GENIE_MARCHANT_ID;
+    const apiKey = process.env.GENIE_API_KEY;
 
-    // Simulate network delay for API call
+    // This is where you would make a real `fetch` call to the Genie API.
+    // const genieResponse = await fetch('https://api.genie.lk/v1/payment/request', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     'Authorization': `Bearer ${apiKey}`
+    //   },
+    //   body: JSON.stringify({
+    //     merchantId: merchantId,
+    //     amount: input.amount,
+    //     // ... other required Genie parameters
+    //   })
+    // });
+    // const genieData = await genieResponse.json();
+    // const { paymentToken, checkoutUrl } = genieData;
+    
+    console.log('Backend Bridge: Sending secure request to Genie API (currently simulated)...');
+    
+    // For now, we are simulating the response from Genie.
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const paymentToken = `genie_token_${Date.now()}`;
     const checkoutUrl = `https://sandbox.genie.lk/checkout?token=${paymentToken}`;
 
-    console.log(`Backend Bridge: Received token from Genie: ${paymentToken}`);
+    console.log(`Backend Bridge: Received mock token from Genie: ${paymentToken}`);
 
     return {
       paymentToken,

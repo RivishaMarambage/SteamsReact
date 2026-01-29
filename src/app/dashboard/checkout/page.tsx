@@ -44,6 +44,12 @@ export default function CheckoutPage() {
         console.log("Frontend: Calling backend bridge to get payment token...");
         const paymentResponse = await initiatePayment({ amount: checkoutData.cartTotal });
         const { paymentToken, checkoutUrl } = paymentResponse;
+        
+        // --- REAL REDIRECT ---
+        // In a real application, you would uncomment the following line to redirect the user to Genie.
+        // window.location.href = checkoutUrl;
+
+        // For this simulation, we will not redirect and will proceed as if payment was successful.
         console.log(`Frontend: Received payment token. Simulating redirect to Genie web checkout: ${checkoutUrl}`);
 
         // Step 2: Simulate the user taking time to pay on the Genie page.
