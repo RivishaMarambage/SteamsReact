@@ -35,6 +35,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb', // Increase if you are sending large images
     },
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        async_hooks: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

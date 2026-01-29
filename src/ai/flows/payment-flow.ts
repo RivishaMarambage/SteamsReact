@@ -1,258 +1,100 @@
-'use server';
-
-/**
- * @fileOverview Secure Backend Bridge for Payment and Order Finalization.
- * Handles Firebase initialization, Genie Gateway simulation, and mandatory path structuring.
- */
-
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import {
-  InitiatePaymentInput,
-  InitiatePaymentInputSchema,
-  InitiatePaymentOutput,
-  InitiatePaymentOutputSchema,
-  PlaceOrderInput,
-  PlaceOrderInputSchema,
-} from './payment-schemas';
-import { 
-  collection, 
-  doc, 
-  writeBatch, 
-  serverTimestamp, 
-  increment, 
-  getFirestore, 
-} from 'firebase/firestore';
-import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
-import type { Order, OrderItem } from '@/lib/types';
-import { format } from 'date-fns';
-import { firebaseConfig } from '@/firebase/config';
-
-// --- INITIALIZATION CONFIG ---
-// Initialize Firebase only if no apps exist to avoid "Duplicate App" errors
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
-const auth = getAuth(app);
 
 /**
- * Ensures the backend process is authenticated before Firestore operations.
+ * =========================
+ * Initiate Payment Schemas
+ * =========================
  */
-async function ensureAuthenticated() {
-  if (auth.currentUser) return auth.currentUser;
-  
-  // For this backend flow to have the necessary permissions to write to user
-  // profiles and orders, it needs to be authenticated as a user with 'admin' privileges.
-  // In a production environment, you would use a dedicated service account with
-  // securely stored credentials from a secret manager.
-  // For this test environment, we will sign in as the demo admin user.
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
 
-  try {
-    const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-    return userCred.user;
-  } catch (error) {
-    console.error("CRITICAL: Backend bridge could not authenticate as admin. Order placement will fail.", error);
-    // Fallback to anonymous to allow other flows to work, but this one will fail rules.
-    const userCred = await signInAnonymously(auth);
-    return userCred.user;
-  }
-}
+export const InitiatePaymentInputSchema = z.object({
+  amount: z
+    .number()
+    .positive()
+    .describe('The total amount for the payment. Must be greater than 0.'),
+});
 
-// --- GENKIT FLOWS ---
+export type InitiatePaymentInput = z.infer<typeof InitiatePaymentInputSchema>;
+
+export const InitiatePaymentOutputSchema = z.object({
+  paymentToken: z
+    .string()
+    .min(1)
+    .describe('The secure token generated for this payment session.'),
+
+  checkoutUrl: z
+    .string()
+    .url()
+    .describe('The URL for the user to complete payment.'),
+});
+
+export type InitiatePaymentOutput = z.infer<typeof InitiatePaymentOutputSchema>;
 
 /**
- * Flow: initiatePaymentFlow
- * Connects to the Genie Gateway to generate a checkout session.
+ * =========================
+ * Order Placement Schemas
+ * =========================
  */
-const initiatePaymentFlow = ai.defineFlow(
-  {
-    name: 'initiatePaymentFlow',
-    inputSchema: InitiatePaymentInputSchema,
-    outputSchema: InitiatePaymentOutputSchema,
-  },
-  async (input) => {
-    console.log('Backend Bridge: Generating Genie Payment Token...');
-    
-    // Use credentials from .env
-    const merchantId = process.env.GENIE_MERCHANT_ID;
-    const apiKey = process.env.GENIE_API_KEY; // This should be the Merchant Secret
 
-    // To re-enable simulation mode if the live API fails, change `if (false)` to `if (true)`.
-    if (false) {
-        console.warn('Genie API call is in SIMULATION MODE to prevent errors.');
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate latency
-        const paymentToken = `sim_token_${Date.now()}`;
-        const checkoutUrl = `https://sandbox.genie.lk/checkout?token=${paymentToken}&mch=${merchantId || 'SIMULATED_MERCHANT'}`;
-        return { paymentToken, checkoutUrl };
-    }
+const CartItemAddonSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number().nonnegative(),
+});
 
+const MenuItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  price: z.number().nonnegative(),
+  categoryId: z.string(),
+  imageUrl: z.string().optional(),
+  isOutOfStock: z.boolean().optional(),
 
-    // --- REAL API CALL BLOCK ---
-    if (!merchantId || !apiKey) {
-      console.error('Genie Merchant ID or API Key is not configured in .env file.');
-      throw new Error('Payment gateway is not configured on the server.');
-    }
+  addonGroups: z
+    .array(
+      z.object({
+        addonCategoryId: z.string(),
+        isRequired: z.boolean(),
+        minSelection: z.number().nonnegative(),
+        maxSelection: z.number().nonnegative(),
+      })
+    )
+    .optional(),
+});
 
-    // Using the production endpoint based on your request. Note: The path may differ from the sandbox.
-    const GENIE_TOKEN_ENDPOINT = "https://api.geniebiz.lk/public/v2/payment/token";
+const CartItemSchema = z.object({
+  id: z.string(),
+  menuItem: MenuItemSchema,
+  quantity: z.number().min(1),
+  addons: z.array(CartItemAddonSchema).optional(),
+  totalPrice: z.number().nonnegative(),
+  appliedDailyOfferId: z.string().optional(),
+});
 
-    const payload = {
-      amount: input.amount,
-      orderId: `order_${Date.now()}`, 
-      // IMPORTANT: You must configure these URLs in your Genie merchant dashboard.
-      returnUrl: 'https://' + (process.env.NEXT_PUBLIC_APP_ID || 'your-app-id') + '.web.app/dashboard/order-success',
-      callbackUrl: 'https://' + (process.env.NEXT_PUBLIC_APP_ID || 'your-app-id') + '.web.app/api/payment-callback'
-    };
+export const PlaceOrderInputSchema = z.object({
+  userId: z.string(),
 
-    try {
-      const response = await fetch(GENIE_TOKEN_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload),
-      });
+  checkoutData: z.object({
+    cartTotal: z.number().nonnegative(),
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error('Genie API Error:', errorBody);
-        throw new Error(`Genie API request failed with status ${response.status}`);
-      }
+    orderType: z.enum(['Dine-in', 'Takeaway']),
 
-      const genieResponse = await response.json();
-      
-      const paymentToken = genieResponse.token;
-      const checkoutUrl = genieResponse.checkoutUrl;
+    loyaltyDiscount: z.number().nonnegative(),
+    totalDiscount: z.number().nonnegative(),
+    serviceCharge: z.number().nonnegative(),
 
-      if (!paymentToken || !checkoutUrl) {
-          throw new Error('Invalid response from Genie API. Missing token or checkoutUrl.');
-      }
+    tableNumber: z.string().optional(),
 
-      return { paymentToken, checkoutUrl };
+    welcomeDiscountAmount: z.number().nonnegative(),
+    birthdayDiscountAmount: z.number().nonnegative(),
 
-    } catch (error) {
-      console.error("Error contacting Genie API:", error);
-      throw new Error('Failed to initiate payment with Genie.');
-    }
-  }
-);
+    cart: z.array(CartItemSchema).min(1),
+  }),
 
-/**
- * Flow: placeOrderAfterPaymentFlow
- * Finalizes the order in Firestore using mandatory path structures.
- */
-const placeOrderAfterPaymentFlow = ai.defineFlow(
-  {
-    name: 'placeOrderAfterPaymentFlow',
-    inputSchema: PlaceOrderInputSchema,
-    outputSchema: z.object({ orderId: z.string() }),
-  },
-  async ({ userId, checkoutData, transactionId }) => {
-    await ensureAuthenticated();
-    const batch = writeBatch(db);
+  transactionId: z
+    .string()
+    .min(1)
+    .describe('The transaction ID from the payment gateway.'),
+});
 
-    const rootOrderRef = doc(collection(db, 'orders'));
-    const userProfileRef = doc(db, 'users', userId);
-    const userOrderRef = doc(db, 'users', userId, 'orders', rootOrderRef.id);
-
-    // 1. Map Cart Items to Order Items
-    const orderItems: OrderItem[] = checkoutData.cart.map((item: any) => ({
-      menuItemId: item.menuItem.id,
-      menuItemName: item.menuItem.name,
-      quantity: item.quantity,
-      basePrice: item.menuItem.price,
-      totalPrice: item.totalPrice,
-      addons: item.addons || [],
-      ...(item.appliedDailyOfferId && { appliedDailyOfferId: item.appliedDailyOfferId }),
-    }));
-
-    // 2. Calculate Loyalty Points
-    let pointsToEarn = 0;
-    const total = checkoutData.cartTotal;
-    if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
-    else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
-    else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
-    else pointsToEarn = Math.floor(total / 400);
-
-    const orderData: Partial<Order> & { customerId: string, orderItems: OrderItem[] } = {
-      customerId: userId,
-      // orderDate: serverTimestamp(),
-      totalAmount: total,
-      status: "Placed",
-      paymentStatus: "Paid",
-      transactionId: transactionId,
-      orderItems: orderItems,
-      orderType: checkoutData.orderType,
-      pointsToEarn: pointsToEarn,
-      pointsRedeemed: checkoutData.loyaltyDiscount || 0,
-      discountApplied: checkoutData.totalDiscount || 0,
-      serviceCharge: checkoutData.serviceCharge || 0,
-      welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
-    };
-    
-    if (checkoutData.orderType === 'Dine-in' && checkoutData.tableNumber) {
-        orderData.tableNumber = checkoutData.tableNumber;
-    }
-
-    // 3. Batch Writes
-    batch.set(rootOrderRef, orderData); // Save to global order tracker
-    batch.set(userOrderRef, orderData); // Save to user's order history
-
-    let netPointChange = pointsToEarn;
-
-    // Handle point deduction if redeemed
-    if (checkoutData.loyaltyDiscount > 0) {
-      netPointChange -= checkoutData.loyaltyDiscount; // loyaltyDiscount IS the number of points
-      const logRef = doc(collection(db, 'users', userId, 'point_transactions'));
-      batch.set(logRef, {
-        date: serverTimestamp(),
-        amount: -checkoutData.loyaltyDiscount,
-        type: 'redeem',
-        description: `Order #${rootOrderRef.id.substring(0, 5)}`
-      });
-    }
-
-    const userUpdates: any = {
-      orderCount: increment(1), // Increment for every completed order
-      loyaltyPoints: increment(netPointChange),
-    };
-    
-    // Only increment lifetime points if points were earned
-    if (pointsToEarn > 0) {
-      userUpdates.lifetimePoints = increment(pointsToEarn);
-    }
-
-    // Handle daily offer tracking
-    const today = format(new Date(), 'yyyy-MM-dd');
-    orderItems.forEach((item: any) => {
-      if (item.appliedDailyOfferId) {
-        userUpdates[`dailyOffersRedeemed.${item.appliedDailyOfferId}`] = today;
-      }
-    });
-
-    // If birthday discount was used, clear it from the profile so it can't be used again
-    if (checkoutData.birthdayDiscountAmount > 0) {
-        userUpdates.birthdayDiscountValue = null;
-        userUpdates.birthdayDiscountType = null;
-        userUpdates.birthdayFreebieMenuItemIds = [];
-    }
-
-    batch.update(userProfileRef, userUpdates);
-
-    await batch.commit();
-    return { orderId: rootOrderRef.id };
-  }
-);
-
-// --- EXPORTED SERVER ACTIONS ---
-
-export async function initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-  return initiatePaymentFlow(input);
-}
-
-export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
-  return placeOrderAfterPaymentFlow(input);
-}
+export type PlaceOrderInput = z.infer<typeof PlaceOrderInputSchema>;
