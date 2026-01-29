@@ -89,19 +89,26 @@ const initiatePaymentFlow = ai.defineFlow(
       notifyUrl: 'http://localhost:9002/api/payment-webhook' // A webhook endpoint to receive server-to-server updates
     };
 
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`,
+    };
+
+    console.log("--- Genie Payment Request ---");
+    console.log("Endpoint: POST https://api.geniebiz.lk/public/v2/transactions");
+    console.log("Request Body:", JSON.stringify(requestBody, null, 2));
+    console.log("---------------------------");
+
     try {
       const response = await fetch('https://api.geniebiz.lk/public/v2/transactions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`,
-        },
+        headers: requestHeaders,
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Genie API Error:", errorText);
+        console.error("Genie API Raw Error Response:", errorText);
         let errorMessage = response.statusText;
         try {
           // Try to parse as JSON, as many APIs return structured errors
