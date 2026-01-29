@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,6 +12,8 @@ import { Loader2, CreditCard, QrCode, Wallet } from 'lucide-react';
 import { initiatePayment } from '@/ai/flows/payment-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import QrScanner from '@/components/wallet/QrScanner';
 
 
 export default function CheckoutPage() {
@@ -69,6 +70,41 @@ export default function CheckoutPage() {
       </div>
     );
   }
+  
+  const renderPaymentButton = () => {
+    if (paymentMethod === 'qr') {
+      return (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="lg" className="w-full">
+              <QrCode className="mr-2" />
+              Scan QR to Pay
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <QrScanner />
+          </DialogContent>
+        </Dialog>
+      );
+    }
+    return (
+      <Button
+        size="lg"
+        className="w-full"
+        disabled={isProcessing}
+        onClick={handlePlaceOrder}
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing Payment...
+          </>
+        ) : (
+          `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`
+        )}
+      </Button>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -155,21 +191,7 @@ export default function CheckoutPage() {
                     </Label>
                 </RadioGroup>
 
-                <Button
-                    size="lg"
-                    className="w-full"
-                    disabled={isProcessing}
-                    onClick={handlePlaceOrder}
-                >
-                    {isProcessing ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing Payment...
-                        </>
-                    ) : (
-                        `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`
-                    )}
-                </Button>
+                {renderPaymentButton()}
                 <div className="mt-4 text-center text-xs text-muted-foreground">
                     You will be redirected to Genie to complete your payment.
                 </div>
