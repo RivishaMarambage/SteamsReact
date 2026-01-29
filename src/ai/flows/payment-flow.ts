@@ -69,7 +69,12 @@ const initiatePaymentFlow = ai.defineFlow(
     const apiKey = process.env.GENIE_API_KEY; // This should be the Merchant Secret
 
     if (!merchantId || !apiKey) {
-      throw new Error('Genie Merchant ID or API Key is not configured in .env file.');
+      // For development, if keys are missing, fallback to simulation.
+      // In production, you would throw an error here.
+      console.warn('Genie Merchant ID or API Key is not configured. Falling back to simulation.');
+      const paymentToken = `sim_token_${Date.now()}`;
+      const checkoutUrl = `https://sandbox.genie.lk/checkout?token=${paymentToken}&mch=${merchantId || 'SIMULATED_MERCHANT'}`;
+      return { paymentToken, checkoutUrl };
     }
 
     // This is a placeholder for the actual Genie API endpoint.
@@ -120,11 +125,8 @@ const initiatePaymentFlow = ai.defineFlow(
 
     } catch (error) {
       console.error("Error contacting Genie API:", error);
-      // Fallback to simulation on error for development purposes.
-      // In production, you would want to throw the error.
-      const paymentToken = `sim_error_token_${Date.now()}`;
-      const checkoutUrl = `https://sandbox.genie.lk/checkout?token=${paymentToken}&mch=${merchantId}`;
-      return { paymentToken, checkoutUrl };
+      // It's often better to throw the error and let the frontend handle it
+      throw new Error('Failed to initiate payment with Genie.');
     }
   }
 );
@@ -155,7 +157,7 @@ const placeOrderAfterPaymentFlow = ai.defineFlow(
       basePrice: item.menuItem.price,
       totalPrice: item.totalPrice,
       addons: item.addons || [],
-      appliedDailyOfferId: item.appliedDailyOfferId,
+      ...(item.appliedDailyOfferId && { appliedDailyOfferId: item.appliedDailyOfferId }),
     }));
 
     // 2. Calculate Loyalty Points
