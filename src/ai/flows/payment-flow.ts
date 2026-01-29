@@ -179,7 +179,7 @@ const placeOrderAfterPaymentFlow = ai.defineFlow(
 
     const orderData: Partial<Order> & { customerId: string, orderItems: OrderItem[] } = {
       customerId: userId,
-      orderDate: serverTimestamp(),
+      // orderDate: serverTimestamp(),
       totalAmount: total,
       status: "Placed",
       paymentStatus: "Paid",

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -109,7 +108,7 @@ export default function CheckoutPage() {
                         <span>LKR {checkoutData.serviceCharge.toFixed(2)}</span>
                     </div>
                     )}
-                    {checkoutData.totalDiscount > 0 && (
+                    {totalDiscount > 0 && (
                     <div className="flex justify-between text-destructive">
                         <span>Discount</span>
                         <span>- LKR {checkoutData.totalDiscount.toFixed(2)}</span>
