@@ -108,7 +108,7 @@ export default function CheckoutPage() {
                         <span>LKR {checkoutData.serviceCharge.toFixed(2)}</span>
                     </div>
                     )}
-                    {totalDiscount > 0 && (
+                    {checkoutData.totalDiscount > 0 && (
                     <div className="flex justify-between text-destructive">
                         <span>Discount</span>
                         <span>- LKR {checkoutData.totalDiscount.toFixed(2)}</span>
