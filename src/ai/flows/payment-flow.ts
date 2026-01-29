@@ -64,8 +64,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
       amount: input.amount * 100, // Genie expects amount in cents
       currency: 'LKR',
       localId: `order_${Date.now()}`,
-      redirectUrl: 'http://localhost:9002/dashboard/order-success',
-      webhook: 'http://localhost:9002/api/payment-webhook'
+      redirectUrl: 'https://9000-firebase-studio-1763987265209.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/dashboard/order-success',
     };
 
     const requestHeaders = {
