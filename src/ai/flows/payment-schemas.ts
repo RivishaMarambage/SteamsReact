@@ -13,7 +13,6 @@ export type InitiatePaymentInput = z.infer<
 >;
 
 export const InitiatePaymentOutputSchema = z.object({
-  paymentToken: z.string().min(1),
   checkoutUrl: z.string().url(),
 });
 
