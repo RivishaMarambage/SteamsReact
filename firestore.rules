@@ -7,16 +7,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isStaffOrAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     match /users/{userId} {
-      allow list: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow read: if (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']) || (isSignedIn() && request.auth.uid == userId);
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
-      allow delete: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow list: if isAdmin();
+      allow read: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isStaffOrAdmin();
+      allow delete: if isAdmin();
     }
     
     match /users/{userId}/data/game_profile {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
 
     match /daily_game_winners/{date} {
@@ -26,50 +40,50 @@ service cloud.firestore {
 
     match /menu_items/{menuItemId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /addons/{addonId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /addon_categories/{addonCategoryId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /loyalty_levels/{loyaltyLevelId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /orders/{orderId} {
-        allow read, write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
-        allow list: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
+        allow read, write, list: if isStaffOrAdmin();
         allow create: if isSignedIn();
     }
 
     match /users/{userId}/orders/{orderId} {
-      allow read, list, create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+      allow read, list: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId) || isStaffOrAdmin();
+      allow update: if isOwner(userId) || isStaffOrAdmin();
       allow delete: if false;
     }
 
     match /users/{userId}/point_transactions/{transactionId} {
-      allow read, list: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow create: if (isSignedIn() && request.auth.uid == userId) || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin']);
+      allow read, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) || isStaffOrAdmin();
       allow update, delete: if false;
     }
 
     match /daily_offers/{offerId} {
       allow read: if true;
-      allow write: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /mobile_numbers/{mobileNumber} {

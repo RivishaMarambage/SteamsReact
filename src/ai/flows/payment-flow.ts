@@ -24,7 +24,7 @@ import {
   getFirestore, 
 } from 'firebase/firestore';
 import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
 import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
 import { firebaseConfig } from '@/firebase/config';
@@ -40,10 +40,21 @@ const auth = getAuth(app);
  */
 async function ensureAuthenticated() {
   if (auth.currentUser) return auth.currentUser;
-  if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-    const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+  
+  // For this backend flow to have the necessary permissions to write to user
+  // profiles and orders, it needs to be authenticated as a user with 'admin' privileges.
+  // In a production environment, you would use a dedicated service account with
+  // securely stored credentials from a secret manager.
+  // For this test environment, we will sign in as the demo admin user.
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+
+  try {
+    const userCred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
     return userCred.user;
-  } else {
+  } catch (error) {
+    console.error("CRITICAL: Backend bridge could not authenticate as admin. Order placement will fail.", error);
+    // Fallback to anonymous to allow other flows to work, but this one will fail rules.
     const userCred = await signInAnonymously(auth);
     return userCred.user;
   }
