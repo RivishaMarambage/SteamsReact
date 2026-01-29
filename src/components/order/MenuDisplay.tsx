@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc } from 'firebase/firestore';
@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { initiatePayment } from '@/ai/flows/payment-flow';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -56,6 +57,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [isOrderTypeDialogOpen, setOrderTypeDialogOpen] = useState(true);
   const [dialogStep, setDialogStep] = useState<'type' | 'table'>('type');
@@ -417,7 +419,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const cartTotal = totalBeforeDiscounts - totalDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
-  const handleProceedToCheckout = () => {
+  const handleProceedToCheckout = async () => {
     if (cart.length === 0) {
         toast({
             variant: "destructive",
@@ -442,8 +444,25 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     };
 
     localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
-    router.push('/dashboard/checkout');
-};
+    
+    setIsProcessing(true);
+
+    try {
+        const paymentResponse = await initiatePayment({ amount: cartTotal });
+        const { checkoutUrl } = paymentResponse;
+        
+        window.location.href = checkoutUrl;
+
+    } catch (error) {
+        console.error("Error during checkout process: ", error);
+        toast({
+            variant: "destructive",
+            title: "Payment Failed",
+            description: "There was a problem initiating the payment. Please try again.",
+        });
+        setIsProcessing(false);
+    }
+  };
 
 
   return (
@@ -766,8 +785,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                           <span>LKR {cartTotal.toFixed(2)}</span>
                       </div>
                   </div>
-                  <Button size="lg" className="w-full" disabled={cart.length === 0} onClick={handleProceedToCheckout}>
-                      Proceed to Checkout <ArrowRight className="ml-2" />
+                   <Button size="lg" className="w-full" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
+                      {isProcessing ? (
+                          <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Redirecting...
+                          </>
+                      ) : (
+                          <>Proceed to Checkout <ArrowRight className="ml-2" /></>
+                      )}
                   </Button>
               </div>
             </SheetFooter>
