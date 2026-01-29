@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { initiatePayment } from '@/ai/flows/payment-flow';
+import { initiatePaymentAction } from '@/app/actions/initiate-payment';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -445,23 +445,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
     localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
     
-    setIsProcessing(true);
-
-    try {
-        const paymentResponse = await initiatePayment({ amount: cartTotal });
-        const { checkoutUrl } = paymentResponse;
-        
-        window.location.href = checkoutUrl;
-
-    } catch (error) {
-        console.error("Error during checkout process: ", error);
-        toast({
-            variant: "destructive",
-            title: "Payment Failed",
-            description: "There was a problem initiating the payment. Please try again.",
-        });
-        setIsProcessing(false);
-    }
+    router.push('/dashboard/checkout');
   };
 
 

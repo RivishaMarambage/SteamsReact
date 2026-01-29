@@ -1,40 +1,52 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /**
+   * Build & linting
+   * (OK for development — NOT recommended for production)
+   */
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  /**
+   * Image domains
+   */
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'placehold.co',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'picsum.photos',
-        port: '',
         pathname: '/**',
       },
     ],
   },
+
+  /**
+   * Server Actions
+   */
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb', // Increase if you are sending large images
+      bodySizeLimit: '2mb',
     },
   },
+
+  /**
+   * Webpack fixes for browser builds
+   */
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

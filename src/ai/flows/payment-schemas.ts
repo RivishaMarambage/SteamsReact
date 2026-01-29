@@ -1,3 +1,8 @@
+'use server';
+/**
+ * @fileOverview Schemas for Payment and Order Finalization.
+ */
+
 import { z } from 'genkit';
 
 // Schema for initiating payment
@@ -20,6 +25,13 @@ const CartItemAddonSchema = z.object({
   price: z.number(),
 });
 
+const MenuItemAddonGroupSchema = z.object({
+  addonCategoryId: z.string(),
+  isRequired: z.boolean(),
+  minSelection: z.number().nonnegative(),
+  maxSelection: z.number().nonnegative(),
+});
+
 const MenuItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -28,12 +40,7 @@ const MenuItemSchema = z.object({
   categoryId: z.string(),
   imageUrl: z.string().optional(),
   isOutOfStock: z.boolean().optional(),
-  addonGroups: z.array(z.object({
-    addonCategoryId: z.string(),
-    isRequired: z.boolean(),
-    minSelection: z.number(),
-    maxSelection: z.number(),
-  })).optional(),
+  addonGroups: z.array(MenuItemAddonGroupSchema).optional(),
 });
 
 const CartItemSchema = z.object({
@@ -51,11 +58,11 @@ export const PlaceOrderInputSchema = z.object({
         cartTotal: z.number(),
         orderType: z.enum(['Dine-in', 'Takeaway']),
         loyaltyDiscount: z.number(),
+        welcomeDiscountAmount: z.number(),
+        birthdayDiscountAmount: z.number(),
         totalDiscount: z.number(),
         serviceCharge: z.number(),
         tableNumber: z.string().optional(),
-        welcomeDiscountAmount: z.number(),
-        birthdayDiscountAmount: z.number(),
         cart: z.array(CartItemSchema),
     }),
     transactionId: z.string().describe("The transaction ID from the payment gateway."),
