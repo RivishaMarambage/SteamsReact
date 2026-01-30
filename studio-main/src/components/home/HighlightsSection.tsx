@@ -56,6 +56,7 @@ const featuredItemsData: FeaturedItem[] = [
         imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1887&auto=format&fit=crop',
         imageHint: 'cinnamon coffee'
     },
+
     {
         type: 'event',
         name: 'Acoustic Nights',

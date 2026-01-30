@@ -39,7 +39,7 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#211811] px-4 text-primary-foreground md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-[#1a110a] px-4 text-primary-foreground md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <div className="hidden md:block">
@@ -62,7 +62,7 @@ export default function AppHeader() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                 <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.uid}</p>
+                <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.uid}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

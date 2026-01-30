@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: 'Loyalty and ordering for your favorite cafe',
 };
 
+import { BackToTop } from '@/components/ui/BackToTop';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,6 +27,7 @@ export default function RootLayout({
           {children}
         </FirebaseClientProvider>
         <Toaster />
+        <BackToTop />
       </body>
     </html>
   );

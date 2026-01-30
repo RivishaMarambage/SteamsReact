@@ -12,6 +12,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
@@ -27,10 +28,10 @@ const customerMenuItems = [
 ];
 
 const staffMenuItems = [
-    { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
-    { href: '/dashboard/staff/redeem', label: 'Redeem Points', icon: ScanSearch },
-    { href: '/dashboard/admin/categories', label: 'Menu Categories', icon: FolderPlus },
-    { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
+  { href: '/dashboard/staff/orders', label: 'Manage Orders', icon: ShoppingCart },
+  { href: '/dashboard/staff/redeem', label: 'Redeem Points', icon: ScanSearch },
+  { href: '/dashboard/admin/categories', label: 'Menu Categories', icon: FolderPlus },
+  { href: '/dashboard/admin/menu', label: 'Menu Management', icon: BookMarked },
 ];
 
 const adminMenuItems = [
@@ -81,68 +82,90 @@ export default function AppSidebar() {
 
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarRail />
-      <SidebarHeader>
-        <Logo link="/dashboard"/>
+    <Sidebar collapsible="icon" className="border-r-0 bg-[#160C08] text-[#FDFBF7]">
+      <SidebarRail className="hover:after:bg-[#d97706]" />
+      <SidebarHeader className="bg-[#160C08] py-4">
+        <Logo link="/dashboard" className="text-[#FDFBF7]" />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-[#160C08] px-2">
         {isLoading ? (
-          <div className="p-2 space-y-2">
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
-            <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+          <div className="p-2 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 w-full bg-[#d97706]/10 animate-pulse rounded-xl" />
+            ))}
           </div>
         ) : (
-        <SidebarMenu>
-          {userRole === 'admin' && (
-            <>
-                <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-                    Staff View
+          <SidebarMenu className="gap-2">
+            {userRole === 'admin' && (
+              <>
+                <div className="px-4 py-2 text-xs font-bold text-[#d97706] uppercase tracking-widest group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-2">
+                  Staff View
                 </div>
-            </>
-          )}
+              </>
+            )}
 
-          {menuItemsToShow.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                isActive={isActive(item.href)}
-                asChild
-                tooltip={item.label}
-              >
-                <Link href={item.href} onClick={handleNavigate}>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-          {userRole === 'admin' && (
-            <>
-              <div className="px-2 py-2 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
-                Admin
-              </div>
-              {adminMenuItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.href)}
-                    asChild
-                    tooltip={item.label}
-                  >
-                    <Link href={item.href} onClick={handleNavigate}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </>
-          )}
-        </SidebarMenu>
+            {menuItemsToShow.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  isActive={isActive(item.href)}
+                  asChild
+                  tooltip={item.label}
+                  className={cn(
+                    "h-12 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 md:w-full group/btn",
+                    isActive(item.href)
+                      ? "bg-[#d97706] text-white shadow-[0_0_15px_rgba(217,119,6,0.5)] font-bold hover:bg-[#b45309]"
+                      : "text-[#FDFBF7]/60 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                  )}
+                >
+                  <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                    <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110", isActive(item.href) && "animate-pulse-slow")} />
+                    <span className="text-base tracking-wide">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            {userRole === 'admin' && (
+              <>
+                <div className="mt-6 px-4 py-2 text-xs font-bold text-[#d97706] uppercase tracking-widest group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-2 delay-100">
+                  Admin
+                </div>
+                {adminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={isActive(item.href)}
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "h-12 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 md:w-full group/btn",
+                        isActive(item.href)
+                          ? "bg-[#d97706] text-white shadow-[0_0_15px_rgba(217,119,6,0.5)] font-bold hover:bg-[#b45309]"
+                          : "text-[#FDFBF7]/60 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                      )}
+                    >
+                      <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                        <item.icon className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110" />
+                        <span className="text-base tracking-wide">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </>
+            )}
+          </SidebarMenu>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        {/* Can add elements to footer here */}
+      <SidebarFooter className="bg-[#160C08] p-4">
+        {userProfile && (
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-[#d97706]/5 border border-[#d97706]/10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+            <div className="h-10 w-10 rounded-full bg-[#d97706] flex items-center justify-center text-white font-bold text-lg shadow-lg shrink-0">
+              {userProfile.name?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden transition-all duration-300">
+              <span className="text-sm font-bold text-white truncate">{userProfile.name}</span>
+              <span className="text-xs text-[#d97706] truncate capitalize">{userProfile.role}</span>
+            </div>
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
