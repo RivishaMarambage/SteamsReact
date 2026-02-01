@@ -1,34 +1,23 @@
 // Do NOT add 'use client' to this file
-import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
 
-function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
-}
+// This is a server-only file.
 
-/**
- * Initializes Firebase for server-side usage.
- * This is safe to call multiple times.
- */
-export function initializeFirebaseAdmin() {
-  if (!getApps().length) {
-    let firebaseApp;
-    try {
-      // In a proper Firebase Hosting environment, this would be automatically populated.
-      firebaseApp = initializeApp();
-    } catch (e) {
-       if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-    return getSdks(firebaseApp);
+// Check if the app is already initialized to prevent errors
+if (!admin.apps.length) {
+  try {
+    // In a Google Cloud environment (like Firebase Functions or Cloud Run),
+    // this will automatically use the runtime's service account credentials.
+    admin.initializeApp();
+  } catch (e) {
+    console.error('Firebase Admin initialization failed:', e);
+    // For local development, you might need a service account file.
+    // Make sure GOOGLE_APPLICATION_CREDENTIALS is set in your environment.
   }
-  return getSdks(getApp());
 }
+
+const firestore = admin.firestore();
+const auth = admin.auth();
+
+// Export the initialized admin services
+export { firestore, auth };

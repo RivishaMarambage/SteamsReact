@@ -9,20 +9,13 @@ import {
   InitiatePaymentOutput,
   PlaceOrderInput,
 } from './payment-schemas';
-import {
-  collection,
-  doc,
-  writeBatch,
-  serverTimestamp,
-  increment,
-} from 'firebase/firestore';
-import { initializeFirebaseAdmin } from '@/firebase/server-init';
+import { firestore as db } from '@/firebase/server-init';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { Order, OrderItem } from '@/lib/types';
 import { format } from 'date-fns';
 
 // --- INITIALIZATION ---
 // This block ensures Firebase is initialized for server-side execution.
-const { firestore: db } = initializeFirebaseAdmin();
 
 
 // --- EXPORTED SERVER ACTIONS ---
@@ -93,11 +86,11 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
 
 export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
     const { userId, checkoutData, transactionId } = input;
-    const batch = writeBatch(db);
+    const batch = db.batch();
 
-    const rootOrderRef = doc(collection(db, 'orders'));
-    const userOrderRef = doc(db, 'users', userId, 'orders', rootOrderRef.id);
-    const userProfileRef = doc(db, 'users', userId);
+    const rootOrderRef = db.collection('orders').doc();
+    const userOrderRef = db.collection('users').doc(userId).collection('orders').doc(rootOrderRef.id);
+    const userProfileRef = db.collection('users').doc(userId);
 
     const orderItems: OrderItem[] = checkoutData.cart.map((item: any) => {
       const orderItem: OrderItem = {
@@ -123,7 +116,7 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
 
     const orderData: Omit<Order, 'id'> = {
       customerId: userId,
-      orderDate: serverTimestamp() as any,
+      orderDate: FieldValue.serverTimestamp() as any,
       totalAmount: total,
       status: "Placed",
       paymentStatus: "Paid",
@@ -142,9 +135,9 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
     batch.set(userOrderRef, orderData);
 
     const userUpdates: any = {
-      loyaltyPoints: increment(pointsToEarn - (checkoutData.loyaltyDiscount || 0)),
-      lifetimePoints: increment(pointsToEarn),
-      orderCount: increment(1),
+      loyaltyPoints: FieldValue.increment(pointsToEarn - (checkoutData.loyaltyDiscount || 0)),
+      lifetimePoints: FieldValue.increment(pointsToEarn),
+      orderCount: FieldValue.increment(1),
     };
 
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -156,7 +149,7 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
     });
 
     if (Object.keys(redeemedOffers).length > 0) {
-        batch.update(userProfileRef, redeemedOffers);
+        Object.assign(userUpdates, redeemedOffers);
     }
     batch.update(userProfileRef, userUpdates);
 
