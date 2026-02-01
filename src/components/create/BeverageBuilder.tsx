@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Addon, CartItem, MenuItem } from "@/lib/types";
@@ -28,6 +27,17 @@ export default function BeverageBuilder({ coffeeBase, teaBase, allAddons }: Beve
     const { toast } = useToast();
 
     const currentBaseItem = base === 'coffee' ? coffeeBase : teaBase;
+
+    if (!currentBaseItem) {
+        return (
+            <Card>
+                <CardContent>
+                    <p className="p-4 text-destructive">Could not load the base beverage. Please try refreshing.</p>
+                </CardContent>
+            </Card>
+        )
+    }
+
     const basePrice = currentBaseItem.price;
 
     const handleAddonToggle = (addon: Addon) => {
