@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 export async function initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     console.log('--- Genie Payment Request Initiated ---');
     console.log('Amount:', input.amount);
+    console.log('Origin:', input.origin);
 
     const apiKey = process.env.GENIE_API_KEY;
 
@@ -37,7 +38,8 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
       amount: amountInCents,
       currency: 'LKR',
       localId: `order_${Date.now()}`,
-      redirectUrl: 'https://9000-firebase-studio-1763987265209.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/dashboard/order-success',
+      // Use the origin passed from the client to build the dynamic redirect URL
+      redirectUrl: `${input.origin}/dashboard/order-success`,
     };
 
     console.log('Request Body:', JSON.stringify(requestBody));
@@ -45,7 +47,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': apiKey, // As per documentation: "Authorization: 123"
+      'Authorization': apiKey, 
     };
 
     try {
@@ -120,6 +122,7 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
         else pointsToEarn = Math.floor(total / 400);
 
         const orderData: any = {
+          id: rootOrderRef.id, // Explicitly store the ID inside the document
           customerId: userId,
           orderDate: FieldValue.serverTimestamp(),
           totalAmount: total,
@@ -144,8 +147,6 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
           loyaltyPoints: FieldValue.increment(pointsToEarn - (checkoutData.loyaltyDiscount || 0)),
           lifetimePoints: FieldValue.increment(pointsToEarn),
           // We increment orderCount here only if it was a welcome offer or if we want to track total lifetime orders
-          // Usually, orderCount is used for welcome offers (0, 1, 2). 
-          // If we want to move the user to the next welcome tier, we increment.
           orderCount: FieldValue.increment(1),
         };
 
@@ -197,7 +198,6 @@ export async function requestRefund(
     'Authorization': apiKey,
   };
 
-  // Documentation specifies /public/transactions/{id}/refunds
   const url = `https://api.geniebiz.lk/public/transactions/${transactionId}/refunds`;
 
   try {

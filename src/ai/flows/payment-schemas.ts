@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 export const InitiatePaymentInputSchema = z.object({
   amount: z.number().positive(),
+  origin: z.string().url().describe("The base URL of the application for constructing redirect links."),
 });
 
 export type InitiatePaymentInput = z.infer<

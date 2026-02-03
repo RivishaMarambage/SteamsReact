@@ -44,11 +44,18 @@ export default function CheckoutPage() {
 
     try {
         console.log("Frontend: Collecting order details...");
-        console.log("Frontend: Calling backend bridge to get payment token...");
-        const paymentResponse = await initiatePayment({ amount: checkoutData.cartTotal });
+        const origin = window.location.origin;
+        console.log("Frontend: Calling dynamic backend bridge...");
+        
+        // Pass the window.location.origin to the server action so it can build the correct redirect URL
+        const paymentResponse = await initiatePayment({ 
+          amount: checkoutData.cartTotal,
+          origin: origin
+        });
         
         const { checkoutUrl } = paymentResponse;
         
+        console.log("Redirecting to Genie:", checkoutUrl);
         // Redirect the user to Genie's checkout page
         window.location.href = checkoutUrl;
 
