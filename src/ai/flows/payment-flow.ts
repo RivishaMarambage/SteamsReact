@@ -20,7 +20,8 @@ import { format } from 'date-fns';
  * Initiates a payment session with Genie.
  */
 export async function initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-    console.log('Backend Bridge: Initiating live payment with Genie...');
+    console.log('--- Genie Payment Request Initiated ---');
+    console.log('Amount:', input.amount);
 
     const apiKey = process.env.GENIE_API_KEY;
 
@@ -29,17 +30,22 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
     }
 
     // Following Genie V2 Documentation
+    // Amount must be in cents (integer)
+    const amountInCents = Math.round(input.amount * 100);
+
     const requestBody = {
-      amount: Math.round(input.amount * 100), // Genie expects amount in cents
+      amount: amountInCents,
       currency: 'LKR',
       localId: `order_${Date.now()}`,
       redirectUrl: 'https://9000-firebase-studio-1763987265209.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/dashboard/order-success',
     };
 
+    console.log('Request Body:', JSON.stringify(requestBody));
+
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': apiKey,
+      'Authorization': apiKey, // As per documentation: "Authorization: 123"
     };
 
     try {
@@ -51,11 +57,13 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Genie API Error:", errorText);
-        throw new Error(`Failed to initiate payment with Genie: ${response.statusText}`);
+        console.error("Genie API Error Response:", errorText);
+        throw new Error(`Failed to initiate payment with Genie: ${response.statusText} (${response.status})`);
       }
 
       const responseData = await response.json();
+      console.log('Genie API Success Response:', JSON.stringify(responseData));
+      
       const checkoutUrl = responseData.url;
 
       if (!checkoutUrl) {
@@ -65,7 +73,7 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
       return { checkoutUrl };
 
     } catch (error: any) {
-      console.error("Error connecting to Genie:", error);
+      console.error("Connection Error to Genie:", error);
       throw new Error(`Could not connect to the payment gateway. Reason: ${error.message}`);
     }
 }
@@ -76,79 +84,91 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
 export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
     const { userId, checkoutData, transactionId } = input;
     
-    // Use the admin db instance
-    const batch = db.batch();
+    console.log(`--- Finalizing Order for User: ${userId} ---`);
+    console.log(`Transaction ID: ${transactionId}`);
 
-    const rootOrderRef = db.collection('orders').doc();
-    const userOrderRef = db.collection('users').doc(userId).collection('orders').doc(rootOrderRef.id);
-    const userProfileRef = db.collection('users').doc(userId);
+    try {
+        const batch = db.batch();
 
-    const orderItems: OrderItem[] = checkoutData.cart.map((item: any) => {
-      const orderItem: OrderItem = {
-        menuItemId: item.menuItem.id,
-        menuItemName: item.menuItem.name,
-        quantity: item.quantity,
-        basePrice: item.menuItem.price,
-        totalPrice: item.totalPrice,
-        addons: item.addons || [],
-      };
-      if (item.appliedDailyOfferId) {
-        orderItem.appliedDailyOfferId = item.appliedDailyOfferId;
-      }
-      return orderItem;
-    });
+        const rootOrderRef = db.collection('orders').doc();
+        const userOrderRef = db.collection('users').doc(userId).collection('orders').doc(rootOrderRef.id);
+        const userProfileRef = db.collection('users').doc(userId);
 
-    // Calculate loyalty points based on business rules
-    let pointsToEarn = 0;
-    const total = checkoutData.cartTotal;
-    if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
-    else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
-    else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
-    else pointsToEarn = Math.floor(total / 400);
+        // Map cart items to the database OrderItem schema
+        const orderItems: OrderItem[] = checkoutData.cart.map((item: any) => {
+          return {
+            menuItemId: item.menuItem.id,
+            menuItemName: item.menuItem.name,
+            quantity: item.quantity,
+            basePrice: item.menuItem.price,
+            totalPrice: item.totalPrice,
+            addons: item.addons?.map((a: any) => ({
+              addonId: a.id,
+              addonName: a.name,
+              addonPrice: a.price
+            })) || [],
+            appliedDailyOfferId: item.appliedDailyOfferId || null
+          };
+        });
 
-    const orderData: Omit<Order, 'id'> = {
-      customerId: userId,
-      orderDate: FieldValue.serverTimestamp() as any,
-      totalAmount: total,
-      status: "Placed",
-      paymentStatus: "Paid",
-      transactionId: transactionId,
-      orderItems: orderItems,
-      orderType: checkoutData.orderType,
-      tableNumber: checkoutData.tableNumber || '',
-      pointsToEarn: pointsToEarn,
-      pointsRedeemed: checkoutData.loyaltyDiscount || 0,
-      discountApplied: checkoutData.totalDiscount || 0,
-      serviceCharge: checkoutData.serviceCharge || 0,
-      welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
-    };
+        // Calculate loyalty points based on business rules
+        let pointsToEarn = 0;
+        const total = checkoutData.cartTotal;
+        if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
+        else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
+        else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
+        else pointsToEarn = Math.floor(total / 400);
 
-    batch.set(rootOrderRef, orderData);
-    batch.set(userOrderRef, orderData);
+        const orderData: any = {
+          customerId: userId,
+          orderDate: FieldValue.serverTimestamp(),
+          totalAmount: total,
+          status: "Placed",
+          paymentStatus: "Paid",
+          transactionId: transactionId,
+          orderItems: orderItems,
+          orderType: checkoutData.orderType,
+          tableNumber: checkoutData.tableNumber || '',
+          pointsToEarn: pointsToEarn,
+          pointsRedeemed: checkoutData.loyaltyDiscount || 0,
+          discountApplied: checkoutData.totalDiscount || 0,
+          serviceCharge: checkoutData.serviceCharge || 0,
+          welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
+        };
 
-    // Update user stats and loyalty
-    const userUpdates: any = {
-      loyaltyPoints: FieldValue.increment(pointsToEarn - (checkoutData.loyaltyDiscount || 0)),
-      lifetimePoints: FieldValue.increment(pointsToEarn),
-      orderCount: FieldValue.increment(1),
-    };
+        batch.set(rootOrderRef, orderData);
+        batch.set(userOrderRef, orderData);
 
-    // Track redeemed daily offers
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const redeemedOffers: Record<string, string> = {};
-    orderItems.forEach(item => {
-      if (item.appliedDailyOfferId) {
-        redeemedOffers[`dailyOffersRedeemed.${item.appliedDailyOfferId}`] = today;
-      }
-    });
+        // Update user stats and loyalty
+        const userUpdates: any = {
+          loyaltyPoints: FieldValue.increment(pointsToEarn - (checkoutData.loyaltyDiscount || 0)),
+          lifetimePoints: FieldValue.increment(pointsToEarn),
+          // We increment orderCount here only if it was a welcome offer or if we want to track total lifetime orders
+          // Usually, orderCount is used for welcome offers (0, 1, 2). 
+          // If we want to move the user to the next welcome tier, we increment.
+          orderCount: FieldValue.increment(1),
+        };
 
-    if (Object.keys(redeemedOffers).length > 0) {
-        Object.assign(userUpdates, redeemedOffers);
+        // Track redeemed daily offers
+        const today = format(new Date(), 'yyyy-MM-dd');
+        orderItems.forEach(item => {
+          if (item.appliedDailyOfferId) {
+            userUpdates[`dailyOffersRedeemed.${item.appliedDailyOfferId}`] = today;
+          }
+        });
+
+        batch.update(userProfileRef, userUpdates);
+
+        console.log("Committing batch write to Firestore...");
+        await batch.commit();
+        console.log("Batch write successful. Order ID:", rootOrderRef.id);
+        
+        return { orderId: rootOrderRef.id };
+
+    } catch (error: any) {
+        console.error("CRITICAL ERROR during placeOrderAfterPayment:", error);
+        throw new Error(`Failed to finalize order: ${error.message}`);
     }
-    batch.update(userProfileRef, userUpdates);
-
-    await batch.commit();
-    return { orderId: rootOrderRef.id };
 }
 
 /**
@@ -164,8 +184,10 @@ export async function requestRefund(
     throw new Error("Genie API key is not configured.");
   }
 
+  const amountInCents = Math.round(amount * 100);
+
   const requestBody = {
-    refundAmount: Math.round(amount * 100), // Genie expects cents
+    refundAmount: amountInCents,
     refundReason: "Order rejected by staff.",
   };
 
