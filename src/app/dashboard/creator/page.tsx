@@ -1,7 +1,7 @@
-
 'use client';
 
 import BeverageBuilder from "@/components/create/BeverageBuilder";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { Addon, MenuItem } from "@/lib/types";
@@ -36,7 +36,20 @@ function CreatorPageContent() {
     }
 
     if (!coffeeBase || !teaBase || !allAddons) {
-        return <p>There was an error loading the beverage creator. Please try again.</p>
+        return (
+            <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
+                <div className="bg-destructive/10 p-4 rounded-full">
+                    <p className="text-destructive font-bold text-xl">Beverage Creator Unavailable</p>
+                </div>
+                <p className="text-muted-foreground max-w-md">
+                    The custom drink bases could not be found in the database. 
+                    If you are an admin, please ensure you have signed up at the login page to trigger the initial database seeding.
+                </p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                    Retry Loading
+                </Button>
+            </div>
+        )
     }
 
     return (
