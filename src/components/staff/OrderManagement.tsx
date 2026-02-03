@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -53,7 +52,6 @@ export default function OrderManagement() {
     let isInitialLoad = true;
 
     const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-        // We only want to play sounds for new orders, not the initial batch.
         if (isInitialLoad) {
             isInitialLoad = false;
             return;
@@ -62,7 +60,6 @@ export default function OrderManagement() {
         snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
                 const newOrder = change.doc.data() as Order;
-                // Only play sound for newly placed orders
                 if(newOrder.status === 'Placed') {
                     setPlayNewOrderSound(true);
                 }
@@ -75,9 +72,8 @@ export default function OrderManagement() {
 
 
   useEffect(() => {
-    // Reset the sound trigger after it has been played
     if (playNewOrderSound) {
-      const timer = setTimeout(() => setPlayNewOrderSound(false), 1000); // Reset after a second
+      const timer = setTimeout(() => setPlayNewOrderSound(false), 1000);
       return () => clearTimeout(timer);
     }
   }, [playNewOrderSound]);
@@ -91,33 +87,28 @@ export default function OrderManagement() {
     const userOrderRef = doc(firestore, `users/${order.customerId}/orders`, order.id);
     const userProfileRef = doc(firestore, 'users', order.customerId);
 
-    // Update status in both locations
     batch.update(rootOrderRef, { status });
     batch.update(userOrderRef, { status });
 
-    // If order is being marked as Completed, award the points and increment order count
     if (status === 'Completed' && order.status !== 'Completed') {
         const pointsToAward = order.pointsToEarn || 0;
-        const updates: any = { orderCount: increment(1) };
         if (pointsToAward > 0) {
-            updates.loyaltyPoints = increment(pointsToAward);
-            updates.lifetimePoints = increment(pointsToAward);
+            batch.update(userProfileRef, {
+                loyaltyPoints: increment(pointsToAward),
+                lifetimePoints: increment(pointsToAward)
+            });
             
-            // Log the point transaction
             const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
-            const transactionData: Omit<PointTransaction, 'id'> = {
-                date: serverTimestamp() as any,
+            batch.set(transactionRef, {
+                date: serverTimestamp(),
                 description: `Earned from Order #${order.id.substring(0, 7).toUpperCase()}`,
                 amount: pointsToAward,
                 type: 'earn'
-            };
-            batch.set(transactionRef, transactionData);
+            });
         }
-        batch.update(userProfileRef, updates);
     }
 
     if (status === 'Rejected' && order.status !== 'Rejected') {
-        // Initiate refund via Genie if it was a paid order
         if (order.paymentStatus === 'Paid' && order.transactionId) {
             try {
                 await requestRefund(order.transactionId, order.totalAmount);
@@ -130,7 +121,7 @@ export default function OrderManagement() {
                 toast({
                     variant: 'destructive',
                     title: 'Refund Failed',
-                    description: `Could not process the refund via Genie. Please do it manually. Reason: ${error.message}`
+                    description: `Could not process the refund via Genie. Reason: ${error.message}`
                 });
             }
         }
@@ -139,13 +130,10 @@ export default function OrderManagement() {
             const userProfileSnap = await getDoc(userProfileRef);
             if (userProfileSnap.exists()) {
                 const userProfileData = userProfileSnap.data() as UserProfile;
-                const incrementUpdates: {[key:string]: any} = {};
-                const regularUpdates: {[key:string]: any} = {};
-
-                // 1. Refund loyalty points
+                
                 const pointsToRefund = order.pointsRedeemed || 0;
                 if (pointsToRefund > 0) {
-                    incrementUpdates.loyaltyPoints = increment(pointsToRefund);
+                    batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
                     const transactionRef = doc(collection(firestore, `users/${order.customerId}/point_transactions`));
                     batch.set(transactionRef, {
                         date: serverTimestamp(),
@@ -155,29 +143,17 @@ export default function OrderManagement() {
                     });
                 }
 
-                // 2. Restore welcome offer
                 if (order.welcomeOfferApplied) {
-                    incrementUpdates.orderCount = increment(-1);
+                    batch.update(userProfileRef, { orderCount: increment(-1) });
                 }
 
-                // 3. Restore daily offers
                 const redeemedDailyOffers = order.orderItems.map(item => item.appliedDailyOfferId).filter(Boolean) as string[];
                 if (redeemedDailyOffers.length > 0) {
                     const currentRedeemed = userProfileData.dailyOffersRedeemed || {};
                     redeemedDailyOffers.forEach(offerId => {
                         delete currentRedeemed[offerId];
                     });
-                    regularUpdates.dailyOffersRedeemed = currentRedeemed;
-                }
-                
-                // TODO: Restore birthday reward logic here if it's ever added to the order object upon creation
-
-                // Apply updates in separate calls within the batch
-                if (Object.keys(regularUpdates).length > 0) {
-                    batch.update(userProfileRef, regularUpdates);
-                }
-                if (Object.keys(incrementUpdates).length > 0) {
-                    batch.update(userProfileRef, incrementUpdates);
+                    batch.update(userProfileRef, { dailyOffersRedeemed: currentRedeemed });
                 }
             }
         } catch(e) {
@@ -199,41 +175,26 @@ export default function OrderManagement() {
             requestResourceData: { status },
         });
         errorEmitter.emit('permission-error', contextualError);
-        toast({
-          variant: 'destructive',
-          title: 'Update Failed',
-          description: 'Could not update the order status. Check permissions.',
-        });
       });
   };
 
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
-      case 'Placed':
-        return 'secondary';
-      case 'Accepting':
-        return 'outline';
-      case 'Processing':
-        return 'outline';
-      case 'Ready for Pickup':
-        return 'default';
-      case 'Completed':
-        return 'secondary';
-       case 'Rejected':
-        return 'destructive';
-      default:
-        return 'secondary';
+      case 'Placed': return 'secondary';
+      case 'Accepting': return 'outline';
+      case 'Processing': return 'outline';
+      case 'Ready for Pickup': return 'default';
+      case 'Completed': return 'secondary';
+      case 'Rejected': return 'destructive';
+      default: return 'secondary';
     }
   };
   
-    const getOrderTypeVariant = (orderType?: Order['orderType']) => {
+  const getOrderTypeVariant = (orderType?: Order['orderType']) => {
     switch (orderType) {
-      case 'Dine-in':
-        return 'default';
-      case 'Takeaway':
-        return 'outline';
-      default:
-        return 'secondary';
+      case 'Dine-in': return 'default';
+      case 'Takeaway': return 'outline';
+      default: return 'secondary';
     }
   };
 
