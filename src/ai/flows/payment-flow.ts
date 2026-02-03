@@ -28,9 +28,9 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
       throw new Error("Genie API key is not configured in environment variables.");
     }
 
-    // Following Genie V2 Documentation: https://api.geniebiz.lk/public/v2/transactions
+    // Following Genie V2 Documentation
     const requestBody = {
-      amount: input.amount * 100, // Genie expects amount in cents
+      amount: Math.round(input.amount * 100), // Genie expects amount in cents
       currency: 'LKR',
       localId: `order_${Date.now()}`,
       redirectUrl: 'https://9000-firebase-studio-1763987265209.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/dashboard/order-success',
@@ -75,6 +75,8 @@ export async function initiatePayment(input: InitiatePaymentInput): Promise<Init
  */
 export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ orderId: string }> {
     const { userId, checkoutData, transactionId } = input;
+    
+    // Use the admin db instance
     const batch = db.batch();
 
     const rootOrderRef = db.collection('orders').doc();
@@ -163,7 +165,7 @@ export async function requestRefund(
   }
 
   const requestBody = {
-    refundAmount: amount * 100, // Genie expects cents
+    refundAmount: Math.round(amount * 100), // Genie expects cents
     refundReason: "Order rejected by staff.",
   };
 
@@ -173,7 +175,7 @@ export async function requestRefund(
     'Authorization': apiKey,
   };
 
-  // Documentation specifies /public/transactions/{id}/refunds without V2 prefix for refunds
+  // Documentation specifies /public/transactions/{id}/refunds
   const url = `https://api.geniebiz.lk/public/transactions/${transactionId}/refunds`;
 
   try {
