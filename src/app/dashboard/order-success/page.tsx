@@ -3,20 +3,17 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import type { OrderItem } from '@/lib/types';
+import { placeOrderAfterPayment } from '@/ai/flows/payment-flow';
 
 function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser } = useUser();
-  const firestore = useFirestore();
   const hasProcessed = useRef(false);
 
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -24,11 +21,12 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const processOrder = async () => {
-      if (hasProcessed.current || !authUser || !firestore) return;
+      if (hasProcessed.current || !authUser) return;
       
       const transactionId = searchParams.get('id') || searchParams.get('transactionId') || searchParams.get('orderId');
       const paymentStatus = searchParams.get('state') || searchParams.get('status');
 
+      // Check for failure status from payment gateway
       if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
         setErrorMessage(`Payment was not successful. Status: ${paymentStatus}`);
         setStatus('error');
@@ -46,87 +44,20 @@ function OrderSuccessContent() {
 
       try {
         const checkoutData = JSON.parse(checkoutDataString);
-        const batch = writeBatch(firestore);
-
-        const rootOrderRef = doc(collection(firestore, 'orders'));
-        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
-        const userProfileRef = doc(firestore, 'users', authUser.uid);
-
-        // Map cart items to the database OrderItem schema
-        const orderItems: OrderItem[] = checkoutData.cart.map((item: any) => ({
-          menuItemId: item.menuItem.id,
-          menuItemName: item.menuItem.name,
-          quantity: item.quantity,
-          basePrice: item.menuItem.price,
-          totalPrice: item.totalPrice,
-          addons: item.addons?.map((a: any) => ({
-            addonId: a.id,
-            addonName: a.name,
-            addonPrice: a.price
-          })) || [],
-          appliedDailyOfferId: item.appliedDailyOfferId || null
-        }));
-
-        // Calculate loyalty points based on business rules
-        let pointsToEarn = 0;
-        const total = checkoutData.cartTotal;
-        if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
-        else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
-        else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
-        else pointsToEarn = Math.floor(total / 400);
-
-        const orderData = {
-          id: rootOrderRef.id,
-          customerId: authUser.uid,
-          orderDate: serverTimestamp(),
-          totalAmount: total,
-          status: "Placed",
-          paymentStatus: "Paid",
-          transactionId: transactionId || `txn_${Date.now()}`,
-          orderItems: orderItems,
-          orderType: checkoutData.orderType,
-          tableNumber: checkoutData.tableNumber || '',
-          pointsToEarn: pointsToEarn,
-          pointsRedeemed: checkoutData.loyaltyDiscount || 0,
-          discountApplied: checkoutData.totalDiscount || 0,
-          serviceCharge: checkoutData.serviceCharge || 0,
-          welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
-        };
-
-        batch.set(rootOrderRef, orderData);
-        batch.set(userOrderRef, orderData);
-
-        // Update user stats and loyalty
-        // Deduct redeemed points and increment order count to consume welcome offer
-        const userUpdates: any = {
-          loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
-          orderCount: increment(1),
-        };
-
-        // Track redeemed daily offers
-        const today = format(new Date(), 'yyyy-MM-dd');
-        orderItems.forEach(item => {
-          if (item.appliedDailyOfferId) {
-            userUpdates[`dailyOffersRedeemed.${item.appliedDailyOfferId}`] = today;
-          }
+        
+        // Call the secure server-side logic to finalize the order
+        const result = await placeOrderAfterPayment({
+            userId: authUser.uid,
+            checkoutData,
+            transactionId: transactionId || `txn_${Date.now()}`
         });
 
-        batch.update(userProfileRef, userUpdates);
-
-        // Record point redemption if applicable
-        if (checkoutData.loyaltyDiscount > 0) {
-            const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
-            batch.set(transactionRef, {
-                date: serverTimestamp(),
-                description: `Redeemed for Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
-                amount: -checkoutData.loyaltyDiscount,
-                type: 'redeem'
-            });
+        if (result.success) {
+            localStorage.removeItem('checkoutData');
+            setStatus('success');
+        } else {
+            throw new Error("Finalization failed without an error message.");
         }
-
-        await batch.commit();
-        localStorage.removeItem('checkoutData');
-        setStatus('success');
         
       } catch (error: any) {
         console.error("Error finalizing order:", error);
@@ -136,7 +67,7 @@ function OrderSuccessContent() {
     };
 
     processOrder();
-  }, [searchParams, authUser, firestore, router]);
+  }, [searchParams, authUser, router]);
 
   if (status === 'processing') {
     return (
