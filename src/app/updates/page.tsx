@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { Bell, Star, Calendar, ChevronRight } from 'lucide-react';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
+import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 /**
  * UpdatesPage
@@ -20,7 +22,8 @@ const updates = [
     tag: "Seasonal",
     color: "bg-purple-500",
     content: "Discover the floral and sweet notes of our latest creation, available for a limited time only. It's the perfect summer refreshment!",
-    icon: <Star className="w-5 h-5 text-white" />
+    icon: <Star className="w-5 h-5 text-white" />,
+    image: PlaceHolderImages.find(p => p.id === 'latte')
   },
   {
     id: 2,
@@ -29,7 +32,8 @@ const updates = [
     tag: "Community",
     color: "bg-amber-500",
     content: "We're excited to showcase the amazing talent from our community. Come enjoy a coffee and some beautiful art in-house.",
-    icon: <Bell className="w-5 h-5 text-white" />
+    icon: <Bell className="w-5 h-5 text-white" />,
+    image: PlaceHolderImages.find(p => p.id === 'gallery-interior-1')
   },
   {
     id: 3,
@@ -38,7 +42,8 @@ const updates = [
     tag: "Loyalty",
     color: "bg-emerald-500",
     content: "We're making Mondays a little brighter. All loyalty members now earn double the points on all purchases every single Monday.",
-    icon: <Calendar className="w-5 h-5 text-white" />
+    icon: <Calendar className="w-5 h-5 text-white" />,
+    image: PlaceHolderImages.find(p => p.id === 'espresso')
   }
 ];
 
@@ -74,14 +79,27 @@ export default function UpdatesPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className={`relative flex items-center justify-between w-full ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
+                className={`relative flex flex-col md:flex-row items-center justify-between w-full gap-8 ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}
               >
                 {/* Center Timeline Node */}
-                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-primary rounded-full border-4 border-[#1a110a] -translate-x-1/2 z-10 shadow-[0_0_20px_rgba(217,119,6,0.6)]"></div>
+                <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-primary rounded-full border-4 border-[#1a110a] -translate-x-1/2 z-10 shadow-[0_0_20px_rgba(217,119,6,0.6)] hidden md:block"></div>
 
                 {/* Content Card */}
-                <div className="ml-20 md:ml-0 md:w-[45%]">
-                  <div className="bg-stone-900/40 backdrop-blur-sm p-8 rounded-3xl border border-white/5 hover:border-primary/30 transition-all duration-500 group shadow-2xl">
+                <div className="ml-16 md:ml-0 md:w-[45%] w-full">
+                  <div className="bg-stone-900/40 backdrop-blur-sm p-8 rounded-3xl border border-white/5 hover:border-primary/30 transition-all duration-500 group shadow-2xl overflow-hidden">
+                    {/* Mobile Only Image */}
+                    <div className="md:hidden relative w-full aspect-video mb-6 rounded-2xl overflow-hidden">
+                        {item.image && (
+                            <Image 
+                                src={item.image.imageUrl} 
+                                alt={item.image.description} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint={item.image.imageHint}
+                            />
+                        )}
+                    </div>
+                    
                     <div className="flex items-center gap-4 mb-4">
                       <div className={`p-3 rounded-2xl ${item.color} shadow-lg transition-transform group-hover:scale-110 duration-500`}>
                         {item.icon}
@@ -107,8 +125,19 @@ export default function UpdatesPage() {
                   </div>
                 </div>
 
-                {/* Spacer for desktop layout balance */}
-                <div className="hidden md:block w-[45%]"></div>
+                {/* Desktop Only Image Card */}
+                <div className="hidden md:block w-[45%] aspect-video relative rounded-3xl overflow-hidden shadow-2xl border border-white/5 group">
+                    {item.image && (
+                        <Image 
+                            src={item.image.imageUrl} 
+                            alt={item.image.description} 
+                            fill 
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                            data-ai-hint={item.image.imageHint}
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </div>
               </motion.div>
             ))}
           </div>
