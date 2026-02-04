@@ -11,11 +11,16 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Utensils, Award, Tag } from "lucide-react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
+
 import OffersHighlight from "@/components/home/OffersHighlight";
+import NewsBanner from "@/components/home/NewsBanner";
+import PublicHeader from "@/components/layout/PublicHeader";
+import { useUser } from "@/firebase";
 
 export default function LandingPage() {
+  const { user } = useUser();
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
   const pathname = usePathname();
   const navLinks = [
@@ -54,9 +59,9 @@ export default function LandingPage() {
     if (clubSectionRef.current) {
       observer.observe(clubSectionRef.current);
     }
-    
+
     const quoteInterval = setInterval(() => {
-        setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
+      setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
     }, 3000);
 
     return () => {
@@ -69,97 +74,174 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-       <header className="px-4 lg:px-6 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-20 bg-[#211811] text-primary-foreground">
-        <Logo />
-        <nav className="hidden lg:flex gap-6">
-          {navLinks.map(link => (
-            <Link 
-              key={link.href} 
-              href={link.href} 
-              className={cn(
-                "text-sm font-medium hover:text-accent",
-                pathname === link.href ? "text-accent" : ""
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <Button asChild>
-            <Link href="/login/customer">Sign In</Link>
-          </Button>
-          <Button asChild variant="outline" className="bg-primary-foreground border-accent text-accent hover:bg-primary-foreground/90">
-            <Link href="/signup/customer">Sign Up</Link>
-          </Button>
-        </nav>
-      </header>
-      <main className="flex-1">
-        <section className="relative w-full h-dvh flex items-center justify-center">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover"
-              data-ai-hint={heroImage.imageHint}
-              priority
-            />
-          )}
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative container mx-auto px-4 md:px-6 text-center text-white space-y-6">
-            <h1 className="text-4xl font-headline font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-              Welcome To Steamsburry
-            </h1>
-            <h3>Your Daily Dose of Delight </h3>
-            <p className="max-w-[700px] mx-auto text-lg md:text-xl font-body">
-              Join our loyalty program and get rewarded! Enjoy 10% off your first order, 5% off your second, and 15% off your third as a warm welcome from us.
-            </p>
-            <div className="mt-8 flex justify-center gap-4">
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/menu">View Menu <Utensils className="ml-2 h-5 w-5" /></Link>
-              </Button>
-              <Button asChild size="lg" className="bg-brass hover:bg-brass/90 text-black">
-                <Link href="/signup/customer">Become a Member <Award className="ml-2 h-5 w-5" /></Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="/offers">Our Offers <Tag className="ml-2 h-5 w-5" /></Link>
-              </Button>
+      <PublicHeader />
 
+      <main className="flex-1">
+        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+          >
+            <source src="/SteamsReact/backgroundHomepage.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a110a]" />
+          <div className="relative container mx-auto px-4 md:px-6 flex flex-col items-center text-center text-white space-y-6 md:space-y-8 max-w-5xl">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-medium tracking-wider mb-2 animate-fade-in">
+              Est. 2023 • Premium Roastery
+            </div>
+            <h1 className="text-4xl xs:text-5xl font-headline font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
+              Brewing Moments,<br />
+              <span className="text-[#f59e0b]">One Cup at a Time</span>
+            </h1>
+            <p className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
+              Experience the art of coffee in the heart of the city. We source the finest beans to bring you a daily ritual worth savoring.
+            </p>
+            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">
+                <Link href="/menu" className="flex items-center justify-center gap-2">
+                  View Our Menu <span className="text-xl">🍴</span>
+                </Link>
+              </Button>
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold border-none shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto transition-all duration-300 hover:scale-105">
+                <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
+                  {user ? "Go to Dashboard" : "Become a Member"} <span className="bg-black text-[#f59e0b] rounded-full p-0.5"><Sparkles className="h-3 w-3 fill-current" /></span>
+                </Link>
+              </Button>
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 glass-btn text-white border-white/20 w-full sm:w-auto">
+                <Link href="/offers" className="flex items-center justify-center gap-2">
+                  View Offers <span className="text-xl">📅</span>
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
-        
+
+
+
+
+
         <section
           ref={clubSectionRef}
           className={cn(
-            "bg-card text-card-foreground py-16 lg:py-24 transition-all duration-1000 ease-out",
+            "bg-gradient-to-b from-[#1a110a] via-[#2c1810] to-[#1a110a] text-white py-20 lg:py-32 transition-all duration-1000 ease-out relative overflow-hidden",
             isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          <div className="container mx-auto px-4 md:px-6 text-center space-y-8">
-            <div className="space-y-6">
-                <h2 className="text-3xl font-headline font-bold sm:text-4xl">The Steamsbury Club</h2>
-                <p className="text-lg font-semibold text-primary">Loyalty & Rewards Program | Steam Points</p>
-                <div className="max-w-3xl mx-auto space-y-4">
-                    <p className="text-muted-foreground md:text-lg">
-                        The Steamsbury Club is our way of rewarding loyalty and
-                        making every visit more rewarding. Members earn Steam
-                        Points every time they spend with us, turning regular visits
-                        into meaningful rewards.
-                    </p>
-                    <p className="text-muted-foreground md:text-lg">
-                        As a Club member, you enjoy exclusive benefits, special
-                        offers, birthday rewards, and early access to promotions.
-                        Steam Points can be accumulated and redeemed for a range
-                        of member privileges, ensuring that loyalty is always
-                        recognised and appreciated.
-                    </p>
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(#d97706 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+
+          {/* Floating Background Icons */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-20 left-[10%] text-[#d97706]/5 blur-sm animate-float duration-[6000ms]">
+              <Star className="w-16 h-16 animate-spin-slow" />
+            </div>
+            <div className="absolute top-40 right-[15%] text-[#d97706]/5 blur-sm animate-float duration-[8000ms] delay-1000">
+              <Gift className="w-20 h-20 rotate-12" />
+            </div>
+            <div className="absolute bottom-32 left-[20%] text-[#d97706]/5 blur-sm animate-float duration-[7000ms] delay-500">
+              <ShieldCheck className="w-14 h-14 -rotate-12" />
+            </div>
+            <div className="absolute bottom-20 right-[10%] text-[#d97706]/5 blur-sm animate-bounce duration-[5000ms]">
+              <Sparkles className="w-12 h-12" />
+            </div>
+          </div>
+
+          <div className="container mx-auto px-4 md:px-6 relative z-10">
+            <div className={cn(
+              "text-center mb-16 transition-all duration-700",
+              isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            )}>
+              <h2 className="text-4xl md:text-5xl font-headline font-black mb-4 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent">
+                Why Join The Steamsbury Club?
+              </h2>
+              <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto">Three simple reasons to make every sip count.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              {[
+                { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire.", color: "text-amber-400", glow: "bg-amber-500/20", borderColor: "border-amber-500/30" },
+                { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, food, or merchandise.", color: "text-rose-400", glow: "bg-rose-500/20", borderColor: "border-rose-500/30" },
+                { icon: ShieldCheck, title: "Tier Protection", desc: "Once you reach a tier, you keep it. Forever. No downgrades.", color: "text-emerald-400", glow: "bg-emerald-500/20", borderColor: "border-emerald-500/30" },
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "glass-card p-8 rounded-3xl group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
+                    "hover:-translate-y-3 hover:shadow-2xl hover:shadow-[#d97706]/20",
+                    isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                  )}
+                  style={{ transitionDelay: `${idx * 150}ms` }}
+                >
+                  {/* Animated Glow Effect */}
+                  <div className={cn(
+                    "absolute -right-10 -top-10 w-32 h-32 rounded-full blur-[50px] transition-all duration-700",
+                    "group-hover:blur-[80px] group-hover:scale-[2] group-hover:opacity-100",
+                    item.glow
+                  )} />
+
+                  {/* Large Background Icon */}
+                  <div className={cn(
+                    "absolute top-0 right-0 p-6 opacity-10 transition-all duration-700",
+                    "group-hover:opacity-25 group-hover:scale-110 group-hover:rotate-12",
+                    item.color
+                  )}>
+                    <item.icon className="w-24 h-24" />
+                  </div>
+
+                  {/* Icon Container with Pulse Animation */}
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 relative z-10 transition-all duration-500",
+                    "border group-hover:border-white/30 group-hover:scale-110 group-hover:rotate-6",
+                    "group-hover:shadow-lg",
+                    item.borderColor,
+                    item.color
+                  )}>
+                    <item.icon className="w-7 h-7 transition-transform duration-500 group-hover:scale-110" />
+                    {/* Pulse Ring */}
+                    <div className={cn(
+                      "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+                      "animate-ping",
+                      item.borderColor
+                    )} />
+                  </div>
+
+                  <h3 className="text-xl font-bold font-headline mb-3 relative z-10 transition-colors duration-300 group-hover:text-white">
+                    {item.title}
+                  </h3>
+                  <p className="text-white/60 leading-relaxed relative z-10 text-sm transition-colors duration-300 group-hover:text-white/80">
+                    {item.desc}
+                  </p>
+
+                  {/* Interactive Arrow Indicator */}
+                  <div className={cn(
+                    "absolute bottom-4 right-4 opacity-0 transition-all duration-500",
+                    "group-hover:opacity-100 group-hover:translate-x-0 translate-x-2",
+                    item.color
+                  )}>
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            <div className={cn(
+              "text-center transition-all duration-700 delay-500",
+              isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            )}>
+              <Button asChild size="lg" className="rounded-full h-14 px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-lg text-lg font-bold transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(217,119,6,0.5)] active:scale-95">
+                <Link href="/rewards" className="flex items-center gap-2">
+                  Explore All Benefits
+                  <Sparkles className="w-5 h-5 animate-pulse" />
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
-        
+
         <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-20 lg:py-24 overflow-hidden relative">
           <div className="absolute -top-20 -left-40 w-80 h-80 bg-white/10 rounded-full opacity-50" />
           <div className="absolute -bottom-20 -right-40 w-96 h-96 bg-white/10 rounded-full opacity-50" />
@@ -187,65 +269,75 @@ export default function LandingPage() {
                   <span>Start from Rs 400</span>
                 </div>
               </div>
-              <Button asChild size="lg" className="bg-accent-foreground text-accent hover:bg-accent-foreground/90">
-                <Link href="/dashboard/creator">Start Building Now <ArrowRight className="ml-2" /></Link>
+              <Button asChild size="lg" className="rounded-2xl h-14 px-8 bg-white text-[#d97706] hover:bg-white/90 font-bold border-none shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <Link href="/dashboard/creator" className="flex items-center gap-2">Start Building Now <ArrowRight className="h-5 w-5" /></Link>
               </Button>
             </div>
-            <div className="hidden md:flex justify-center items-center relative h-96">
-                <div className="absolute w-64 h-64 bg-black/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <Coffee className="w-32 h-32 text-white" />
-                </div>
-                <div className="absolute top-10 right-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float">+ Vanilla</div>
-                <div className="absolute bottom-20 -right-10 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-1.5s]">+ Oat Milk</div>
-                <div className="absolute bottom-10 left-0 bg-white text-accent px-4 py-2 rounded-full shadow-lg font-semibold animate-float [animation-delay:-0.5s]">+ Extra Shot</div>
+            <div className="flex justify-center items-center relative h-[300px] md:h-[450px] mt-8 md:mt-0">
+              <div className="absolute w-48 h-48 md:w-72 md:h-72 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
+                <Coffee className="w-24 h-24 md:w-36 md:h-36 text-white drop-shadow-2xl" />
+              </div>
+              <div className="absolute top-10 right-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.5s] flex items-center gap-2 text-sm md:text-base">
+                <span className="text-lg">+</span> Vanilla
+              </div>
+              <div className="absolute bottom-20 -right-2 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-1.2s] flex items-center gap-2 text-sm md:text-base">
+                <span className="text-lg">+</span> Oat Milk
+              </div>
+              <div className="absolute bottom-10 left-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.8s] flex items-center gap-2 text-sm md:text-base">
+                <span className="text-lg">+</span> Extra Shot
+              </div>
             </div>
           </div>
         </section>
 
         <section className="bg-[#211811] text-white py-20 lg:py-24">
           <div className="container mx-auto px-4 md:px-6 text-center">
-              <p className="text-5xl font-headline text-accent">❞</p>
-              <div className="mt-4 h-24 relative">
-                  {quotes.map((quote, index) => (
-                      <div
-                          key={index}
-                          className={cn(
-                              "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-3000",
-                              index === currentQuoteIndex ? "opacity-100" : "opacity-0"
-                          )}
-                      >
-                          <h2 className="text-3xl font-headline font-bold sm:text-4xl">
-                              {quote.line1}
-                          </h2>
-                          <p className="text-3xl font-headline text-accent sm:text-4xl">
-                              {quote.line2}
-                          </p>
-                      </div>
-                  ))}
-              </div>
-              <div className="mt-8 text-sm text-white/70 tracking-widest">
-                  <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
-                  <span className="mx-4">Since 2023</span>
-                  <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
-              </div>
+            <p className="text-5xl font-headline text-accent">❞</p>
+            <div className="mt-4 h-24 relative">
+              {quotes.map((quote, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-3000",
+                    index === currentQuoteIndex ? "opacity-100" : "opacity-0"
+                  )}
+                >
+                  <h2 className="text-3xl font-headline font-bold sm:text-4xl">
+                    {quote.line1}
+                  </h2>
+                  <p className="text-3xl font-headline text-accent sm:text-4xl">
+                    {quote.line2}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-sm text-white/70 tracking-widest">
+              <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
+              <span className="mx-4">Since 2023</span>
+              <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
+            </div>
           </div>
         </section>
 
-        <HighlightsSection />
+
 
         <OffersHighlight />
 
+        <NewsBanner />
+
+        <HighlightsSection />
+
       </main>
       <Footer />
-       <Link
+      <Link
         href="https://wa.me/94740479838"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-8 right-8 z-50 h-16 w-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-colors"
+        className="fixed bottom-8 left-8 z-50 h-14 w-14 bg-green rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 border border-black/5"
         aria-label="Chat on WhatsApp"
       >
-        <FaWhatsapp className="h-8 w-8 text-white" />
+        <FaWhatsapp className="h-8 w-8 text-[#25D366]" />
       </Link>
-    </div>
+    </div >
   );
 }

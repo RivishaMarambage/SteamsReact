@@ -31,6 +31,8 @@ import { FaGoogle } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '../ui/checkbox';
+import LoginImg from '../../assets/login.webp';
+
 
 // Base schema with all possible fields as optional
 const formSchema = z.object({
@@ -499,7 +501,15 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         {/* Left Panel */}
         <div className="relative p-8 text-white hidden md:flex flex-col justify-between">
             <div className="absolute inset-0">
-                <Image src="https://picsum.photos/seed/auth-hero/1080/1920" alt="Steamsbury Cafe" fill className="object-cover" data-ai-hint="cafe exterior night" />
+        <Image
+            src={LoginImg} 
+            alt="Steamsbury Cafe" 
+            className="absolute inset-0 w-full h-full object-cover" 
+            data-ai-hint="cafe exterior night" 
+            onError={(e) => {
+              e.target.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
+            }}
+          />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
             <div className="relative z-10">
@@ -514,7 +524,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-accent-foreground">
                         <Award className="h-5 w-5"/>
                     </div>
-                    <span className="font-semibold">50 Bonus Points on Sign Up</span>
                 </div>
             </div>
         </div>
@@ -528,9 +537,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 </div>
                 
                 <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.push(`/${value}/${role}`)}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
-                        <TabsTrigger value="login">Login</TabsTrigger>
-                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
+                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out 
+                     data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md
+                     hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
+                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out 
+                     data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md
+                     hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
                     </TabsList>
 
                     <Form {...form}>

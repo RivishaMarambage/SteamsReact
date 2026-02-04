@@ -36,7 +36,7 @@ export default function Footer() {
                 <div className="flex space-x-4">
                     <Link href="https://web.facebook.com/people/Steamsbury/61564067381778" className="transition-colors hover:text-blue-600"><FaFacebook className="h-6 w-6" /></Link>
                     <Link href="https://www.instagram.com/steamsbury/" className="transition-colors hover:text-purple-600"><FaInstagram className="h-6 w-6" /></Link>
-                    <Link href="https://www.tiktok.com/tag/steamsbury" className="transition-colors hover:text-white"><FaTiktok className="h-6 w-6" /></Link>
+                    <Link href="https://www.tiktok.com/tag/steamsbury" className="transition-colors hover:text-black"><FaTiktok className="h-6 w-6" /></Link>
                 </div>
             </div>
           </div>
