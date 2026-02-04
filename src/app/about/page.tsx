@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Footer from '@/components/layout/Footer';
+import PublicHeader from '@/components/layout/PublicHeader';
 
 export default function AboutExperience() {
     const observerRef = useRef<IntersectionObserver | null>(null);
@@ -44,9 +45,10 @@ export default function AboutExperience() {
 
     return (
         <div className="bg-[#1a110a] min-h-screen text-white overflow-x-hidden">
+            <PublicHeader />
 
             {/* Hero Section - Welcome to Steamsbury */}
-            <section id="hero" className="bg-[#f2efe9] text-[#1a110a] py-20 lg:py-28 relative overflow-hidden">
+            <section id="hero" className="bg-[#f2efe9] text-[#1a110a] py-20 lg:py-28 relative overflow-hidden mt-20">
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                         {/* Text Content */}
