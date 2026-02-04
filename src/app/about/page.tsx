@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Award, Users, Diamond, ArrowRight, MapPin, Clock, Mail, Instagram, Twitter, Linkedin, Facebook } from "lucide-react";
+import { Award, Users, Diamond, ArrowRight, MapPin, Clock, Mail, Instagram, Twitter, Linkedin, Facebook, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import 
+import Footer from '@/components/layout/Footer';
 
 export default function AboutExperience() {
     const observerRef = useRef<IntersectionObserver | null>(null);
-    const [subject, setSubject] = useState('General Inquiries');
+    const [subject, setSubject] = useState('general');
 
     useEffect(() => {
         observerRef.current = new IntersectionObserver((entries) => {
@@ -209,7 +209,7 @@ export default function AboutExperience() {
                                 desc: "Our space is designed for connection, hosting local artists and neighborhood gatherings."
                             },
                             {
-                                icon: "🍃",
+                                icon: "🌍",
                                 title: "Sustainability",
                                 desc: "From compostable cups to zero-waste roasting, we protect the planet we harvest from."
                             }
@@ -313,11 +313,44 @@ export default function AboutExperience() {
                                             <Input id="email" placeholder="you@example.com" className="bg-white border-gray-300" />
                                         </div>
                                     </div>
+                                    
+                                    <div className="space-y-2">
+                                        <Label htmlFor="subject">Subject</Label>
+                                        <Select value={subject} onValueChange={setSubject}>
+                                            <SelectTrigger id="subject" className="bg-white border-gray-300">
+                                                <SelectValue placeholder="Select a subject" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="general">General Inquiries</SelectItem>
+                                                <SelectItem value="event">Private Event</SelectItem>
+                                                <SelectItem value="job">Job Opportunities</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {subject === 'job' && (
+                                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                            <Label htmlFor="cv">Upload CV (PDF preferred)</Label>
+                                            <div className="flex items-center justify-center w-full">
+                                                <label htmlFor="cv" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                        <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                                                        <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                        <p className="text-xs text-gray-400">PDF, DOC or DOCX (MAX. 5MB)</p>
+                                                    </div>
+                                                    <Input id="cv" type="file" className="hidden" accept=".pdf,.doc,.docx" />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-2">
                                         <Label htmlFor="message">Message</Label>
-                                        <Textarea id="message" placeholder="How can we help?" className="bg-white border-gray-300 min-h-[100px]" />
+                                        <Textarea id="message" placeholder={subject === 'job' ? "Tell us about yourself and the role you're interested in..." : "How can we help?"} className="bg-white border-gray-300 min-h-[100px]" />
                                     </div>
-                                    <Button className="w-full bg-[#d97706] hover:bg-[#b45309] text-white">Send Message</Button>
+                                    <Button className="w-full bg-[#d97706] hover:bg-[#b45309] text-white">
+                                        {subject === 'job' ? 'Submit Application' : 'Send Message'}
+                                    </Button>
                                 </CardContent>
                             </Card>
                         </div>
@@ -337,7 +370,7 @@ export default function AboutExperience() {
                     </div>
                 </div>
             </section>
-            <Footer/>
+            <Footer />
         </div>
     );
 }
