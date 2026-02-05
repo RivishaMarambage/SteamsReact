@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2 } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc } from 'firebase/firestore';
@@ -22,7 +22,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { initiatePaymentAction } from '@/app/actions/initiate-payment';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -49,6 +48,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const pathname = usePathname();
   const processedFreebieIdRef = useRef<string | null>(null);
   const processedOfferIdRef = useRef<string | null>(null);
+  const processedReorderRef = useRef(false);
 
   const [isCustomizationOpen, setCustomizationOpen] = useState(false);
   const [customizingItem, setCustomizingItem] = useState<{menuItem: MenuItem, displayPrice: number, appliedDailyOfferId?: string} | null>(null);
@@ -112,6 +112,55 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       setActiveTab(categories[0].id);
     }
   }, [categories, activeTab]);
+
+  // Reorder handling logic
+  useEffect(() => {
+    if (processedReorderRef.current || menuItems.length === 0) return;
+
+    const reorderDataString = localStorage.getItem('reorder_items');
+    if (reorderDataString) {
+        processedReorderRef.current = true;
+        try {
+            const reorderItems = JSON.parse(reorderDataString);
+            const newCartItems: CartItem[] = [];
+            let itemsSkipped = 0;
+
+            reorderItems.forEach((item: any) => {
+                const menuItem = menuItems.find(m => m.id === item.menuItemId);
+                if (menuItem && !menuItem.isOutOfStock) {
+                    newCartItems.push({
+                        id: `${menuItem.id}-${Date.now()}-${Math.random()}`,
+                        menuItem,
+                        quantity: item.quantity,
+                        addons: item.addons,
+                        totalPrice: item.totalPrice,
+                        appliedDailyOfferId: item.appliedDailyOfferId
+                    });
+                } else {
+                    itemsSkipped++;
+                }
+            });
+
+            if (newCartItems.length > 0) {
+                setCart(prev => [...prev, ...newCartItems]);
+                toast({
+                    title: "Reorder items added",
+                    description: `${newCartItems.length} items added to your cart.${itemsSkipped > 0 ? ` ${itemsSkipped} item(s) skipped as they are currently unavailable.` : ''}`,
+                });
+            } else if (itemsSkipped > 0) {
+                toast({
+                    variant: "destructive",
+                    title: "Reorder unavailable",
+                    description: "The items in your previous order are currently out of stock.",
+                });
+            }
+        } catch (e) {
+            console.error("Failed to process reorder data", e);
+        } finally {
+            localStorage.removeItem('reorder_items');
+        }
+    }
+  }, [menuItems, toast]);
 
   const canRedeemPoints = useMemo(() => {
     if (!userProfile || !loyaltyLevels) return false;

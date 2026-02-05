@@ -1,17 +1,22 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import type { Order } from "@/lib/types";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { RotateCcw, ShoppingCart } from "lucide-react";
 import AudioNotifier from "../AudioNotifier";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RecentOrders({ userId }: { userId: string }) {
   const firestore = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
   const [previousOrderStatus, setPreviousOrderStatus] = useState<Record<string, Order['status']>>({});
   const [playStatusChangeSound, setPlayStatusChangeSound] = useState(false);
   
@@ -78,12 +83,32 @@ export default function RecentOrders({ userId }: { userId: string }) {
     }
   };
 
+  const handleReorder = (order: Order) => {
+    const reorderData = order.orderItems.map(item => ({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        addons: item.addons.map(a => ({
+            id: a.addonId,
+            name: a.addonName,
+            price: a.addonPrice
+        })),
+        totalPrice: item.totalPrice // this is unit price in our schema
+    }));
+    
+    localStorage.setItem('reorder_items', JSON.stringify(reorderData));
+    toast({
+        title: "Reorder Initiated",
+        description: "Items from your previous order are being added to your cart.",
+    });
+    router.push('/dashboard/order');
+  };
+
   if (isLoading) {
       return (
          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-              <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
+              <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">Loading orders...</p>
@@ -97,7 +122,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-            <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
+            <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">You haven't placed any orders yet.</p>
@@ -116,7 +141,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-          <CardDescription>Your latest pickups from Steamsburry.</CardDescription>
+          <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -125,7 +150,8 @@ export default function RecentOrders({ userId }: { userId: string }) {
                 <TableHead>Order</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,7 +178,17 @@ export default function RecentOrders({ userId }: { userId: string }) {
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">LKR {order.totalAmount.toFixed(2)}</TableCell>
+                  <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="gap-2" 
+                        onClick={() => handleReorder(order)}
+                    >
+                        <RotateCcw className="h-3 w-3" /> Reorder
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
