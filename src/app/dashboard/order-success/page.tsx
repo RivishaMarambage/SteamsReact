@@ -21,10 +21,13 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const processOrder = async () => {
+      // Guard to ensure processing only happens once per mount
       if (hasProcessed.current || !authUser) return;
       
       const transactionId = searchParams.get('id') || searchParams.get('transactionId') || searchParams.get('orderId');
       const paymentStatus = searchParams.get('state') || searchParams.get('status');
+
+      console.log("Processing Order ID:", transactionId, "Status:", paymentStatus);
 
       // Check for failure status from payment gateway
       if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
@@ -35,7 +38,9 @@ function OrderSuccessContent() {
       
       const checkoutDataString = localStorage.getItem('checkoutData');
       if (!checkoutDataString) {
-        setErrorMessage('We couldn\'t find your order data. If payment was deducted, please contact support.');
+        // If we are here without checkout data, it might have been cleared already or accessed directly.
+        // We'll show an error to be safe.
+        setErrorMessage('We couldn\'t find your order details in your browser. If your payment was deducted, please check your Order History or contact staff.');
         setStatus('error');
         return;
       }
@@ -44,6 +49,7 @@ function OrderSuccessContent() {
 
       try {
         const checkoutData = JSON.parse(checkoutDataString);
+        console.log("Finalizing order for method:", checkoutData.paymentMethod);
         
         // Call the secure server-side logic to finalize the order
         const result = await placeOrderAfterPayment({
@@ -53,6 +59,7 @@ function OrderSuccessContent() {
         });
 
         if (result.success) {
+            console.log("Order successfully recorded. Clearing local storage.");
             localStorage.removeItem('checkoutData');
             setStatus('success');
         } else {

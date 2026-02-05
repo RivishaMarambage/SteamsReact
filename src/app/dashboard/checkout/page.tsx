@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import type { CartItem } from '@/lib/types';
 import { Loader2, CreditCard, QrCode, Wallet, Banknote } from 'lucide-react';
-import { initiatePayment, placeOrderAfterPayment } from '@/ai/flows/payment-flow';
+import { initiatePayment } from '@/ai/flows/payment-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -44,26 +45,21 @@ export default function CheckoutPage() {
 
     try {
         if (paymentMethod === 'cash') {
-            console.log("Processing Cash Order...");
-            const result = await placeOrderAfterPayment({
-                userId: authUser.uid,
-                checkoutData: {
-                    ...checkoutData,
-                    paymentMethod: 'Cash'
-                },
-                transactionId: `CASH_${Date.now()}`
-            });
+            console.log("Preparing Cash Order...");
+            // Store the payment method and redirect to the success page to handle finalization
+            const updatedData = {
+                ...checkoutData,
+                paymentMethod: 'Cash'
+            };
+            localStorage.setItem('checkoutData', JSON.stringify(updatedData));
             
-            if (result.success) {
-                localStorage.removeItem('checkoutData');
-                router.push('/dashboard/order-success?method=cash');
-            }
+            // Redirect to success page with synthesized params
+            router.push(`/dashboard/order-success?status=SUCCESS&id=CASH_${Date.now()}`);
             return;
         }
 
-        console.log("Frontend: Collecting order details...");
+        console.log("Frontend: Initiating Online Payment...");
         const origin = window.location.origin;
-        console.log("Frontend: Calling dynamic backend bridge...");
         
         // Save current selection to persistent storage for retrieval after redirect
         localStorage.setItem('checkoutData', JSON.stringify({
