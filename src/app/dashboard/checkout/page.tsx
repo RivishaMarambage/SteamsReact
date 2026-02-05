@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -142,6 +141,8 @@ export default function CheckoutPage() {
     );
   };
 
+  const itemDiscount = (checkoutData.birthdayDiscountAmount || 0) + (checkoutData.welcomeDiscountAmount || 0);
+
   return (
     <div className="space-y-8">
       <div>
@@ -175,16 +176,22 @@ export default function CheckoutPage() {
                         <span>Subtotal</span>
                         <span>LKR {checkoutData.subtotal.toFixed(2)}</span>
                     </div>
+                    {itemDiscount > 0 && (
+                    <div className="flex justify-between text-destructive">
+                        <span>Item Discounts</span>
+                        <span>- LKR {itemDiscount.toFixed(2)}</span>
+                    </div>
+                    )}
                     {checkoutData.serviceCharge > 0 && (
                     <div className="flex justify-between">
                         <span>Service Charge (10%)</span>
                         <span>LKR {checkoutData.serviceCharge.toFixed(2)}</span>
                     </div>
                     )}
-                    {checkoutData.totalDiscount > 0 && (
+                    {checkoutData.loyaltyDiscount > 0 && (
                     <div className="flex justify-between text-destructive">
-                        <span>Discount</span>
-                        <span>- LKR {checkoutData.totalDiscount.toFixed(2)}</span>
+                        <span>Points Redemption</span>
+                        <span>- LKR {checkoutData.loyaltyDiscount.toFixed(2)}</span>
                     </div>
                     )}
                     <div className="flex justify-between text-lg font-bold">

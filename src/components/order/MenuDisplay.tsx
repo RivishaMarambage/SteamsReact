@@ -407,23 +407,29 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   };
 
   const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
-  const serviceCharge = orderType === 'Dine-in' ? subtotal * 0.10 : 0;
   
+  // Calculate birthday discount amount from subtotal
   const calculateBirthdayDiscount = () => {
-    if (!userProfile?.birthdayDiscountValue || userProfile.birthdayDiscountValue <= 0) {
-        return 0;
-    }
-
-    if (userProfile.birthdayDiscountType === 'percentage') {
-        return subtotal * (userProfile.birthdayDiscountValue / 100);
-    }
-    // 'fixed'
+    if (!userProfile?.birthdayDiscountValue || userProfile.birthdayDiscountValue <= 0) return 0;
+    if (userProfile.birthdayDiscountType === 'percentage') return subtotal * (userProfile.birthdayDiscountValue / 100);
     return userProfile.birthdayDiscountValue;
   }
-  
   const birthdayDiscountAmount = calculateBirthdayDiscount();
+
+  // Calculate welcome discount amount from subtotal
+  const calculateWelcomeDiscount = () => {
+    if (!applicableWelcomeOffer) return 0;
+    return subtotal * (applicableWelcomeOffer.discount / 100);
+  };
+  const welcomeDiscountAmount = calculateWelcomeDiscount();
+
+  // Discounted subtotal before service charge
+  const discountedSubtotal = Math.max(0, subtotal - birthdayDiscountAmount - welcomeDiscountAmount);
   
-  const totalBeforeDiscounts = subtotal + serviceCharge;
+  // Calculate service charge based on the discounted subtotal
+  const serviceCharge = orderType === 'Dine-in' ? discountedSubtotal * 0.10 : 0;
+  
+  const totalBeforePoints = discountedSubtotal + serviceCharge;
 
   const handleRedeemPoints = () => {
     const availablePoints = userProfile?.loyaltyPoints ?? 0;
@@ -445,8 +451,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${availablePoints} points available.` });
       return;
     }
-    if (redeemAmount > (totalBeforeDiscounts - birthdayDiscountAmount)) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total after other discounts is LKR ${(totalBeforeDiscounts - birthdayDiscountAmount).toFixed(2)}.` });
+    if (redeemAmount > totalBeforePoints) {
+        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${totalBeforePoints.toFixed(2)}.` });
         return;
     }
 
@@ -454,16 +460,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
   };
   
-  const loyaltyDiscount = Math.min(totalBeforeDiscounts - birthdayDiscountAmount, appliedPoints);
-
-  const calculateWelcomeDiscount = () => {
-    if (!applicableWelcomeOffer) return 0;
-    return (subtotal + serviceCharge) * (applicableWelcomeOffer.discount / 100);
-  };
-  
-  const welcomeDiscountAmount = calculateWelcomeDiscount();
+  const loyaltyDiscount = Math.min(totalBeforePoints, appliedPoints);
   const totalDiscount = loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount;
-  const cartTotal = totalBeforeDiscounts - totalDiscount;
+  const cartTotal = totalBeforePoints - loyaltyDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleProceedToCheckout = async () => {
@@ -785,34 +784,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                           <span>Subtotal</span>
                           <span>LKR {subtotal.toFixed(2)}</span>
                       </div>
+                      {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
+                        <div className="flex justify-between text-destructive">
+                            <span>Item Discounts</span>
+                            <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
+                        </div>
+                      )}
                       {serviceCharge > 0 && (
                         <div className="flex justify-between">
                             <span>Service Charge (10%)</span>
                             <span>LKR {serviceCharge.toFixed(2)}</span>
                         </div>
                       )}
-                      {totalDiscount > 0 && (
-                        <div className="flex justify-between text-destructive">
-                            <span>Discount</span>
-                            <span>- LKR {totalDiscount.toFixed(2)}</span>
-                        </div>
-                      )}
                       {loyaltyDiscount > 0 && (
-                        <div className="flex justify-between text-xs pl-4 text-destructive">
-                            <span>(Points Redemption)</span>
+                        <div className="flex justify-between text-destructive">
+                            <span>Points Redemption</span>
                             <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
-                        </div>
-                      )}
-                       {welcomeDiscountAmount > 0 && (
-                        <div className="flex justify-between text-xs pl-4 text-destructive">
-                            <span>(Welcome Offer)</span>
-                            <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {birthdayDiscountAmount > 0 && (
-                        <div className="flex justify-between text-xs pl-4 text-destructive">
-                            <span>(Birthday Reward)</span>
-                            <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-lg font-bold">
