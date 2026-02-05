@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { DailyOffer, MenuItem, UserProfile } from "@/lib/types";
 import { collection, query, where } from "firebase/firestore";
-import { format, isWithinInterval, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Tag } from "lucide-react";
@@ -41,10 +39,8 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         const redeemedToday = userProfile.dailyOffersRedeemed || {};
 
         return dailyOffers.map(offer => {
-            const isOfferActive = isWithinInterval(today, {
-                start: parseISO(offer.offerStartDate),
-                end: parseISO(offer.offerEndDate),
-            });
+            // Robust string comparison for YYYY-MM-DD dates
+            const isOfferActive = todayString >= offer.offerStartDate && todayString <= offer.offerEndDate;
 
             if (!isOfferActive) return null;
             
@@ -78,10 +74,10 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                 menuItem,
                 originalPrice,
                 displayPrice,
-                hasDiscount: true, // Will always be true because of the filter above
+                hasDiscount: true,
             };
         }).filter((o): o is NonNullable<typeof o> => o !== null);
-    }, [dailyOffers, menuItems, userProfile, today, todayString]);
+    }, [dailyOffers, menuItems, userProfile, todayString]);
 
 
     if (isLoading) {

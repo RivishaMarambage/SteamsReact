@@ -3,7 +3,7 @@
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { DailyOffer, LoyaltyLevel, MenuItem, UserProfile } from "@/lib/types";
 import { collection, doc, query, where, orderBy } from "firebase/firestore";
-import { format, isWithinInterval, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Percent } from "lucide-react";
@@ -25,7 +25,7 @@ function OffersPageContent() {
     const firestore = useFirestore();
     const router = useRouter();
     const { user: authUser, isUserLoading: authLoading } = useUser();
-    const today = useMemo(() => new Date(), []);
+    const today = new Date();
     const todayString = format(today, 'yyyy-MM-dd');
 
     const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
@@ -51,12 +51,9 @@ function OffersPageContent() {
     const activeOffers = useMemo(() => {
         if (!dailyOffers) return [];
         return dailyOffers.filter(offer =>
-            isWithinInterval(today, {
-                start: parseISO(offer.offerStartDate),
-                end: parseISO(offer.offerEndDate),
-            })
+            todayString >= offer.offerStartDate && todayString <= offer.offerEndDate
         );
-    }, [dailyOffers, today]);
+    }, [dailyOffers, todayString]);
 
     const welcomeOffer = useMemo(() => {
         if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || !userProfile.emailVerified) {
