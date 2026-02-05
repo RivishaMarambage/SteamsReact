@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -457,6 +455,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
              <>
                 <DialogHeader>
                     <DialogTitle className="font-headline text-2xl text-center">How will you be joining us?</DialogTitle>
+                    <DialogDescription className="text-center">Please select whether you want to dine-in or take your order away.</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
@@ -474,6 +473,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                <>
                 <DialogHeader>
                     <DialogTitle className="font-headline text-2xl text-center">Please select your table number</DialogTitle>
+                    <DialogDescription className="text-center">Choose the table where you are currently seated.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -568,6 +568,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                             src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
                                             alt={item.name}
                                             fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                             className="object-cover"
                                             data-ai-hint="food item"
                                         />
@@ -642,6 +643,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                               src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
                               alt={item.menuItem.name}
                               fill
+                              sizes="64px"
                               className="object-cover"
                               data-ai-hint="food item"
                           />

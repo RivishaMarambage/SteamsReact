@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,7 +12,7 @@ import { Loader2, CreditCard, QrCode, Wallet, Banknote } from 'lucide-react';
 import { initiatePayment, placeOrderAfterPayment } from '@/ai/flows/payment-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import QrScanner from '@/components/wallet/QrScanner';
 
 
@@ -113,6 +112,10 @@ export default function CheckoutPage() {
             </Button>
           </DialogTrigger>
           <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Scan QR Code</DialogTitle>
+                <DialogDescription>Please scan the merchant QR code to complete your payment.</DialogDescription>
+            </DialogHeader>
             <QrScanner />
           </DialogContent>
         </Dialog>
@@ -216,7 +219,7 @@ export default function CheckoutPage() {
                             <RadioGroupItem value="cash" id="cash" />
                             <Banknote className="h-6 w-6" />
                             <div className="grid gap-1.5">
-                                <p className="font-medium">Cash</p>
+                                <p className="font-medium">Cash & Card</p>
                                 <p className="text-sm text-muted-foreground">Pay directly at the counter</p>
                             </div>
                         </Label>
