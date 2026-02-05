@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Banknote, Globe, QrCode, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
@@ -87,8 +87,15 @@ export default function OrderManagement() {
     const userOrderRef = doc(firestore, `users/${order.customerId}/orders`, order.id);
     const userProfileRef = doc(firestore, 'users', order.customerId);
 
-    batch.update(rootOrderRef, { status });
-    batch.update(userOrderRef, { status });
+    const updates: Partial<Order> = { status };
+    
+    // Auto-mark as paid if staff is completing a cash order
+    if (status === 'Completed' && order.paymentMethod === 'Cash') {
+        updates.paymentStatus = 'Paid';
+    }
+
+    batch.update(rootOrderRef, updates);
+    batch.update(userOrderRef, updates);
 
     if (status === 'Completed' && order.status !== 'Completed') {
         const pointsToAward = order.pointsToEarn || 0;
@@ -109,7 +116,7 @@ export default function OrderManagement() {
     }
 
     if (status === 'Rejected' && order.status !== 'Rejected') {
-        if (order.paymentStatus === 'Paid' && order.transactionId) {
+        if (order.paymentStatus === 'Paid' && order.transactionId && order.paymentMethod !== 'Cash') {
             try {
                 await requestRefund(order.transactionId, order.totalAmount);
                 toast({
@@ -181,7 +188,6 @@ export default function OrderManagement() {
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
       case 'Placed': return 'secondary';
-      case 'Accepting': return 'outline';
       case 'Processing': return 'outline';
       case 'Ready for Pickup': return 'default';
       case 'Completed': return 'secondary';
@@ -197,6 +203,16 @@ export default function OrderManagement() {
       default: return 'secondary';
     }
   };
+
+  const getPaymentMethodIcon = (method?: Order['paymentMethod']) => {
+    switch (method) {
+        case 'Cash': return <Banknote className="h-3 w-3" />;
+        case 'Online': return <Globe className="h-3 w-3" />;
+        case 'QR': return <QrCode className="h-3 w-3" />;
+        case 'Wallet': return <Wallet className="h-3 w-3" />;
+        default: return null;
+    }
+  }
 
 
   if (isLoading) {
@@ -275,9 +291,15 @@ export default function OrderManagement() {
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                   </TableCell>
                    <TableCell>
-                    <Badge variant={order.paymentStatus === 'Paid' ? 'default' : 'destructive'} className={order.paymentStatus === 'Paid' ? 'bg-green-600' : ''}>
-                      {order.paymentStatus || 'Unpaid'}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                        <Badge variant={order.paymentStatus === 'Paid' ? 'default' : 'destructive'} className={order.paymentStatus === 'Paid' ? 'bg-green-600' : ''}>
+                        {order.paymentStatus || 'Unpaid'}
+                        </Badge>
+                        <span className="text-[10px] flex items-center gap-1 font-bold uppercase text-muted-foreground">
+                            {getPaymentMethodIcon(order.paymentMethod)}
+                            {order.paymentMethod || 'Online'}
+                        </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>

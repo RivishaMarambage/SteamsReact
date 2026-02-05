@@ -96,7 +96,6 @@ export async function requestRefund(
     'Authorization': apiKey,
   };
 
-  // Correct endpoint for refund creation according to Genie docs
   const url = `https://api.geniebiz.lk/public/transactions/${transactionId}/refunds`;
 
   try {
@@ -164,7 +163,8 @@ export async function placeOrderAfterPayment(input: PlaceOrderInput): Promise<{ 
             orderDate: FieldValue.serverTimestamp(),
             totalAmount: total,
             status: "Placed",
-            paymentStatus: "Paid",
+            paymentStatus: checkoutData.paymentMethod === 'Cash' ? "Unpaid" : "Paid",
+            paymentMethod: checkoutData.paymentMethod || "Online",
             transactionId: transactionId,
             orderItems: orderItems,
             orderType: checkoutData.orderType,

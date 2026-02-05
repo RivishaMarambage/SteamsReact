@@ -97,9 +97,24 @@ export default function LandingPage() {
               Brewing Moments,<br />
               <span className="text-[#f59e0b]">One Cup at a Time</span>
             </h1>
+
             <p className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
-              Experience the art of coffee in the heart of the city. We source the finest beans to bring you a daily ritual worth savoring.
+              <span className="block mb-4 font-medium text-white">
+                Your Coffee Journey Starts Here ☕
+              </span>
+
+              <span className="block mb-4">
+                ☕ 1st order — <strong>10% OFF</strong> &nbsp;|&nbsp;
+                ☕ 2nd order — <strong>5% OFF</strong> &nbsp;|&nbsp;
+                ☕ 3rd order — <strong>15% OFF</strong>
+              </span>
+
+              <span className="block">
+                From first sip to last drop, we brew joy in the heart of the city using only the finest beans.
+                Join the club, sip happy, and unlock member-only perks.
+              </span>
             </p>
+
             <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
               <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
@@ -169,6 +184,7 @@ export default function LandingPage() {
               ].map((item, idx) => (
                 <div
                   key={idx}
+                  onClick={() => ("/rewards")}
                   className={cn(
                     "glass-card p-8 rounded-3xl group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
                     "hover:-translate-y-3 hover:shadow-2xl hover:shadow-[#d97706]/20",
@@ -217,13 +233,13 @@ export default function LandingPage() {
                   </p>
 
                   {/* Interactive Arrow Indicator */}
-                  <div className={cn(
+                  {/* <div className={cn(
                     "absolute bottom-4 right-4 opacity-0 transition-all duration-500",
                     "group-hover:opacity-100 group-hover:translate-x-0 translate-x-2",
                     item.color
                   )}>
                     <ArrowRight className="w-5 h-5" />
-                  </div>
+                  </div> */}
                 </div>
               ))}
             </div>
@@ -270,7 +286,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <Button asChild size="lg" className="rounded-2xl h-14 px-8 bg-white text-[#d97706] hover:bg-white/90 font-bold border-none shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
-                <Link href="/dashboard/creator" className="flex items-center gap-2">Start Building Now <ArrowRight className="h-5 w-5" /></Link>
+                <Link href="/signup/customer" className="flex items-center gap-2">Start Building Now <ArrowRight className="h-5 w-5" /></Link>
               </Button>
             </div>
             <div className="flex justify-center items-center relative h-[300px] md:h-[450px] mt-8 md:mt-0">

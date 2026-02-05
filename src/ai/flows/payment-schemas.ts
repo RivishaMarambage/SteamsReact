@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 /* =========================
@@ -70,6 +71,7 @@ export const PlaceOrderInputSchema = z.object({
     welcomeDiscountAmount: z.number().nonnegative(),
     birthdayDiscountAmount: z.number().nonnegative(),
     cart: z.array(CartItemSchema).min(1),
+    paymentMethod: z.enum(['Online', 'Cash', 'QR', 'Wallet']).optional(),
   }),
   transactionId: z.string().min(1),
 });

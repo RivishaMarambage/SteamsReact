@@ -1,5 +1,4 @@
 
-
 import { Timestamp } from "firebase/firestore";
 
 export type UserProfile = {
@@ -27,6 +26,7 @@ export type UserProfile = {
 export type GameProfile = {
   lastPlayedDate: string; // YYYY-MM-DD
   triviaCount: number;
+  spinCount: number;
 };
 
 export type DailyGameWinners = {
@@ -105,14 +105,8 @@ export type Order = {
     discountApplied?: number;
     serviceCharge?: number;
     pointsToEarn?: number;
-    birthdayDiscountApplied?: {
-      type: 'fixed' | 'percentage';
-      value: number;
-    } | {
-      type: 'free-item';
-      menuItemIds: string[];
-    } | null;
     paymentStatus?: 'Paid' | 'Unpaid';
+    paymentMethod?: 'Online' | 'Cash' | 'QR' | 'Wallet';
     transactionId?: string;
     welcomeOfferApplied?: boolean;
 }

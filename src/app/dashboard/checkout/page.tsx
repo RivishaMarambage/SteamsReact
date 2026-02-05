@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,8 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import type { CartItem } from '@/lib/types';
-import { Loader2, CreditCard, QrCode, Wallet } from 'lucide-react';
-import { initiatePayment } from '@/ai/flows/payment-flow';
+import { Loader2, CreditCard, QrCode, Wallet, Banknote } from 'lucide-react';
+import { initiatePayment, placeOrderAfterPayment } from '@/ai/flows/payment-flow';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -43,11 +44,34 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
+        if (paymentMethod === 'cash') {
+            console.log("Processing Cash Order...");
+            const result = await placeOrderAfterPayment({
+                userId: authUser.uid,
+                checkoutData: {
+                    ...checkoutData,
+                    paymentMethod: 'Cash'
+                },
+                transactionId: `CASH_${Date.now()}`
+            });
+            
+            if (result.success) {
+                localStorage.removeItem('checkoutData');
+                router.push('/dashboard/order-success?method=cash');
+            }
+            return;
+        }
+
         console.log("Frontend: Collecting order details...");
         const origin = window.location.origin;
         console.log("Frontend: Calling dynamic backend bridge...");
         
-        // Pass the window.location.origin to the server action so it can build the correct redirect URL
+        // Save current selection to persistent storage for retrieval after redirect
+        localStorage.setItem('checkoutData', JSON.stringify({
+            ...checkoutData,
+            paymentMethod: paymentMethod === 'card' ? 'Online' : paymentMethod.toUpperCase()
+        }));
+
         const paymentResponse = await initiatePayment({ 
           amount: checkoutData.cartTotal,
           origin: origin
@@ -94,6 +118,14 @@ export default function CheckoutPage() {
         </Dialog>
       );
     }
+    
+    let buttonText = `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`;
+    if (paymentMethod === 'cash') {
+        buttonText = `Confirm Order (Pay Cash at Counter)`;
+    } else if (paymentMethod === 'card') {
+        buttonText = `Pay Online LKR ${checkoutData.cartTotal.toFixed(2)}`;
+    }
+
     return (
       <Button
         size="lg"
@@ -104,11 +136,9 @@ export default function CheckoutPage() {
         {isProcessing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing Payment...
+            {paymentMethod === 'cash' ? 'Confirming Order...' : 'Processing Payment...'}
           </>
-        ) : (
-          `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`
-        )}
+        ) : buttonText}
       </Button>
     );
   };
@@ -176,10 +206,22 @@ export default function CheckoutPage() {
                         <RadioGroupItem value="card" id="card" />
                         <CreditCard className="h-6 w-6" />
                         <div className="grid gap-1.5">
-                            <p className="font-medium">Pay with Card</p>
-                            <p className="text-sm text-muted-foreground">Visa, Mastercard, Amex</p>
+                            <p className="font-medium">Pay Online</p>
+                            <p className="text-sm text-muted-foreground">Visa, Mastercard, Amex via Genie</p>
                         </div>
                     </Label>
+                    
+                    {checkoutData.orderType === 'Dine-in' && (
+                        <Label htmlFor="cash" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                            <RadioGroupItem value="cash" id="cash" />
+                            <Banknote className="h-6 w-6" />
+                            <div className="grid gap-1.5">
+                                <p className="font-medium">Cash</p>
+                                <p className="text-sm text-muted-foreground">Pay directly at the counter</p>
+                            </div>
+                        </Label>
+                    )}
+
                     <Label htmlFor="qr" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
                         <RadioGroupItem value="qr" id="qr" />
                         <QrCode className="h-6 w-6" />
@@ -200,7 +242,7 @@ export default function CheckoutPage() {
 
                 {renderPaymentButton()}
                 <div className="mt-4 text-center text-xs text-muted-foreground">
-                    You will be redirected to Genie to complete your payment.
+                    {paymentMethod === 'cash' ? 'Please pay the staff after your meal or upon pickup.' : 'You will be redirected to Genie to complete your payment.'}
                 </div>
             </CardContent>
         </Card>
