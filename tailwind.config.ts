@@ -17,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        headline: ["Playfair Display", "serif"],
+        headline: ["Archivo Black", "sans-serif"],
         body: ["Montserrat", "sans-serif"],
       },
       colors: {
