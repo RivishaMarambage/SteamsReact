@@ -115,7 +115,9 @@ export default function OrderManagement() {
         }
     }
 
+    // Handle Order Rejection: Process refunds and restore one-time use flags
     if (status === 'Rejected' && order.status !== 'Rejected') {
+        // 1. Process Financial Refund via Genie
         if (order.paymentStatus === 'Paid' && order.transactionId && order.paymentMethod !== 'Cash') {
             try {
                 await requestRefund(order.transactionId, order.totalAmount);
@@ -133,11 +135,13 @@ export default function OrderManagement() {
             }
         }
         
+        // 2. Database Rollbacks (Points, Order Count, One-time Offers)
         try {
             const userProfileSnap = await getDoc(userProfileRef);
             if (userProfileSnap.exists()) {
                 const userProfileData = userProfileSnap.data() as UserProfile;
                 
+                // Refund Points Redeemed
                 const pointsToRefund = order.pointsRedeemed || 0;
                 if (pointsToRefund > 0) {
                     batch.update(userProfileRef, { loyaltyPoints: increment(pointsToRefund) });
@@ -150,10 +154,12 @@ export default function OrderManagement() {
                     });
                 }
 
+                // Rollback order count if welcome offer was applied
                 if (order.welcomeOfferApplied) {
                     batch.update(userProfileRef, { orderCount: increment(-1) });
                 }
 
+                // Restore One-time usage flag for Daily Offers
                 const redeemedDailyOffers = order.orderItems.map(item => item.appliedDailyOfferId).filter(Boolean) as string[];
                 if (redeemedDailyOffers.length > 0) {
                     const currentRedeemed = userProfileData.dailyOffersRedeemed || {};

@@ -26,7 +26,6 @@ function OrderSuccessContent() {
       // Guard to ensure processing only happens once per mount and once auth/firestore are ready
       if (hasProcessed.current || !authUser || !firestore) return;
       
-      // Handle various parameter names returned by different payment flows/gateways
       const transactionId = searchParams.get('id') || 
                             searchParams.get('transactionId') || 
                             searchParams.get('pg_transaction_id') || 
@@ -34,8 +33,6 @@ function OrderSuccessContent() {
                             `txn_${Date.now()}`;
                             
       const paymentStatus = (searchParams.get('state') || searchParams.get('status') || '').toUpperCase();
-
-      console.log("Finalizing Order. TxID:", transactionId, "Status:", paymentStatus);
 
       // Check for failure status from payment gateway
       if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
@@ -46,17 +43,21 @@ function OrderSuccessContent() {
       
       const checkoutDataString = localStorage.getItem('checkoutData');
       if (!checkoutDataString) {
-        console.warn("No checkout data found in localStorage. Attempting to see if order already exists...");
-        // If order details are missing, we check if the user is just reloading a success page
-        // For simplicity in this prototype, we'll error out, but in production we'd query Firestore
-        setErrorMessage('We couldn\'t find your order details in your browser. This can happen if cookies are disabled or if you navigated back. If your payment was deducted, please check your Order History or contact staff.');
-        setStatus('error');
+        // If checkoutData is missing, we might have already processed it.
+        // If status is already processing, let it be. If it was redirected back, 
+        // we assume success if we reached this point without error (optimistic).
+        if (status === 'processing' && !hasProcessed.current) {
+            // Check if we already have a success state in UI
+            return;
+        }
         return;
       }
 
+      // Mark as processed IMMEDIATELY to prevent double execution in React StrictMode
+      hasProcessed.current = true;
+
       try {
         const checkoutData = JSON.parse(checkoutDataString);
-        console.log("Recording order for method:", checkoutData.paymentMethod);
         
         const batch = writeBatch(firestore);
 
@@ -80,9 +81,8 @@ function OrderSuccessContent() {
             appliedDailyOfferId: item.appliedDailyOfferId || null
         }));
 
-        // Business logic for points to be earned (calculated here but awarded by staff on completion)
-        let pointsToEarn = 0;
         const total = checkoutData.cartTotal;
+        let pointsToEarn = 0;
         if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
         else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
         else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
@@ -110,14 +110,16 @@ function OrderSuccessContent() {
         batch.set(rootOrderRef, orderData);
         batch.set(userOrderRef, orderData);
 
-        // Updates for user profile
-        // We use increment() to safely adjust balances without needing current value
+        // Update user profile: deduct points, increment order count, clear birthday rewards
         const userUpdates: any = {
             loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
+            birthdayDiscountValue: null,
+            birthdayDiscountType: null,
+            birthdayFreebieMenuItemIds: []
         };
 
-        // Track redeemed daily offers
+        // Track redeemed daily offers to prevent re-use
         const today = format(new Date(), 'yyyy-MM-dd');
         orderItems.forEach((item: any) => {
             if (item.appliedDailyOfferId) {
@@ -141,6 +143,7 @@ function OrderSuccessContent() {
         // Commit all changes
         await batch.commit().catch(err => {
             console.error("Batch commit failed:", err);
+            hasProcessed.current = false; // Allow retry on failure
             throw new FirestorePermissionError({
                 path: rootOrderRef.path,
                 operation: 'write',
@@ -148,8 +151,7 @@ function OrderSuccessContent() {
             });
         });
 
-        console.log("Order recorded successfully on client.");
-        hasProcessed.current = true;
+        // Cleanup and finish
         localStorage.removeItem('checkoutData');
         setStatus('success');
         
@@ -161,7 +163,7 @@ function OrderSuccessContent() {
     };
 
     processOrder();
-  }, [searchParams, authUser, firestore, router]);
+  }, [searchParams, authUser, firestore, router, status]);
 
   if (status === 'processing') {
     return (

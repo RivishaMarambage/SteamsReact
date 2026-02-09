@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -39,12 +40,11 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
         const redeemedToday = userProfile.dailyOffersRedeemed || {};
 
         return dailyOffers.map(offer => {
-            // Robust string comparison for YYYY-MM-DD dates
             const isOfferActive = todayString >= offer.offerStartDate && todayString <= offer.offerEndDate;
 
             if (!isOfferActive) return null;
             
-            // Check if user has already redeemed this offer today
+            // Check if user has already redeemed this offer today (one-time use logic)
             if (redeemedToday[offer.id] === todayString) {
                 return null;
             }
@@ -55,7 +55,6 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             const userLoyaltyId = userProfile.loyaltyLevelId;
             const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId] || 0;
             
-            // Only include the offer if there's a specific discount for the user's tier.
             if (userTierDiscount <= 0) {
                 return null;
             }
