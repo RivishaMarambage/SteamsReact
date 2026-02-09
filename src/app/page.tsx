@@ -203,7 +203,7 @@ export default function LandingPage() {
         </section>
 
         {/* Create Your Perfect Cup - Full Section Cover Style */}
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-32 lg:py-48 overflow-hidden relative mb-20">
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground pt-32 lg:pt-48 pb-0 overflow-hidden relative mb-0">
           <div className="absolute -top-20 -left-40 w-[40rem] h-[40rem] bg-white/10 rounded-full blur-[120px] opacity-50" />
           <div className="absolute -bottom-40 -right-40 w-[50rem] h-[50rem] bg-white/10 rounded-full blur-[150px] opacity-50" />
           
@@ -252,7 +252,7 @@ export default function LandingPage() {
               <div className="relative z-10 w-80 h-80 md:w-[30rem] md:h-[30rem] bg-white/10 rounded-full flex items-center justify-center backdrop-blur-3xl border-4 border-white/30 shadow-[inset_0_0_80px_rgba(255,255,255,0.2)]">
                 <Coffee className="w-48 h-48 md:w-72 md:h-72 text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] opacity-95 transition-transform hover:scale-110 duration-700" />
                 
-                {/* Floating Tags - Tightened clustering */}
+                {/* Floating Tags - Tightly clustered */}
                 <div className="absolute top-10 -right-4 md:top-20 md:right-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-3 text-lg md:text-xl border border-white">
                   <span className="text-2xl text-[#f59e0b]">+</span> Vanilla
                 </div>
