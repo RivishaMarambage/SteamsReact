@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -35,7 +34,7 @@ export default function PublicHeader() {
               key={link.href}
               href={link.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-accent",
+                "text-sm font-bold transition-colors hover:text-accent tracking-tight",
                 pathname === link.href ? "text-accent" : "text-white/70"
               )}
             >
@@ -46,10 +45,10 @@ export default function PublicHeader() {
 
         <div className="flex items-center gap-4">
           <nav className="hidden sm:flex items-center gap-4">
-            <Button asChild className="rounded-full px-8 py-3 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-semibold text-base transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(217,119,6,0.6)]">
+            <Button asChild className="rounded-full px-8 py-3 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-bold text-base transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(217,119,6,0.6)]">
               <Link href="/login/customer">Sign In</Link>
             </Button>
-            <Button asChild variant="outline" className="rounded-full px-8 py-3 bg-white hover:bg-[#d97706] text-[#d97706] hover:text-white border-2 border-[#d97706] hover:border-[#d97706] font-semibold text-base transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(217,119,6,0.5)]">
+            <Button asChild variant="outline" className="rounded-full px-8 py-3 bg-white hover:bg-[#d97706] text-[#d97706] hover:text-white border-2 border-[#d97706] hover:border-[#d97706] font-bold text-base transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(217,119,6,0.5)]">
               <Link href="/signup/customer">Sign Up</Link>
             </Button>
           </nav>
@@ -76,7 +75,7 @@ export default function PublicHeader() {
               href={link.href}
               onClick={() => setIsMenuOpen(false)}
               className={cn(
-                "text-2xl font-headline font-bold transition-all duration-300",
+                "text-3xl font-headline font-black transition-all duration-300 uppercase tracking-tighter",
                 pathname === link.href ? "text-[#d97706]" : "text-white/70",
                 isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
               )}
@@ -86,10 +85,10 @@ export default function PublicHeader() {
             </Link>
           ))}
           <div className="flex flex-col gap-4 mt-8 w-full max-w-xs sm:hidden">
-            <Button asChild className="rounded-full h-14 bg-[#d97706] text-white text-lg font-bold">
+            <Button asChild className="rounded-full h-14 bg-[#d97706] text-white text-lg font-black">
               <Link href="/login/customer" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
             </Button>
-            <Button asChild variant="outline" className="rounded-full h-14 bg-white text-[#d97706] border-[#d97706] text-lg font-bold">
+            <Button asChild variant="outline" className="rounded-full h-14 bg-white text-[#d97706] border-[#d97706] text-lg font-black">
               <Link href="/signup/customer" onClick={() => setIsMenuOpen(false)}>Sign Up</Link>
             </Button>
           </div>
