@@ -23,6 +23,7 @@
     --border: 0 0% 89%;
     --input: 0 0% 91%;
     --ring: 25 95% 53%;
+    --radius: 2rem;
 
     /* Sidebar dark theme for light mode */
     --sidebar-background: 0 0% 5% / 0.76;
@@ -59,6 +60,7 @@
     --border: 0 0% 20%;
     --input: 0 0% 17%;
     --ring: 25 95% 53%;
+    --radius: 2rem;
 
     /* Sidebar dark theme */
     --sidebar-background: 0 0% 5% / 0.76;
@@ -117,7 +119,7 @@
 
 .glass-card {
     background: rgba(255, 255, 255, 0.03);
-    @apply backdrop-blur-lg;
+    @apply backdrop-blur-lg rounded-[2.5rem];
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.3s ease, border-color 0.3s ease;
 }
@@ -130,7 +132,7 @@
 .gauge-bar {
     height: 12px;
     background: #222;
-    border-radius: 6px;
+    border-radius: 50px;
     overflow: hidden;
     position: relative;
 }
