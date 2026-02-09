@@ -201,6 +201,8 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <NewsBanner />
+
         {/* Create Your Perfect Cup - Full Section Cover Style */}
         <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground min-h-screen flex items-center overflow-hidden relative mb-0">
           <div className="absolute -top-20 -left-40 w-[40rem] h-[40rem] bg-white/10 rounded-full blur-[120px] opacity-50" />
@@ -298,7 +300,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <NewsBanner />
+        
         <HighlightsSection />
 
       </main>
