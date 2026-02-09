@@ -1,19 +1,20 @@
-
 'use client';
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { placeOrderAfterPayment } from '@/ai/flows/payment-flow';
+import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser } = useUser();
+  const firestore = useFirestore();
   const hasProcessed = useRef(false);
 
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -22,12 +23,12 @@ function OrderSuccessContent() {
   useEffect(() => {
     const processOrder = async () => {
       // Guard to ensure processing only happens once per mount
-      if (hasProcessed.current || !authUser) return;
+      if (hasProcessed.current || !authUser || !firestore) return;
       
       const transactionId = searchParams.get('id') || searchParams.get('transactionId') || searchParams.get('orderId');
       const paymentStatus = searchParams.get('state') || searchParams.get('status');
 
-      console.log("Processing Order ID:", transactionId, "Status:", paymentStatus);
+      console.log("Finalizing Order ID:", transactionId, "Status:", paymentStatus);
 
       // Check for failure status from payment gateway
       if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
@@ -38,8 +39,6 @@ function OrderSuccessContent() {
       
       const checkoutDataString = localStorage.getItem('checkoutData');
       if (!checkoutDataString) {
-        // If we are here without checkout data, it might have been cleared already or accessed directly.
-        // We'll show an error to be safe.
         setErrorMessage('We couldn\'t find your order details in your browser. If your payment was deducted, please check your Order History or contact staff.');
         setStatus('error');
         return;
@@ -49,32 +48,111 @@ function OrderSuccessContent() {
 
       try {
         const checkoutData = JSON.parse(checkoutDataString);
-        console.log("Finalizing order for method:", checkoutData.paymentMethod);
+        console.log("Recording order on client for method:", checkoutData.paymentMethod);
         
-        // Call the secure server-side logic to finalize the order
-        const result = await placeOrderAfterPayment({
-            userId: authUser.uid,
-            checkoutData,
-            transactionId: transactionId || `txn_${Date.now()}`
+        const batch = writeBatch(firestore);
+
+        // Generate references
+        const rootOrderRef = doc(collection(firestore, 'orders'));
+        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
+        const userProfileRef = doc(firestore, 'users', authUser.uid);
+
+        // Map items
+        const orderItems = checkoutData.cart.map((item: any) => ({
+            menuItemId: item.menuItem.id,
+            menuItemName: item.menuItem.name,
+            quantity: item.quantity,
+            basePrice: item.menuItem.price,
+            totalPrice: item.totalPrice,
+            addons: item.addons?.map((a: any) => ({
+                addonId: a.id,
+                addonName: a.name,
+                addonPrice: a.price
+            })) || [],
+            appliedDailyOfferId: item.appliedDailyOfferId || null
+        }));
+
+        // Business logic for points
+        let pointsToEarn = 0;
+        const total = checkoutData.cartTotal;
+        if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
+        else if (total >= 5000) pointsToEarn = Math.floor(total / 100);
+        else if (total >= 1000) pointsToEarn = Math.floor(total / 200);
+        else pointsToEarn = Math.floor(total / 400);
+
+        const orderData = {
+            id: rootOrderRef.id,
+            customerId: authUser.uid,
+            orderDate: serverTimestamp(),
+            totalAmount: total,
+            status: "Placed",
+            paymentStatus: checkoutData.paymentMethod === 'Cash' ? "Unpaid" : "Paid",
+            paymentMethod: checkoutData.paymentMethod || "Online",
+            transactionId: transactionId || `txn_${Date.now()}`,
+            orderItems: orderItems,
+            orderType: checkoutData.orderType,
+            tableNumber: checkoutData.tableNumber || '',
+            pointsToEarn: pointsToEarn,
+            pointsRedeemed: checkoutData.loyaltyDiscount || 0,
+            discountApplied: checkoutData.totalDiscount || 0,
+            serviceCharge: checkoutData.serviceCharge || 0,
+            welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
+        };
+
+        batch.set(rootOrderRef, orderData);
+        batch.set(userOrderRef, orderData);
+
+        // Updates for user profile
+        const userUpdates: any = {
+            loyaltyPoints: checkoutData.loyaltyPointsBalance ? checkoutData.loyaltyPointsBalance - (checkoutData.loyaltyDiscount || 0) : increment(-(checkoutData.loyaltyDiscount || 0)),
+            orderCount: increment(1),
+        };
+
+        // Track redeemed daily offers
+        const today = format(new Date(), 'yyyy-MM-dd');
+        orderItems.forEach((item: any) => {
+            if (item.appliedDailyOfferId) {
+                userUpdates[`dailyOffersRedeemed.${item.appliedDailyOfferId}`] = today;
+            }
         });
 
-        if (result.success) {
-            console.log("Order successfully recorded. Clearing local storage.");
-            localStorage.removeItem('checkoutData');
-            setStatus('success');
-        } else {
-            throw new Error("Finalization failed without an error message.");
+        batch.update(userProfileRef, userUpdates);
+
+        // Record point redemption history
+        if (checkoutData.loyaltyDiscount > 0) {
+            const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
+            batch.set(transactionRef, {
+                date: serverTimestamp(),
+                description: `Redeemed for Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
+                amount: -checkoutData.loyaltyDiscount,
+                type: 'redeem'
+            });
         }
+
+        // Commit all changes
+        await batch.commit().catch(err => {
+            throw new FirestorePermissionError({
+                path: rootOrderRef.path,
+                operation: 'write',
+                requestResourceData: orderData
+            });
+        });
+
+        console.log("Order recorded successfully on client.");
+        localStorage.removeItem('checkoutData');
+        setStatus('success');
         
       } catch (error: any) {
         console.error("Error finalizing order:", error);
         setErrorMessage(error.message || "An unexpected error occurred while finalizing your order.");
         setStatus('error');
+        // If it's a permission error, it's already emitted by the listener if we didn't catch it, 
+        // but we want to show the error UI here anyway.
       }
     };
 
     processOrder();
-  }, [searchParams, authUser, router]);
+  }, [searchParams, authUser, firestore, router]);
 
   if (status === 'processing') {
     return (
@@ -88,26 +166,26 @@ function OrderSuccessContent() {
 
   if (status === 'error') {
     return (
-       <Card className="w-full max-w-lg mx-auto border-destructive shadow-xl">
+       <Card className="w-full max-w-lg mx-auto border-destructive shadow-xl rounded-[2.5rem]">
           <CardHeader className="text-center">
             <div className="bg-destructive/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <CardTitle className="text-2xl font-headline text-destructive">Order Completion Failed</CardTitle>
-            <CardDescription>Something went wrong after your payment was processed.</CardDescription>
+            <CardDescription>Something went wrong while recording your order details.</CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
-            <div className="p-4 bg-muted rounded-md text-sm text-left font-mono break-all">
+            <div className="p-4 bg-muted rounded-[1.5rem] text-sm text-left font-mono break-all">
                 {errorMessage}
             </div>
             <p className="text-sm text-muted-foreground">
                 If money was deducted from your account, please keep your transaction ID handy and contact our staff.
             </p>
             <div className="flex flex-col gap-2">
-                <Button asChild variant="default">
+                <Button asChild variant="default" className="rounded-full">
                     <Link href="/dashboard/order">Try Ordering Again</Link>
                 </Button>
-                <Button asChild variant="ghost">
+                <Button asChild variant="ghost" className="rounded-full">
                     <Link href="/dashboard">Back to Dashboard</Link>
                 </Button>
             </div>
@@ -117,7 +195,7 @@ function OrderSuccessContent() {
   }
 
   return (
-    <Card className="w-full max-w-lg mx-auto border-green-500 shadow-2xl overflow-hidden">
+    <Card className="w-full max-w-lg mx-auto border-green-500 shadow-2xl overflow-hidden rounded-[2.5rem]">
       <div className="h-2 bg-green-500 w-full" />
       <CardHeader className="text-center pt-8">
          <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -132,16 +210,16 @@ function OrderSuccessContent() {
             <p className="text-muted-foreground">Your order has been sent to our baristas. You'll receive a notification when it's ready for pickup.</p>
         </div>
         
-        <div className="p-4 bg-muted/50 rounded-lg text-sm">
+        <div className="p-4 bg-muted/50 rounded-[1.5rem] text-sm">
             <p className="font-semibold text-primary">Steam Points Incoming!</p>
             <p>Your points will be added once our staff completes your order.</p>
         </div>
 
          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Button asChild className="px-8">
+            <Button asChild className="px-8 rounded-full">
                 <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
-             <Button asChild variant="outline">
+             <Button asChild variant="outline" className="rounded-full">
                 <Link href="/dashboard/order">Order More</Link>
             </Button>
         </div>
