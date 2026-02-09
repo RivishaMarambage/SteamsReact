@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -203,11 +202,11 @@ export default function LandingPage() {
         </section>
 
         {/* Create Your Perfect Cup - Full Section Cover Style */}
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground pt-32 lg:pt-48 pb-0 overflow-hidden relative mb-0">
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground min-h-screen flex items-center overflow-hidden relative mb-0">
           <div className="absolute -top-20 -left-40 w-[40rem] h-[40rem] bg-white/10 rounded-full blur-[120px] opacity-50" />
           <div className="absolute -bottom-40 -right-40 w-[50rem] h-[50rem] bg-white/10 rounded-full blur-[150px] opacity-50" />
           
-          <div className="container mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-20 items-center relative z-10">
+          <div className="container mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-20 items-center relative z-10 py-20 lg:py-0">
             <div className="space-y-10">
               <div className="inline-flex items-center gap-3 px-6 py-2 bg-black/20 rounded-full text-sm font-black tracking-widest uppercase backdrop-blur-md">
                 <Sparkles className="h-5 w-5" />
