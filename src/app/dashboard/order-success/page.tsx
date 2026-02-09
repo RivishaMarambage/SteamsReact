@@ -32,13 +32,11 @@ function OrderSuccessContent() {
         // it means we either already cleared it or we are on a bad reload.
         if (status === 'processing') {
             // No data to process, likely already finished or accessed directly.
-            // We don't want to show an error if they just refreshed a success page.
         }
         return;
       }
 
       // 2. ATOMIC LOCK: Set ref and clear storage IMMEDIATELY to prevent double-processing
-      // from rapid effect triggers or re-renders.
       hasProcessed.current = true;
       localStorage.removeItem('checkoutData');
 
@@ -62,9 +60,13 @@ function OrderSuccessContent() {
 
         const batch = writeBatch(firestore);
 
-        // Generate references
-        const rootOrderRef = doc(collection(firestore, 'orders'));
-        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, rootOrderRef.id);
+        /**
+         * IDEMPOTENCY FIX:
+         * Using the transactionId as the document ID for the order.
+         * This prevents duplicate orders if the effect runs twice or the page is refreshed.
+         */
+        const rootOrderRef = doc(firestore, 'orders', transactionId);
+        const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, transactionId);
         const userProfileRef = doc(firestore, 'users', authUser.uid);
 
         // Map items
@@ -90,7 +92,7 @@ function OrderSuccessContent() {
         else pointsToEarn = Math.floor(total / 400);
 
         const orderData = {
-            id: rootOrderRef.id,
+            id: transactionId,
             customerId: authUser.uid,
             orderDate: serverTimestamp(),
             totalAmount: total,
@@ -108,14 +110,15 @@ function OrderSuccessContent() {
             welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
         };
 
+        // Use setDoc instead of addDoc to ensure idempotency with transactionId
         batch.set(rootOrderRef, orderData);
         batch.set(userOrderRef, orderData);
 
-        // 3. User Profile Updates: Deduct points, inc order count, and CLEAR birthday rewards
+        // 3. User Profile Updates: Deduct points, inc order count, and CLEAR rewards
         const userUpdates: any = {
             loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
-            // Unconditionally clear birthday rewards upon any successful order placement
+            // REWARD CLEANUP: Strictly clear birthday rewards so they are ONE-TIME use
             birthdayDiscountValue: null,
             birthdayDiscountType: null,
             birthdayFreebieMenuItemIds: []
@@ -136,7 +139,7 @@ function OrderSuccessContent() {
             const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
             batch.set(transactionRef, {
                 date: serverTimestamp(),
-                description: `Redeemed for Order #${rootOrderRef.id.substring(0, 7).toUpperCase()}`,
+                description: `Redeemed for Order #${transactionId.substring(0, 7).toUpperCase()}`,
                 amount: -checkoutData.loyaltyDiscount,
                 type: 'redeem'
             });
@@ -145,8 +148,6 @@ function OrderSuccessContent() {
         // Commit all changes
         await batch.commit().catch(err => {
             console.error("Batch commit failed:", err);
-            // On catastrophic failure, we might need to restore local storage, 
-            // but usually this is a permission error or network issue.
             throw new FirestorePermissionError({
                 path: rootOrderRef.path,
                 operation: 'write',
