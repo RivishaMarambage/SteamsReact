@@ -202,8 +202,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Create Your Perfect Cup - Full Section */}
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-32 lg:py-48 overflow-hidden relative rounded-[4rem] mx-4 md:mx-8 mb-20">
+        {/* Create Your Perfect Cup - Full Section Cover Style */}
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-32 lg:py-48 overflow-hidden relative mb-20">
           <div className="absolute -top-20 -left-40 w-[40rem] h-[40rem] bg-white/10 rounded-full blur-[120px] opacity-50" />
           <div className="absolute -bottom-40 -right-40 w-[50rem] h-[50rem] bg-white/10 rounded-full blur-[150px] opacity-50" />
           
