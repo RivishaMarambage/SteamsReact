@@ -17,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        headline: ["Archivo Black", "sans-serif"],
+        headline: ["Archivo", "sans-serif"],
         body: ["Montserrat", "sans-serif"],
       },
       colors: {

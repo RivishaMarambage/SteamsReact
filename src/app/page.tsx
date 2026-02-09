@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -23,15 +22,7 @@ export default function LandingPage() {
   const { user } = useUser();
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
   const pathname = usePathname();
-  const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/menu", label: "Menu" },
-    { href: "/updates", label: "Updates" },
-    { href: "/rewards", label: "Rewards" },
-    { href: "/offers", label: "Offers" },
-    { href: "/about", label: "About Us" },
-  ];
-
+  
   const clubSectionRef = useRef<HTMLDivElement>(null);
   const [isClubSectionVisible, setIsClubSectionVisible] = useState(false);
 
@@ -85,7 +76,7 @@ export default function LandingPage() {
             playsInline
             className="absolute inset-0 w-full h-full object-cover scale-105"
           >
-            <source src="/SteamsReact/backgroundHomepage.mp4" type="video/mp4" />
+            <source src="/coffee.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a110a]" />
@@ -93,7 +84,7 @@ export default function LandingPage() {
             <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-medium tracking-wider mb-2 animate-fade-in">
               Est. 2023 • Premium Roastery
             </div>
-            <h1 className="text-4xl xs:text-5xl font-headline font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
+            <h1 className="text-4xl xs:text-5xl font-headline font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
               Brewing Moments,<br />
               <span className="text-[#f59e0b]">One Cup at a Time</span>
             </h1>
@@ -135,10 +126,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-
-
-
-
         <section
           ref={clubSectionRef}
           className={cn(
@@ -146,10 +133,8 @@ export default function LandingPage() {
             isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          {/* Background Pattern */}
           <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(#d97706 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
-          {/* Floating Background Icons */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-20 left-[10%] text-[#d97706]/5 blur-sm animate-float duration-[6000ms]">
               <Star className="w-16 h-16 animate-spin-slow" />
@@ -184,7 +169,6 @@ export default function LandingPage() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => ("/rewards")}
                   className={cn(
                     "glass-card p-8 rounded-3xl group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
                     "hover:-translate-y-3 hover:shadow-2xl hover:shadow-[#d97706]/20",
@@ -192,14 +176,12 @@ export default function LandingPage() {
                   )}
                   style={{ transitionDelay: `${idx * 150}ms` }}
                 >
-                  {/* Animated Glow Effect */}
                   <div className={cn(
                     "absolute -right-10 -top-10 w-32 h-32 rounded-full blur-[50px] transition-all duration-700",
                     "group-hover:blur-[80px] group-hover:scale-[2] group-hover:opacity-100",
                     item.glow
                   )} />
 
-                  {/* Large Background Icon */}
                   <div className={cn(
                     "absolute top-0 right-0 p-6 opacity-10 transition-all duration-700",
                     "group-hover:opacity-25 group-hover:scale-110 group-hover:rotate-12",
@@ -208,7 +190,6 @@ export default function LandingPage() {
                     <item.icon className="w-24 h-24" />
                   </div>
 
-                  {/* Icon Container with Pulse Animation */}
                   <div className={cn(
                     "w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 relative z-10 transition-all duration-500",
                     "border group-hover:border-white/30 group-hover:scale-110 group-hover:rotate-6",
@@ -217,7 +198,6 @@ export default function LandingPage() {
                     item.color
                   )}>
                     <item.icon className="w-7 h-7 transition-transform duration-500 group-hover:scale-110" />
-                    {/* Pulse Ring */}
                     <div className={cn(
                       "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
                       "animate-ping",
@@ -231,15 +211,6 @@ export default function LandingPage() {
                   <p className="text-white/60 leading-relaxed relative z-10 text-sm transition-colors duration-300 group-hover:text-white/80">
                     {item.desc}
                   </p>
-
-                  {/* Interactive Arrow Indicator */}
-                  {/* <div className={cn(
-                    "absolute bottom-4 right-4 opacity-0 transition-all duration-500",
-                    "group-hover:opacity-100 group-hover:translate-x-0 translate-x-2",
-                    item.color
-                  )}>
-                    <ArrowRight className="w-5 h-5" />
-                  </div> */}
                 </div>
               ))}
             </div>
@@ -314,7 +285,7 @@ export default function LandingPage() {
                 <div
                   key={index}
                   className={cn(
-                    "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-3000",
+                    "absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-[3000ms]",
                     index === currentQuoteIndex ? "opacity-100" : "opacity-0"
                   )}
                 >
@@ -335,12 +306,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-
-
-        <OffersHighlight />
-
         <NewsBanner />
-
         <HighlightsSection />
 
       </main>
