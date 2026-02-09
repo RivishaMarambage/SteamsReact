@@ -236,13 +236,13 @@ export default function LandingPage() {
               <div className="absolute w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-2xl border-4 border-white/20 shadow-inner">
                 <Coffee className="w-32 h-32 md:w-48 md:h-48 text-white drop-shadow-2xl opacity-90" />
               </div>
-              <div className="absolute top-10 right-0 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-3 text-lg">
+              <div className="absolute top-16 right-4 md:top-24 md:right-16 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-3 text-lg">
                 <span className="text-2xl text-[#f59e0b]">+</span> Vanilla
               </div>
-              <div className="absolute bottom-20 -right-4 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-1.2s] flex items-center gap-3 text-lg">
+              <div className="absolute bottom-24 right-4 md:bottom-32 md:right-12 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-1.2s] flex items-center gap-3 text-lg">
                 <span className="text-2xl text-[#f59e0b]">+</span> Oat Milk
               </div>
-              <div className="absolute bottom-10 left-0 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.8s] flex items-center gap-3 text-lg">
+              <div className="absolute bottom-12 left-4 md:bottom-20 md:left-12 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.8s] flex items-center gap-3 text-lg">
                 <span className="text-2xl text-[#f59e0b]">+</span> Extra Shot
               </div>
             </div>
