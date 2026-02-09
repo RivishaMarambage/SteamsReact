@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, Suspense, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { writeBatch, doc, collection, serverTimestamp, increment } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 function OrderSuccessContent() {
@@ -22,33 +23,40 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const processOrder = async () => {
-      // Guard to ensure processing only happens once per mount
+      // Guard to ensure processing only happens once per mount and once auth/firestore are ready
       if (hasProcessed.current || !authUser || !firestore) return;
       
-      const transactionId = searchParams.get('id') || searchParams.get('transactionId') || searchParams.get('orderId');
-      const paymentStatus = searchParams.get('state') || searchParams.get('status');
+      // Handle various parameter names returned by different payment flows/gateways
+      const transactionId = searchParams.get('id') || 
+                            searchParams.get('transactionId') || 
+                            searchParams.get('pg_transaction_id') || 
+                            searchParams.get('orderId') || 
+                            `txn_${Date.now()}`;
+                            
+      const paymentStatus = (searchParams.get('state') || searchParams.get('status') || '').toUpperCase();
 
-      console.log("Finalizing Order ID:", transactionId, "Status:", paymentStatus);
+      console.log("Finalizing Order. TxID:", transactionId, "Status:", paymentStatus);
 
       // Check for failure status from payment gateway
       if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-        setErrorMessage(`Payment was not successful. Status: ${paymentStatus}`);
+        setErrorMessage(`Payment was not successful. Gateway Status: ${paymentStatus}`);
         setStatus('error');
         return;
       }
       
       const checkoutDataString = localStorage.getItem('checkoutData');
       if (!checkoutDataString) {
-        setErrorMessage('We couldn\'t find your order details in your browser. If your payment was deducted, please check your Order History or contact staff.');
+        console.warn("No checkout data found in localStorage. Attempting to see if order already exists...");
+        // If order details are missing, we check if the user is just reloading a success page
+        // For simplicity in this prototype, we'll error out, but in production we'd query Firestore
+        setErrorMessage('We couldn\'t find your order details in your browser. This can happen if cookies are disabled or if you navigated back. If your payment was deducted, please check your Order History or contact staff.');
         setStatus('error');
         return;
       }
 
-      hasProcessed.current = true;
-
       try {
         const checkoutData = JSON.parse(checkoutDataString);
-        console.log("Recording order on client for method:", checkoutData.paymentMethod);
+        console.log("Recording order for method:", checkoutData.paymentMethod);
         
         const batch = writeBatch(firestore);
 
@@ -72,7 +80,7 @@ function OrderSuccessContent() {
             appliedDailyOfferId: item.appliedDailyOfferId || null
         }));
 
-        // Business logic for points
+        // Business logic for points to be earned (calculated here but awarded by staff on completion)
         let pointsToEarn = 0;
         const total = checkoutData.cartTotal;
         if (total > 10000) pointsToEarn = Math.floor(total / 100) * 2;
@@ -88,7 +96,7 @@ function OrderSuccessContent() {
             status: "Placed",
             paymentStatus: checkoutData.paymentMethod === 'Cash' ? "Unpaid" : "Paid",
             paymentMethod: checkoutData.paymentMethod || "Online",
-            transactionId: transactionId || `txn_${Date.now()}`,
+            transactionId: transactionId,
             orderItems: orderItems,
             orderType: checkoutData.orderType,
             tableNumber: checkoutData.tableNumber || '',
@@ -103,8 +111,9 @@ function OrderSuccessContent() {
         batch.set(userOrderRef, orderData);
 
         // Updates for user profile
+        // We use increment() to safely adjust balances without needing current value
         const userUpdates: any = {
-            loyaltyPoints: checkoutData.loyaltyPointsBalance ? checkoutData.loyaltyPointsBalance - (checkoutData.loyaltyDiscount || 0) : increment(-(checkoutData.loyaltyDiscount || 0)),
+            loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
         };
 
@@ -131,6 +140,7 @@ function OrderSuccessContent() {
 
         // Commit all changes
         await batch.commit().catch(err => {
+            console.error("Batch commit failed:", err);
             throw new FirestorePermissionError({
                 path: rootOrderRef.path,
                 operation: 'write',
@@ -139,6 +149,7 @@ function OrderSuccessContent() {
         });
 
         console.log("Order recorded successfully on client.");
+        hasProcessed.current = true;
         localStorage.removeItem('checkoutData');
         setStatus('success');
         
@@ -146,8 +157,6 @@ function OrderSuccessContent() {
         console.error("Error finalizing order:", error);
         setErrorMessage(error.message || "An unexpected error occurred while finalizing your order.");
         setStatus('error');
-        // If it's a permission error, it's already emitted by the listener if we didn't catch it, 
-        // but we want to show the error UI here anyway.
       }
     };
 
@@ -159,7 +168,7 @@ function OrderSuccessContent() {
       <div className="flex flex-col items-center justify-center text-center space-y-4 py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <h2 className="text-2xl font-bold font-headline">Finalizing Your Order</h2>
-        <p className="text-muted-foreground">We're recording your transaction and preparing your receipt. Please stay on this page.</p>
+        <p className="text-muted-foreground px-4">We're recording your transaction and preparing your receipt. Please do not close this window.</p>
       </div>
     );
   }
@@ -175,11 +184,11 @@ function OrderSuccessContent() {
             <CardDescription>Something went wrong while recording your order details.</CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
-            <div className="p-4 bg-muted rounded-[1.5rem] text-sm text-left font-mono break-all">
+            <div className="p-4 bg-muted rounded-[1.5rem] text-sm text-left font-mono break-all max-h-40 overflow-y-auto">
                 {errorMessage}
             </div>
             <p className="text-sm text-muted-foreground">
-                If money was deducted from your account, please keep your transaction ID handy and contact our staff.
+                If money was deducted from your account, <strong>please keep your transaction ID handy</strong> and show this screen to our staff.
             </p>
             <div className="flex flex-col gap-2">
                 <Button asChild variant="default" className="rounded-full">

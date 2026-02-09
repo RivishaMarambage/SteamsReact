@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -53,7 +54,8 @@ export default function CheckoutPage() {
             localStorage.setItem('checkoutData', JSON.stringify(updatedData));
             
             // Redirect to success page with synthesized params
-            router.push(`/dashboard/order-success?status=SUCCESS&id=CASH_${Date.now()}`);
+            // Using replace to prevent back-navigation to a processed checkout
+            router.replace(`/dashboard/order-success?status=SUCCESS&id=CASH_${Date.now()}`);
             return;
         }
 
@@ -119,7 +121,7 @@ export default function CheckoutPage() {
     
     let buttonText = `Proceed to Pay LKR ${checkoutData.cartTotal.toFixed(2)}`;
     if (paymentMethod === 'cash') {
-        buttonText = `Confirm Order (Pay Cash at Counter)`;
+        buttonText = `Confirm Order (Pay at Counter)`;
     } else if (paymentMethod === 'card') {
         buttonText = `Pay Online LKR ${checkoutData.cartTotal.toFixed(2)}`;
     }
