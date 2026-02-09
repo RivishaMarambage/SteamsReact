@@ -23,42 +23,43 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const processOrder = async () => {
-      // Guard to ensure processing only happens once per mount and once auth/firestore are ready
+      // 1. Core Guards: Only proceed if auth/firestore are ready and we haven't already processed this mount
       if (hasProcessed.current || !authUser || !firestore) return;
       
-      const transactionId = searchParams.get('id') || 
+      const checkoutDataString = localStorage.getItem('checkoutData');
+      if (!checkoutDataString) {
+        // If data is missing but we are still in processing state, 
+        // it means we either already cleared it or we are on a bad reload.
+        if (status === 'processing') {
+            // No data to process, likely already finished or accessed directly.
+            // We don't want to show an error if they just refreshed a success page.
+        }
+        return;
+      }
+
+      // 2. ATOMIC LOCK: Set ref and clear storage IMMEDIATELY to prevent double-processing
+      // from rapid effect triggers or re-renders.
+      hasProcessed.current = true;
+      localStorage.removeItem('checkoutData');
+
+      try {
+        const checkoutData = JSON.parse(checkoutDataString);
+        
+        const transactionId = searchParams.get('id') || 
                             searchParams.get('transactionId') || 
                             searchParams.get('pg_transaction_id') || 
                             searchParams.get('orderId') || 
                             `txn_${Date.now()}`;
                             
-      const paymentStatus = (searchParams.get('state') || searchParams.get('status') || '').toUpperCase();
+        const paymentStatus = (searchParams.get('state') || searchParams.get('status') || '').toUpperCase();
 
-      // Check for failure status from payment gateway
-      if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-        setErrorMessage(`Payment was not successful. Gateway Status: ${paymentStatus}`);
-        setStatus('error');
-        return;
-      }
-      
-      const checkoutDataString = localStorage.getItem('checkoutData');
-      if (!checkoutDataString) {
-        // If checkoutData is missing, we might have already processed it.
-        // If status is already processing, let it be. If it was redirected back, 
-        // we assume success if we reached this point without error (optimistic).
-        if (status === 'processing' && !hasProcessed.current) {
-            // Check if we already have a success state in UI
-            return;
+        // Check for failure status from payment gateway
+        if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
+          setErrorMessage(`Payment was not successful. Gateway Status: ${paymentStatus}`);
+          setStatus('error');
+          return;
         }
-        return;
-      }
 
-      // Mark as processed IMMEDIATELY to prevent double execution in React StrictMode
-      hasProcessed.current = true;
-
-      try {
-        const checkoutData = JSON.parse(checkoutDataString);
-        
         const batch = writeBatch(firestore);
 
         // Generate references
@@ -110,10 +111,11 @@ function OrderSuccessContent() {
         batch.set(rootOrderRef, orderData);
         batch.set(userOrderRef, orderData);
 
-        // Update user profile: deduct points, increment order count, clear birthday rewards
+        // 3. User Profile Updates: Deduct points, inc order count, and CLEAR birthday rewards
         const userUpdates: any = {
             loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
+            // Unconditionally clear birthday rewards upon any successful order placement
             birthdayDiscountValue: null,
             birthdayDiscountType: null,
             birthdayFreebieMenuItemIds: []
@@ -143,7 +145,8 @@ function OrderSuccessContent() {
         // Commit all changes
         await batch.commit().catch(err => {
             console.error("Batch commit failed:", err);
-            hasProcessed.current = false; // Allow retry on failure
+            // On catastrophic failure, we might need to restore local storage, 
+            // but usually this is a permission error or network issue.
             throw new FirestorePermissionError({
                 path: rootOrderRef.path,
                 operation: 'write',
@@ -151,8 +154,6 @@ function OrderSuccessContent() {
             });
         });
 
-        // Cleanup and finish
-        localStorage.removeItem('checkoutData');
         setStatus('success');
         
       } catch (error: any) {
@@ -163,7 +164,7 @@ function OrderSuccessContent() {
     };
 
     processOrder();
-  }, [searchParams, authUser, firestore, router, status]);
+  }, [searchParams, authUser, firestore, status]);
 
   if (status === 'processing') {
     return (
