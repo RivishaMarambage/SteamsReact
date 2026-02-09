@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from "next/image";
@@ -90,7 +91,7 @@ export default function LandingPage() {
             </h1>
 
             <div className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
-              <span className="block mb-4 font-bold text-white text-2xl uppercase tracking-tighter">
+              <span className="block mb-4 font-bold text-white text-2xl uppercase tracking-tighter text-center">
                 Your Coffee Journey Starts Here ☕
               </span>
 
@@ -109,17 +110,17 @@ export default function LandingPage() {
             <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
               <Button asChild size="lg" className="rounded-full h-16 px-10 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 w-full sm:w-auto">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
-                  View Our Menu <span className="text-xl">🍴</span>
+                  <span className="font-black">View Our Menu</span> <span className="text-xl">🍴</span>
                 </Link>
               </Button>
               <Button asChild size="lg" className="rounded-full h-16 px-10 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-[0_0_40px_rgba(245,158,11,0.4)] w-full sm:w-auto transition-all duration-300 hover:scale-105 active:scale-95">
                 <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
-                  {user ? "Go to Dashboard" : "Become a Member"} <span className="bg-black text-[#f59e0b] rounded-full p-1"><Sparkles className="h-4 w-4 fill-current" /></span>
+                  <span className="font-black">{user ? "Go to Dashboard" : "Become a Member"}</span> <span className="bg-black text-[#f59e0b] rounded-full p-1"><Sparkles className="h-4 w-4 fill-current" /></span>
                 </Link>
               </Button>
               <Button asChild size="lg" className="rounded-full h-16 px-10 bg-white/10 backdrop-blur-xl text-white border-2 border-white/20 font-black text-lg w-full sm:w-auto hover:bg-white/20 transition-all active:scale-95">
                 <Link href="/offers" className="flex items-center justify-center gap-2">
-                  View Offers <span className="text-xl">📅</span>
+                  <span className="font-black">View Offers</span> <span className="text-xl">📅</span>
                 </Link>
               </Button>
             </div>
@@ -193,7 +194,7 @@ export default function LandingPage() {
             )}>
               <Button asChild size="lg" className="rounded-full h-16 px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-xl font-black transition-all duration-300 hover:scale-110 active:scale-95">
                 <Link href="/rewards" className="flex items-center gap-3">
-                  Explore All Benefits
+                  <span className="font-black">Explore All Benefits</span>
                   <Sparkles className="w-6 h-6 animate-pulse" />
                 </Link>
               </Button>
@@ -201,49 +202,68 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-24 lg:py-32 overflow-hidden relative rounded-[4rem] mx-4 md:mx-8 mb-20">
-          <div className="absolute -top-20 -left-40 w-80 h-80 bg-white/10 rounded-full opacity-50" />
-          <div className="absolute -bottom-20 -right-40 w-96 h-96 bg-white/10 rounded-full opacity-50" />
-          <div className="container mx-auto px-4 md:px-6 grid md:grid-cols-2 gap-16 items-center relative">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-3 px-6 py-2 bg-black/20 rounded-full text-sm font-black tracking-widest uppercase">
+        {/* Create Your Perfect Cup - Full Section */}
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-32 lg:py-48 overflow-hidden relative rounded-[4rem] mx-4 md:mx-8 mb-20">
+          <div className="absolute -top-20 -left-40 w-[40rem] h-[40rem] bg-white/10 rounded-full blur-[120px] opacity-50" />
+          <div className="absolute -bottom-40 -right-40 w-[50rem] h-[50rem] bg-white/10 rounded-full blur-[150px] opacity-50" />
+          
+          <div className="container mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-20 items-center relative z-10">
+            <div className="space-y-10">
+              <div className="inline-flex items-center gap-3 px-6 py-2 bg-black/20 rounded-full text-sm font-black tracking-widest uppercase backdrop-blur-md">
                 <Sparkles className="h-5 w-5" />
                 NEW FEATURE
               </div>
-              <h2 className="text-5xl lg:text-7xl font-black font-headline leading-tight">Create Your Perfect Cup</h2>
-              <p className="text-xl text-accent-foreground/90 font-medium leading-relaxed">
-                Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours. From syrups to milk alternatives, every detail is in your hands.
+              <h2 className="text-6xl lg:text-8xl font-black font-headline leading-[1.05] tracking-tight">
+                Create Your <br />Perfect Cup
+              </h2>
+              <p className="text-xl lg:text-2xl text-accent-foreground/90 font-medium leading-relaxed max-w-xl">
+                Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours. Every detail is in your hands.
               </p>
-              <div className="flex flex-wrap gap-4 text-sm uppercase tracking-widest font-black">
-                <div className="flex items-center gap-3 px-6 py-3 bg-black/20 rounded-full">
-                  <Coffee className="h-6 w-6" />
+              
+              <div className="flex flex-wrap gap-6 text-sm uppercase tracking-widest font-black">
+                <div className="flex items-center gap-3 px-8 py-4 bg-black/20 rounded-3xl backdrop-blur-md border border-white/10">
+                  <Coffee className="h-7 w-7" />
                   <span>4 Bases</span>
                 </div>
-                <div className="flex items-center gap-3 px-6 py-3 bg-black/20 rounded-full">
-                  <SlidersHorizontal className="h-6 w-6" />
+                <div className="flex items-center gap-3 px-8 py-4 bg-black/20 rounded-3xl backdrop-blur-md border border-white/10">
+                  <SlidersHorizontal className="h-7 w-7" />
                   <span>12+ Add-ons</span>
                 </div>
-                <div className="flex items-center gap-3 px-6 py-3 bg-black/20 rounded-full">
-                  <DollarSign className="h-6 w-6" />
+                <div className="flex items-center gap-3 px-8 py-4 bg-black/20 rounded-3xl backdrop-blur-md border border-white/10">
+                  <DollarSign className="h-7 w-7" />
                   <span>From Rs 400</span>
                 </div>
               </div>
-              <Button asChild size="lg" className="rounded-full h-16 px-12 bg-white text-[#d97706] hover:bg-white/90 font-black text-lg border-none shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95">
-                <Link href="/signup/customer" className="flex items-center gap-3 uppercase tracking-tighter">Start Building Now <ArrowRight className="h-6 w-6" /></Link>
-              </Button>
+              
+              <div className="pt-6">
+                <Button asChild size="lg" className="rounded-full h-20 px-16 bg-white text-[#d97706] hover:bg-white/90 font-black text-2xl border-none shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-105 active:scale-95 group">
+                  <Link href="/signup/customer" className="flex items-center gap-4 uppercase tracking-tighter">
+                    Start Building <ArrowRight className="h-8 w-8 transition-transform group-hover:translate-x-2" />
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-center items-center relative h-[400px] md:h-[550px] mt-8 md:mt-0">
-              <div className="absolute w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-2xl border-4 border-white/20 shadow-inner">
-                <Coffee className="w-32 h-32 md:w-48 md:h-48 text-white drop-shadow-2xl opacity-90" />
-              </div>
-              <div className="absolute top-16 right-4 md:top-24 md:right-16 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-3 text-lg">
-                <span className="text-2xl text-[#f59e0b]">+</span> Vanilla
-              </div>
-              <div className="absolute bottom-24 right-4 md:bottom-32 md:right-12 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-1.2s] flex items-center gap-3 text-lg">
-                <span className="text-2xl text-[#f59e0b]">+</span> Oat Milk
-              </div>
-              <div className="absolute bottom-12 left-4 md:bottom-20 md:left-12 bg-white text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.8s] flex items-center gap-3 text-lg">
-                <span className="text-2xl text-[#f59e0b]">+</span> Extra Shot
+
+            <div className="flex justify-center items-center relative h-[500px] md:h-[700px]">
+              {/* Central Glow */}
+              <div className="absolute w-[30rem] h-[30rem] bg-white/20 rounded-full blur-[100px] animate-pulse" />
+              
+              {/* Cup Container */}
+              <div className="relative z-10 w-80 h-80 md:w-[30rem] md:h-[30rem] bg-white/10 rounded-full flex items-center justify-center backdrop-blur-3xl border-4 border-white/30 shadow-[inset_0_0_80px_rgba(255,255,255,0.2)]">
+                <Coffee className="w-48 h-48 md:w-72 md:h-72 text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] opacity-95 transition-transform hover:scale-110 duration-700" />
+                
+                {/* Floating Tags - Tightened clustering */}
+                <div className="absolute top-10 -right-4 md:top-20 md:right-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-3 text-lg md:text-xl border border-white">
+                  <span className="text-2xl text-[#f59e0b]">+</span> Vanilla
+                </div>
+                
+                <div className="absolute bottom-16 -right-8 md:bottom-24 md:right-0 bg-white/90 backdrop-blur-xl text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-1.2s] flex items-center gap-3 text-lg md:text-xl border border-white">
+                  <span className="text-2xl text-[#f59e0b]">+</span> Oat Milk
+                </div>
+                
+                <div className="absolute bottom-4 -left-10 md:bottom-12 md:left-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-6 py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.8s] flex items-center gap-3 text-lg md:text-xl border border-white">
+                  <span className="text-2xl text-[#f59e0b]">+</span> Extra Shot
+                </div>
               </div>
             </div>
           </div>
