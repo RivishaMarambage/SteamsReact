@@ -106,18 +106,18 @@ export default function LandingPage() {
               </span>
             </p>
 
-            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
-              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">
+            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4 ring-offset-background">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-bold btn-glow w-full sm:w-auto">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
                   View Our Menu <span className="text-xl">🍴</span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold border-none shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto transition-all duration-300 hover:scale-105">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-bold border-none shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto transition-all duration-300 hover:scale-105">
                 <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
                   {user ? "Go to Dashboard" : "Become a Member"} <span className="bg-black text-[#f59e0b] rounded-full p-0.5"><Sparkles className="h-3 w-3 fill-current" /></span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 glass-btn text-white border-white/20 w-full sm:w-auto">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 glass-btn text-white border-white/20 font-bold w-full sm:w-auto">
                 <Link href="/offers" className="flex items-center justify-center gap-2">
                   View Offers <span className="text-xl">📅</span>
                 </Link>
