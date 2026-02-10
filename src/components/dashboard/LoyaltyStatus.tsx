@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,12 +36,12 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
 
   if (isLoading || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
-        <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
-            <CardHeader className="p-6 sm:p-8">
+        <Card className="rounded-[2.5rem]">
+            <CardHeader className="p-6 md:p-8">
                  <Skeleton className="h-8 w-1/2" />
                  <Skeleton className="h-4 w-1/3 mt-2" />
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
+            <CardContent className="p-6 md:p-8 pt-0">
                 <div className="space-y-4">
                     <Skeleton className="h-8 w-1/4" />
                     <Skeleton className="h-3 w-full" />
@@ -74,42 +73,37 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   }
 
   return (
-    <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
-      <CardHeader className="p-6 sm:p-8">
+    <Card className="shadow-lg rounded-[2.5rem]">
+      <CardHeader className="p-6 md:p-8">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-            <div>
-                <CardTitle className="font-headline text-xl sm:text-2xl">Your Loyalty Status</CardTitle>
-                <CardDescription className="text-sm">Earn points with every purchase.</CardDescription>
+            <div className="space-y-1">
+                <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight">Your Loyalty Status</CardTitle>
+                <CardDescription className="text-sm">Earn points with every rupee spent.</CardDescription>
             </div>
-            <div className="flex flex-col items-start sm:items-end">
-              <div className="flex items-center gap-2 text-lg sm:text-xl font-black capitalize text-primary bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
-                  <Icon className="h-5 w-5 sm:h-6 sm:size-6" />
-                  <span>{currentTier.name}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mt-2 px-1">
-                 <Trophy className="h-3 w-3" />
-                 <span>{user.lifetimePoints ?? 0} Lifetime Points</span>
-              </div>
+            <div className="flex flex-row items-center gap-3 bg-primary/5 px-4 py-2 rounded-full border border-primary/10 w-fit">
+                <Icon className="h-5 w-5 md:h-6 md:size-6 text-primary" />
+                <span className="font-black capitalize text-primary text-lg">{currentTier.name}</span>
             </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
+      <CardContent className="p-6 md:p-8 pt-0">
         <div className="space-y-6">
-          <div className="text-2xl sm:text-3xl font-black text-primary uppercase tracking-tight">
-            {userPoints} <span className="text-sm font-bold text-muted-foreground">Redeemable Points</span>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-2">
+            <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter">{userPoints}</span>
+            <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Redeemable Steam Points</span>
           </div>
           
           <div className="space-y-3">
-            <Progress value={progress} className="h-3 sm:h-4 bg-muted border border-border" />
-            {nextTier ? (
-                <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
-                    You're <strong>{pointsToNext}</strong> points away from the <strong className="text-primary">{nextTier.name}</strong> tier!
-                </p>
-            ) : (
-                <p className="text-xs sm:text-sm text-primary font-bold">
-                    You've reached the highest loyalty tier! Congratulations!
-                </p>
-            )}
+            <Progress value={progress} className="h-3 bg-muted border border-border" />
+            <div className="flex justify-between items-center text-xs md:text-sm font-bold uppercase tracking-tight">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Trophy className="h-3.5 w-3.5" />
+                    <span>{lifetimePoints} Total Lifetime Points</span>
+                </div>
+                {nextTier && (
+                    <span className="text-primary">{pointsToNext} to {nextTier.name}</span>
+                )}
+            </div>
           </div>
         </div>
       </CardContent>

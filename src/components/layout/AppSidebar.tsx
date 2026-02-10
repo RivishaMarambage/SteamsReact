@@ -91,8 +91,8 @@ export default function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0 bg-[#160C08] text-[#FDFBF7]">
       <SidebarRail className="hover:after:bg-[#d97706]" />
       <SidebarHeader className="bg-[#160C08] py-6 px-4">
-        <div className="flex items-center gap-3">
-          <Logo link="/dashboard" className="text-[#FDFBF7]" />
+        <div className="flex items-center gap-3 overflow-hidden">
+          <Logo link="/dashboard" className="text-[#FDFBF7] shrink-0" />
         </div>
       </SidebarHeader>
       <SidebarContent className="bg-[#160C08] px-2">
@@ -124,8 +124,8 @@ export default function AppSidebar() {
                   )}
                 >
                   <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
-                    <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110", isActive(item.href) && "animate-pulse-slow")} />
-                    <span className="text-sm font-bold tracking-wide">{item.label}</span>
+                    <item.icon className={cn("h-5 w-5 shrink-0 transition-transform duration-300 group-hover/btn:scale-110", isActive(item.href) && "animate-pulse")} />
+                    <span className="text-sm font-bold tracking-wide truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -150,8 +150,8 @@ export default function AppSidebar() {
                       )}
                     >
                       <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
-                        <item.icon className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110" />
-                        <span className="text-sm font-bold tracking-wide">{item.label}</span>
+                        <item.icon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover/btn:scale-110" />
+                        <span className="text-sm font-bold tracking-wide truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -171,8 +171,8 @@ export default function AppSidebar() {
                   className="h-11 w-full justify-start gap-4 rounded-xl px-4 text-[#FDFBF7]/40 hover:text-white hover:bg-white/5 transition-all"
                 >
                   <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
-                    <item.icon className="h-4 w-4" />
-                    <span className="text-xs font-bold tracking-wide">{item.label}</span>
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className="text-xs font-bold tracking-wide truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -186,7 +186,7 @@ export default function AppSidebar() {
             <div className="h-9 w-9 rounded-full bg-[#d97706] flex items-center justify-center text-white font-black text-sm shadow-lg shrink-0">
               {userProfile.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden transition-all duration-300">
+            <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden transition-all duration-300">
               <span className="text-xs font-black text-white truncate">{userProfile.name}</span>
               <span className="text-[10px] font-bold text-[#d97706] truncate capitalize opacity-80">{userProfile.role}</span>
             </div>
@@ -200,7 +200,7 @@ export default function AppSidebar() {
                     tooltip="Log Out"
                     className="h-11 w-full justify-start gap-4 rounded-xl px-4 text-rose-400 hover:text-white hover:bg-rose-500/20 transition-all duration-300 group/logout"
                 >
-                    <LogOut className="h-5 w-5 transition-transform group-hover/logout:-translate-x-1" />
+                    <LogOut className="h-5 w-5 shrink-0 transition-transform group-hover/logout:-translate-x-1" />
                     <span className="text-sm font-bold tracking-wide group-data-[collapsible=icon]:hidden">Log Out</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>

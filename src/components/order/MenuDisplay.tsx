@@ -496,7 +496,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
 
   return (
-    <>
+    <div className="w-full">
       <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md w-[90%] rounded-[2.5rem]" hideCloseButton>
            {dialogStep === 'type' && (
@@ -543,13 +543,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       {!isOrderTypeDialogOpen && (
         <>
             <div className="mb-8">
-                <Card className="rounded-[2rem] sm:rounded-[2.5rem]">
-                    <CardHeader className="p-6 sm:p-8">
-                        <CardTitle className="font-headline text-lg sm:text-2xl">Your Order Details</CardTitle>
+                <Card className="rounded-[2rem]">
+                    <CardHeader className="p-6">
+                        <CardTitle className="font-headline text-lg sm:text-2xl uppercase tracking-tight">Order Details</CardTitle>
                         <CardDescription className="text-xs sm:text-sm">
-                            You are placing a <span className="font-bold text-primary uppercase">{orderType}</span> order.
+                            Order Type: <span className="font-bold text-primary uppercase">{orderType}</span>
                             {orderType === 'Dine-in' && tableNumber && (
-                                <> You are seated at <span className="font-bold text-primary">Table #{tableNumber}</span>.</>
+                                <> • Table: <span className="font-bold text-primary">#{tableNumber}</span></>
                             )}
                         </CardDescription>
                     </CardHeader>
@@ -557,97 +557,93 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
-                    <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:flex sm:justify-center h-auto p-1 bg-muted rounded-full">
+                <div className="mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:flex sm:justify-start h-auto p-1 bg-muted rounded-full">
                         {categories?.map(category => (
                         <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap rounded-full px-4 sm:px-6 py-2">{category.name}</TabsTrigger>
                         ))}
                     </TabsList>
                 </div>
                 {categories?.map(subCategory => (
-                <TabsContent key={subCategory.id} value={subCategory.id}>
-                    <div className="space-y-8">
-                        <div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                            {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
-                                const today = new Date();
-                                const todayString = format(today, 'yyyy-MM-dd');
-                                
-                                const offer = dailyOffers.find(o => {
-                                    if (!o.offerStartDate || !o.offerEndDate) return false;
-                                    if (o.menuItemId !== item.id) return false;
-                                    if (o.orderType !== orderType) return false;
-                                    
-                                    const isOfferActive = isWithinInterval(today, {
-                                        start: parseISO(o.offerStartDate),
-                                        end: parseISO(o.offerEndDate),
-                                    });
-                                
-                                    return isOfferActive;
-                                });
+                <TabsContent key={subCategory.id} value={subCategory.id} className="focus-visible:outline-none">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                    {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
+                        const today = new Date();
+                        const todayString = format(today, 'yyyy-MM-dd');
+                        
+                        const offer = dailyOffers.find(o => {
+                            if (!o.offerStartDate || !o.offerEndDate) return false;
+                            if (o.menuItemId !== item.id) return false;
+                            if (o.orderType !== orderType) return false;
+                            
+                            const isOfferActive = isWithinInterval(today, {
+                                start: parseISO(o.offerStartDate),
+                                end: parseISO(o.offerEndDate),
+                            });
+                        
+                            return isOfferActive;
+                        });
 
-                                const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
-                                
-                                const originalPrice = item.price;
-                                let displayPrice = originalPrice;
-                                let isOfferApplied = false;
-                                let appliedOfferId;
-                                
-                                if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
-                                    const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
-                                    if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
-                                        if (offer.discountType === 'percentage') {
-                                            displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
-                                        } else { // fixed
-                                            displayPrice = originalPrice - userTierDiscount;
-                                        }
-                                        isOfferApplied = true;
-                                        appliedOfferId = offer.id;
-                                    }
+                        const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
+                        
+                        const originalPrice = item.price;
+                        let displayPrice = originalPrice;
+                        let isOfferApplied = false;
+                        let appliedOfferId;
+                        
+                        if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
+                            const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId];
+                            if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
+                                if (offer.discountType === 'percentage') {
+                                    displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
+                                } else { // fixed
+                                    displayPrice = originalPrice - userTierDiscount;
                                 }
+                                isOfferApplied = true;
+                                appliedOfferId = offer.id;
+                            }
+                        }
 
-                                displayPrice = Math.max(0, displayPrice);
+                        displayPrice = Math.max(0, displayPrice);
 
-                                return (
-                                <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-[2rem]", item.isOutOfStock && "opacity-60")}>
-                                    <div className="relative w-full h-40 sm:h-48">
-                                        <Image
-                                            src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
-                                            alt={item.name}
-                                            fill
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                            className="object-cover"
-                                            data-ai-hint="food item"
-                                        />
-                                        {item.isOutOfStock && (
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                <Badge variant="destructive">Out of Stock</Badge>
-                                            </div>
-                                        )}
-                                        {isOfferApplied && !item.isOutOfStock && (
-                                            <Badge variant="destructive" className="absolute top-3 right-3 flex items-center gap-1 shadow-md">
-                                            <Tag className="h-3 w-3"/> Daily Special
-                                            </Badge>
-                                        )}
+                        return (
+                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-[2rem]", item.isOutOfStock && "opacity-60")}>
+                            <div className="relative w-full h-44 sm:h-48">
+                                <Image
+                                    src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
+                                    alt={item.name}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                    className="object-cover"
+                                    data-ai-hint="food item"
+                                />
+                                {item.isOutOfStock && (
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                        <Badge variant="destructive">Out of Stock</Badge>
                                     </div>
-                                    <CardContent className="p-5 flex-grow">
-                                    <CardTitle className="font-headline text-lg sm:text-xl mb-1 uppercase tracking-tight">{item.name}</CardTitle>
-                                    <CardDescription className="text-xs sm:text-sm line-clamp-2">{item.description}</CardDescription>
-                                    </CardContent>
-                                    <CardFooter className="p-5 flex justify-between items-center border-t bg-muted/10">
-                                    <div className="font-bold text-lg text-primary">
-                                        {isOfferApplied && <span className="block text-[10px] text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
-                                        LKR {displayPrice.toFixed(2)}
-                                    </div>
-                                    <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="h-10 px-5 rounded-full shadow-sm">
-                                        {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
-                                    </Button>
-                                    </CardFooter>
-                                </Card>
-                                );
-                            })}
+                                )}
+                                {isOfferApplied && !item.isOutOfStock && (
+                                    <Badge variant="destructive" className="absolute top-3 right-3 flex items-center gap-1 shadow-md">
+                                    <Tag className="h-3 w-3"/> Daily Special
+                                    </Badge>
+                                )}
                             </div>
-                        </div>
+                            <CardContent className="p-5 flex-grow">
+                            <CardTitle className="font-headline text-lg sm:text-xl mb-1 uppercase tracking-tight">{item.name}</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm line-clamp-2">{item.description}</CardDescription>
+                            </CardContent>
+                            <CardFooter className="p-5 flex justify-between items-center border-t bg-muted/10">
+                            <div className="font-bold text-lg text-primary">
+                                {isOfferApplied && <span className="block text-[10px] text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
+                                LKR {displayPrice.toFixed(2)}
+                            </div>
+                            <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="h-10 px-5 rounded-full shadow-sm">
+                                {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
+                            </Button>
+                            </CardFooter>
+                        </Card>
+                        );
+                    })}
                     </div>
                 </TabsContent>
                 ))}
@@ -666,10 +662,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0">
+        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 rounded-l-[2rem]">
           <div className="p-6 border-b">
             <SheetTitle className="font-headline text-2xl uppercase tracking-tighter">Your Order</SheetTitle>
-            <SheetDescription className="text-xs sm:text-sm">Review your items before placing your {orderType} order.</SheetDescription>
+            <SheetDescription className="text-xs sm:text-sm">Review your items before placing order.</SheetDescription>
           </div>
           <ScrollArea className="flex-1 px-6">
             <div className="py-6">
@@ -707,7 +703,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             )}
                             <p className="text-xs font-bold text-primary">LKR {item.totalPrice.toFixed(2)}</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-muted p-1 rounded-full">
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-full shrink-0">
                             <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
                             {item.quantity === 1 ? <Trash2 className="h-3 w-3 text-destructive" /> : <Minus className="h-3 w-3" />}
                             </Button>
@@ -725,60 +721,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
           </ScrollArea>
           {cart.length > 0 && (
             <div className="p-6 border-t bg-muted/5 space-y-4">
-                  {potentialWelcomeOffer && !isEmailVerified && (
-                     <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20 shadow-sm">
-                      <h3 className="font-headline text-sm text-yellow-700 flex items-center gap-2"><MailWarning className="size-4" /> Verify Email</h3>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Get <span className="font-bold text-yellow-700">{potentialWelcomeOffer.discount}% off</span>. Verify your email to apply.
-                      </p>
-                    </div>
-                  )}
-
-                  {applicableWelcomeOffer && (
-                    <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shadow-sm animate-in zoom-in-95">
-                      <h3 className="font-headline text-sm text-blue-700 flex items-center gap-2"><Percent className="size-4" /> Welcome Discount</h3>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        <span className='font-bold text-blue-700'>{applicableWelcomeOffer.discount}% discount</span> automatically applied.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {birthdayDiscountAmount > 0 && (
-                     <div className="p-3 bg-accent/10 rounded-2xl border border-accent/20 shadow-sm animate-in zoom-in-95">
-                      <h3 className="font-headline text-sm text-accent flex items-center gap-2"><Gift className="size-4" /> Birthday Gift</h3>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Your <span className="font-bold text-accent">LKR {birthdayDiscountAmount.toFixed(2)}</span> credit applied.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                      <div className='flex items-center justify-between'>
-                        <h3 className="font-headline text-xs uppercase tracking-widest text-muted-foreground">Redeem Points</h3>
-                        <span className='text-[10px] text-primary font-bold'>{userProfile?.loyaltyPoints ?? 0} available</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <Input 
-                              id="redeem-points"
-                              type="number"
-                              placeholder="Amount"
-                              className="h-10 rounded-full text-xs"
-                              value={pointsToRedeemInput}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '' || (Number(val) >= 0 && Number(val) <= (userProfile?.loyaltyPoints ?? 0))) {
-                                    setPointsToRedeemInput(val);
-                                }
-                              }}
-                              disabled={!canRedeemPoints}
-                          />
-                          <Button variant="secondary" size="sm" onClick={handleRedeemPoints} disabled={!canRedeemPoints} className="h-10 rounded-full px-4"><Ticket className='mr-2 h-3 w-3' /> Apply</Button>
-                      </div>
-                      {!canRedeemPoints && userProfile && (
-                        <p className="text-[10px] text-destructive italic font-medium px-2">Reach Bronze Tier to unlock redemptions.</p>
-                       )}
-                  </div>
-                  <Separator />
                   <div className="w-full space-y-2 text-xs sm:text-sm">
                       <div className="flex justify-between text-muted-foreground">
                           <span>Subtotal</span>
@@ -809,10 +751,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                   </div>
                    <Button size="lg" className="w-full h-14 rounded-full text-lg uppercase tracking-tight shadow-xl shadow-primary/20" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
                       {isProcessing ? (
-                          <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Redirecting...
-                          </>
+                          <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting...</>
                       ) : (
                           <>Checkout <ArrowRight className="ml-2 h-5 w-5" /></>
                       )}
@@ -827,7 +766,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
           <div className="p-6 border-b bg-muted/10">
             <DialogTitle className="font-headline text-xl sm:text-2xl uppercase tracking-tighter">Customize {customizingItem?.menuItem.name}</DialogTitle>
             <DialogDescription className="text-xs">
-                Make it just right. The final price updates based on your choices.
+                Make it just right.
             </DialogDescription>
           </div>
           <ScrollArea className="max-h-[60vh]">
@@ -867,13 +806,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                                 checked={isChecked}
                                                 onCheckedChange={() => !isDisabled && handleAddonToggle(addon)}
                                                 disabled={isDisabled}
-                                                className="rounded-md"
+                                                className="rounded-md shrink-0"
                                             />
                                             <div className="flex-grow flex justify-between items-center min-w-0">
                                                 <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-sm font-bold truncate", isDisabled && "cursor-not-allowed")}>
                                                     {addon.name}
                                                 </Label>
-                                                <span className="text-xs font-black text-primary ml-2">+ LKR {addon.price.toFixed(0)}</span>
+                                                <span className="text-xs font-black text-primary ml-2 shrink-0">+ LKR {addon.price.toFixed(0)}</span>
                                             </div>
                                         </div>
                                     )
@@ -886,10 +825,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
           </ScrollArea>
           <div className="p-6 border-t bg-muted/10 flex flex-col sm:flex-row gap-3">
             <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="rounded-full flex-1 h-12 uppercase font-bold text-xs">Cancel</Button>
-            <Button onClick={confirmAddToCart} className="rounded-full flex-1 h-12 uppercase font-black text-xs shadow-lg">Confirm Selections</Button>
+            <Button onClick={confirmAddToCart} className="rounded-full flex-1 h-12 uppercase font-black text-xs shadow-lg">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

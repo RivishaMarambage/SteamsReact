@@ -84,7 +84,7 @@ export default function LandingPage() {
             <div className="inline-block px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-bold tracking-widest mb-2 animate-fade-in uppercase">
               Est. 2023 • Premium Roastery
             </div>
-            <h1 className="text-3xl xs:text-5xl font-headline font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
+            <h1 className="text-4xl xs:text-5xl font-headline font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
               Brewing Moments,<br />
               <span className="text-[#f59e0b]">One Cup at a Time</span>
             </h1>
@@ -109,17 +109,12 @@ export default function LandingPage() {
             <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4 w-full sm:w-auto">
               <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 w-full sm:w-auto">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
-                  <span className="font-black">View Our Menu</span> <span className="text-xl">🍴</span>
+                  <span className="font-black">View Menu</span> <span className="text-xl">🍴</span>
                 </Link>
               </Button>
               <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-[0_0_40px_rgba(245,158,11,0.4)] w-full sm:w-auto transition-all duration-300 hover:scale-105 active:scale-95">
                 <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
-                  <span className="font-black">{user ? "Go to Dashboard" : "Become a Member"}</span> <span className="bg-black text-[#f59e0b] rounded-full p-1"><Sparkles className="h-4 w-4 fill-current" /></span>
-                </Link>
-              </Button>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-white/10 backdrop-blur-xl text-white border-2 border-white/20 font-black text-lg w-full sm:w-auto hover:bg-white/20 transition-all active:scale-95">
-                <Link href="/offers" className="flex items-center justify-center gap-2">
-                  <span className="font-black">View Offers</span> <span className="text-xl">📅</span>
+                  <span className="font-black">{user ? "Dashboard" : "Join Club"}</span> <span className="bg-black text-[#f59e0b] rounded-full p-1"><Sparkles className="h-4 w-4 fill-current" /></span>
                 </Link>
               </Button>
             </div>
@@ -143,10 +138,10 @@ export default function LandingPage() {
               <h2 className="text-4xl xs:text-5xl md:text-7xl font-headline font-black mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter">
                 Why Join The Club?
               </h2>
-              <p className="text-white/60 text-lg md:text-2xl max-w-3xl mx-auto font-medium">Three futuristic reasons to make every single sip count.</p>
+              <p className="text-white/60 text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4">Three futuristic reasons to make every single sip count.</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16">
               {[
                 { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire and unlock instant value.", color: "text-amber-400", glow: "bg-amber-500/20", borderColor: "border-amber-500/30" },
                 { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, artisanal food, or limited merchandise.", color: "text-rose-400", glow: "bg-rose-500/20", borderColor: "border-rose-500/30" },
@@ -155,7 +150,7 @@ export default function LandingPage() {
                 <div
                   key={idx}
                   className={cn(
-                    "glass-card p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
+                    "glass-card p-8 sm:p-10 rounded-[2.5rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
                     "hover:-translate-y-4 hover:shadow-[0_20px_80px_rgba(217,119,6,0.15)]",
                     isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                   )}
@@ -168,9 +163,8 @@ export default function LandingPage() {
                   )} />
 
                   <div className={cn(
-                    "w-16 h-16 sm:w-20 sm:h-20 rounded-[1.5rem] sm:rounded-[2rem] bg-white/5 flex items-center justify-center mb-8 relative z-10 transition-all duration-500",
-                    "border group-hover:border-white/30 group-hover:scale-110 group-hover:rotate-12",
-                    "group-hover:shadow-2xl shadow-inner",
+                    "w-16 h-16 sm:w-20 rounded-[1.5rem] bg-white/5 flex items-center justify-center mb-8 relative z-10 transition-all duration-500",
+                    "border group-hover:border-white/30 group-hover:scale-110",
                     item.borderColor,
                     item.color
                   )}>
@@ -191,9 +185,9 @@ export default function LandingPage() {
               "text-center transition-all duration-700 delay-500",
               isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-lg sm:text-xl font-black transition-all duration-300 hover:scale-110 active:scale-95">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-lg font-black transition-all duration-300 hover:scale-110 active:scale-95">
                 <Link href="/rewards" className="flex items-center gap-3">
-                  <span className="font-black">Explore All Benefits</span>
+                  <span className="font-black uppercase tracking-tight">Explore Benefits</span>
                   <Sparkles className="w-6 h-6 animate-pulse" />
                 </Link>
               </Button>
@@ -203,77 +197,65 @@ export default function LandingPage() {
 
         <NewsBanner />
 
-        {/* Create Your Perfect Cup - Full Section Cover Style */}
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground min-h-screen flex items-center overflow-hidden relative mb-0">
+        {/* Create Your Perfect Cup - Enhanced Responsive Section */}
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground min-h-screen flex items-center overflow-hidden relative py-20 lg:py-0">
           <div className="absolute -top-20 -left-40 w-[20rem] sm:w-[40rem] h-[20rem] sm:h-[40rem] bg-white/10 rounded-full blur-[80px] sm:blur-[120px] opacity-50" />
           <div className="absolute -bottom-40 -right-40 w-[25rem] sm:w-[50rem] h-[25rem] sm:h-[50rem] bg-white/10 rounded-full blur-[100px] sm:blur-[150px] opacity-50" />
           
-          <div className="container mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 py-20 lg:py-0 text-center lg:text-left">
-            <div className="space-y-6 sm:space-y-10">
+          <div className="container mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 text-center lg:text-left">
+            <div className="space-y-6 sm:space-y-10 order-2 lg:order-1">
               <div className="inline-flex items-center gap-3 px-6 py-2 bg-black/20 rounded-full text-xs sm:text-sm font-black tracking-widest uppercase backdrop-blur-md mx-auto lg:mx-0">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:size-5" />
+                <Sparkles className="h-4 w-4" />
                 NEW FEATURE
               </div>
               <h2 className="text-4xl xs:text-6xl lg:text-8xl font-black font-headline leading-[1.05] tracking-tight uppercase">
-                Create Your <br />Perfect Cup
+                Create Your <br className="hidden sm:block" />Perfect Cup
               </h2>
-              <p className="text-lg lg:text-2xl text-accent-foreground/90 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours. Every detail is in your hands.
+              <p className="text-lg lg:text-2xl text-accent-foreground/90 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 px-4">
+                Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours.
               </p>
               
-              <div className="flex flex-wrap justify-center lg:justify-start gap-4 sm:gap-6 text-[10px] sm:text-sm uppercase tracking-widest font-black">
-                <div className="flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-white/10 whitespace-nowrap">
-                  <Coffee className="h-5 w-5 sm:h-7 sm:size-7" />
-                  <span>4 Bases</span>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-6 text-[10px] sm:text-sm uppercase tracking-widest font-black px-4">
+                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl backdrop-blur-md border border-white/10 whitespace-nowrap">
+                  <Coffee className="h-5 w-5 sm:h-7" />
+                  <span>Bases</span>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-white/10 whitespace-nowrap">
-                  <SlidersHorizontal className="h-5 w-5 sm:h-7 sm:size-7" />
-                  <span>12+ Add-ons</span>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-white/10 whitespace-nowrap">
-                  <DollarSign className="h-5 w-5 sm:h-7 sm:size-7" />
-                  <span>From Rs 400</span>
+                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl backdrop-blur-md border border-white/10 whitespace-nowrap">
+                  <SlidersHorizontal className="h-5 w-5 sm:h-7" />
+                  <span>Add-ons</span>
                 </div>
               </div>
               
-              <div className="pt-6">
-                <Button asChild size="lg" className="rounded-full h-16 sm:h-20 px-12 sm:px-16 bg-white text-[#d97706] hover:bg-white/90 font-black text-xl sm:text-2xl border-none shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-105 active:scale-95 group w-full sm:w-auto">
+              <div className="pt-6 px-4">
+                <Button asChild size="lg" className="rounded-full h-16 sm:h-20 px-12 bg-white text-[#d97706] hover:bg-white/90 font-black text-xl border-none shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-105 group w-full sm:w-auto">
                   <Link href="/signup/customer" className="flex items-center justify-center gap-4 uppercase tracking-tighter">
-                    Start Building <ArrowRight className="h-6 w-6 sm:h-8 sm:size-8 transition-transform group-hover:translate-x-2" />
+                    Start Building <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-2" />
                   </Link>
                 </Button>
               </div>
             </div>
 
-            <div className="flex justify-center items-center relative h-[350px] sm:h-[500px] md:h-[700px]">
-              {/* Central Glow */}
-              <div className="absolute w-[20rem] sm:w-[30rem] h-[20rem] sm:h-[30rem] bg-white/20 rounded-full blur-[60px] sm:blur-[100px] animate-pulse" />
-              
-              {/* Cup Container */}
-              <div className="relative z-10 w-64 h-64 sm:w-80 sm:h-80 md:w-[30rem] md:h-[30rem] bg-white/10 rounded-full flex items-center justify-center backdrop-blur-3xl border-4 border-white/30 shadow-[inset_0_0_80px_rgba(255,255,255,0.2)]">
-                <Coffee className="w-36 h-36 sm:w-48 sm:h-48 md:w-72 md:h-72 text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] opacity-95 transition-transform hover:scale-110 duration-700" />
+            <div className="flex justify-center items-center relative h-[300px] sm:h-[500px] lg:h-[700px] order-1 lg:order-2">
+              <div className="absolute w-[15rem] sm:w-[30rem] h-[15rem] sm:h-[30rem] bg-white/20 rounded-full blur-[60px] sm:blur-[100px] animate-pulse" />
+              <div className="relative z-10 w-56 h-56 sm:w-80 md:w-[30rem] md:h-[30rem] bg-white/10 rounded-full flex items-center justify-center backdrop-blur-3xl border-4 border-white/30 shadow-[inset_0_0_80px_rgba(255,255,255,0.2)]">
+                <Coffee className="w-28 h-28 sm:w-48 md:w-72 md:h-72 text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] opacity-95 transition-transform hover:scale-110 duration-700" />
                 
-                {/* Floating Tags - Tightly clustered */}
-                <div className="absolute top-6 -right-2 sm:top-10 sm:-right-4 md:top-20 md:right-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.5s] flex items-center gap-2 sm:gap-3 text-sm sm:text-lg md:text-xl border border-white whitespace-nowrap">
-                  <span className="text-lg sm:text-2xl text-[#f59e0b]">+</span> Vanilla
+                <div className="absolute top-2 -right-4 sm:top-10 sm:-right-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-4 py-2 sm:px-6 rounded-full shadow-lg font-black animate-float text-sm sm:text-lg border border-white whitespace-nowrap">
+                  <span className="text-[#f59e0b]">+</span> Vanilla
                 </div>
                 
-                <div className="absolute bottom-12 -right-4 sm:bottom-16 sm:-right-8 md:bottom-24 md:right-0 bg-white/90 backdrop-blur-xl text-[#d97706] px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-1.2s] flex items-center gap-2 sm:gap-3 text-sm sm:text-lg md:text-xl border border-white whitespace-nowrap">
-                  <span className="text-lg sm:text-2xl text-[#f59e0b]">+</span> Oat Milk
-                </div>
-                
-                <div className="absolute bottom-2 -left-4 sm:bottom-4 sm:-left-10 md:bottom-12 md:left-4 bg-white/90 backdrop-blur-xl text-[#d97706] px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] font-black animate-float [animation-delay:-0.8s] flex items-center gap-2 sm:gap-3 text-sm sm:text-lg md:text-xl border border-white whitespace-nowrap">
-                  <span className="text-lg sm:text-2xl text-[#f59e0b]">+</span> Extra Shot
+                <div className="absolute bottom-10 -right-2 sm:bottom-16 sm:-right-8 bg-white/90 backdrop-blur-xl text-[#d97706] px-4 py-2 sm:px-6 rounded-full shadow-lg font-black animate-float [animation-delay:-1.2s] text-sm sm:text-lg border border-white whitespace-nowrap">
+                  <span className="text-[#f59e0b]">+</span> Oat Milk
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="bg-[#211811] text-white py-24 lg:py-32 relative">
+        <section className="bg-[#211811] text-white py-24 relative">
           <div className="container mx-auto px-4 md:px-6 text-center">
-            <p className="text-5xl sm:text-7xl font-black font-headline text-[#d97706]/20 absolute top-10 left-1/2 -translate-x-1/2 select-none uppercase tracking-widest overflow-hidden whitespace-nowrap w-full">STEAMSBURY</p>
-            <p className="text-4xl sm:text-6xl font-headline text-accent mb-8">❞</p>
+            <p className="text-4xl sm:text-7xl font-black font-headline text-[#d97706]/20 absolute top-10 left-1/2 -translate-x-1/2 select-none uppercase tracking-widest overflow-hidden whitespace-nowrap w-full">STEAMSBURY</p>
+            <p className="text-4xl font-headline text-accent mb-8">❞</p>
             <div className="mt-4 h-32 sm:h-40 relative">
               {quotes.map((quote, index) => (
                 <div
@@ -283,24 +265,18 @@ export default function LandingPage() {
                     index === currentQuoteIndex ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"
                   )}
                 >
-                  <h2 className="text-2xl xs:text-4xl font-headline font-black sm:text-6xl uppercase tracking-tighter leading-tight">
+                  <h2 className="text-xl xs:text-3xl font-headline font-black sm:text-6xl uppercase tracking-tighter leading-tight">
                     {quote.line1}
                   </h2>
-                  <p className="text-2xl xs:text-4xl font-headline text-[#f59e0b] sm:text-6xl italic leading-tight">
+                  <p className="text-xl xs:text-3xl font-headline text-[#f59e0b] sm:text-6xl italic leading-tight">
                     {quote.line2}
                   </p>
                 </div>
               ))}
             </div>
-            <div className="mt-12 text-[10px] sm:text-sm text-white/40 tracking-[0.3em] sm:tracking-[0.5em] font-black uppercase">
-              <span className="inline-block w-8 sm:w-16 h-px bg-white/20 align-middle"></span>
-              <span className="mx-3 sm:mx-6">ESTABLISHED 2023</span>
-              <span className="inline-block w-8 sm:w-16 h-px bg-white/20 align-middle"></span>
-            </div>
           </div>
         </section>
 
-        
         <HighlightsSection />
 
       </main>
@@ -309,10 +285,10 @@ export default function LandingPage() {
         href="https://wa.me/94740479838"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 xs:bottom-8 xs:left-8 z-50 h-14 w-14 sm:h-16 sm:size-16 bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform active:scale-90"
+        className="fixed bottom-6 left-6 xs:bottom-8 xs:left-8 z-50 h-14 w-14 sm:h-16 bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform active:scale-90"
         aria-label="Chat on WhatsApp"
       >
-        <FaWhatsapp className="h-8 w-8 sm:h-10 sm:size-10 text-white" />
+        <FaWhatsapp className="h-8 w-8 sm:h-10 text-white" />
       </Link>
     </div >
   );
