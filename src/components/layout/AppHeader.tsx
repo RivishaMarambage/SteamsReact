@@ -37,7 +37,7 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <div className="hidden md:block">
@@ -48,8 +48,8 @@ export default function AppHeader() {
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-sidebar-accent p-0">
-              <Avatar className="h-10 w-10 border border-white/10">
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+              <Avatar className="h-10 w-10 border">
                 {user && <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.displayName || user.email || ''} />}
                 <AvatarFallback className="bg-primary/20 text-primary">{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>

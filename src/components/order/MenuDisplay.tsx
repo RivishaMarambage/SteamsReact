@@ -498,21 +498,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   return (
     <div className="w-full">
       <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md w-[90%] rounded-[2.5rem]" hideCloseButton>
+        <DialogContent className="sm:max-w-md" hideCloseButton>
            {dialogStep === 'type' && (
              <>
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-xl sm:text-2xl text-center">How will you be joining us?</DialogTitle>
-                    <DialogDescription className="text-center text-xs sm:text-sm">Please select whether you want to dine-in or take your order away.</DialogDescription>
+                    <DialogTitle className="text-center">How will you be joining us?</DialogTitle>
+                    <DialogDescription className="text-center">Please select whether you want to dine-in or take your order away.</DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 py-4">
-                    <Button variant="outline" className="h-24 sm:h-32 flex-col gap-2 rounded-[1.5rem] sm:rounded-[2rem]" onClick={() => handleTypeSelect('Dine-in')}>
-                        <Utensils className="h-6 w-6 sm:h-8 sm:size-8"/>
-                        <span className="text-sm sm:text-lg">Dine-in</span>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                    <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
+                        <Utensils className="h-8 w-8"/>
+                        <span>Dine-in</span>
                     </Button>
-                     <Button variant="outline" className="h-24 sm:h-32 flex-col gap-2 rounded-[1.5rem] sm:rounded-[2rem]" onClick={() => handleTypeSelect('Takeaway')}>
-                        <ShoppingBag className="h-6 w-6 sm:h-8 sm:size-8"/>
-                        <span className="text-sm sm:text-lg">Takeaway</span>
+                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Takeaway')}>
+                        <ShoppingBag className="h-8 w-8"/>
+                        <span>Takeaway</span>
                     </Button>
                 </div>
              </>
@@ -520,20 +520,20 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
            {dialogStep === 'table' && (
                <>
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-xl sm:text-2xl text-center">Select Table Number</DialogTitle>
-                    <DialogDescription className="text-center text-xs sm:text-sm">Choose the table where you are currently seated.</DialogDescription>
+                    <DialogTitle className="text-center">Select Table Number</DialogTitle>
+                    <DialogDescription className="text-center">Choose the table where you are currently seated.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                         {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                            <Button key={num} variant="outline" className="h-12 sm:h-16 text-base sm:text-lg rounded-xl" onClick={() => handleTableSelect(String(num))}>
+                            <Button key={num} variant="outline" className="h-16 text-lg" onClick={() => handleTableSelect(String(num))}>
                                 {num}
                             </Button>
                         ))}
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogStep('type')} className="w-full sm:w-auto">Back</Button>
+                    <Button variant="outline" onClick={() => setDialogStep('type')}>Back</Button>
                 </DialogFooter>
                </>
            )}
@@ -543,10 +543,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       {!isOrderTypeDialogOpen && (
         <>
             <div className="mb-8">
-                <Card className="rounded-[2rem]">
-                    <CardHeader className="p-6">
+                <Card>
+                    <CardHeader>
                         <CardTitle className="font-headline text-lg sm:text-2xl uppercase tracking-tight">Order Details</CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">
+                        <CardDescription>
                             Order Type: <span className="font-bold text-primary uppercase">{orderType}</span>
                             {orderType === 'Dine-in' && tableNumber && (
                                 <> • Table: <span className="font-bold text-primary">#{tableNumber}</span></>
@@ -557,16 +557,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:flex sm:justify-start h-auto p-1 bg-muted rounded-full">
+                <div className="mb-6 overflow-x-auto pb-2">
+                    <TabsList className="h-auto p-1 bg-muted rounded-md">
                         {categories?.map(category => (
-                        <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap rounded-full px-4 sm:px-6 py-2">{category.name}</TabsTrigger>
+                        <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap px-6 py-2">{category.name}</TabsTrigger>
                         ))}
                     </TabsList>
                 </div>
                 {categories?.map(subCategory => (
-                <TabsContent key={subCategory.id} value={subCategory.id} className="focus-visible:outline-none">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                <TabsContent key={subCategory.id} value={subCategory.id}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
                         const todayString = format(today, 'yyyy-MM-dd');
@@ -607,13 +607,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         displayPrice = Math.max(0, displayPrice);
 
                         return (
-                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-[2rem]", item.isOutOfStock && "opacity-60")}>
-                            <div className="relative w-full h-44 sm:h-48">
+                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg", item.isOutOfStock && "opacity-60")}>
+                            <div className="relative w-full h-48">
                                 <Image
                                     src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
                                     alt={item.name}
                                     fill
-                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                     className="object-cover"
                                     data-ai-hint="food item"
                                 />
@@ -623,21 +622,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     </div>
                                 )}
                                 {isOfferApplied && !item.isOutOfStock && (
-                                    <Badge variant="destructive" className="absolute top-3 right-3 flex items-center gap-1 shadow-md">
+                                    <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
                                     <Tag className="h-3 w-3"/> Daily Special
                                     </Badge>
                                 )}
                             </div>
-                            <CardContent className="p-5 flex-grow">
-                            <CardTitle className="font-headline text-lg sm:text-xl mb-1 uppercase tracking-tight">{item.name}</CardTitle>
-                            <CardDescription className="text-xs sm:text-sm line-clamp-2">{item.description}</CardDescription>
+                            <CardContent className="p-4 flex-grow">
+                            <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
+                            <CardDescription className="line-clamp-2">{item.description}</CardDescription>
                             </CardContent>
-                            <CardFooter className="p-5 flex justify-between items-center border-t bg-muted/10">
+                            <CardFooter className="p-4 flex justify-between items-center border-t bg-muted/10">
                             <div className="font-bold text-lg text-primary">
-                                {isOfferApplied && <span className="block text-[10px] text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
+                                {isOfferApplied && <span className="block text-xs text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
                                 LKR {displayPrice.toFixed(2)}
                             </div>
-                            <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="h-10 px-5 rounded-full shadow-sm">
+                            <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
                                 {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
                             </Button>
                             </CardFooter>
@@ -653,29 +652,26 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button className="fixed bottom-6 right-6 rounded-full w-14 h-14 sm:w-16 sm:h-16 shadow-2xl bg-accent hover:bg-accent/90 text-accent-foreground z-50">
+          <Button className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-2xl z-50">
             <ShoppingCart className="h-6 w-6" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center text-[10px] sm:text-xs font-bold ring-2 ring-background">
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold ring-2 ring-background">
                 {cartItemCount}
               </span>
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 rounded-l-[2rem]">
-          <div className="p-6 border-b">
+        <SheetContent className="flex h-full flex-col w-full sm:max-w-md">
+          <SheetHeader>
             <SheetTitle className="font-headline text-2xl uppercase tracking-tighter">Your Order</SheetTitle>
-            <SheetDescription className="text-xs sm:text-sm">Review your items before placing order.</SheetDescription>
-          </div>
-          <ScrollArea className="flex-1 px-6">
+            <SheetDescription>Review your items before placing order.</SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="py-6">
                 {cart.length === 0 ? (
                 <div className="text-center text-muted-foreground h-64 flex flex-col items-center justify-center space-y-4">
-                    <div className="bg-muted p-6 rounded-full">
-                        <ShoppingCart className="w-10 h-10 text-muted-foreground/30" />
-                    </div>
-                    <p className="font-bold">Your cart is empty</p>
-                    <p className="text-xs">Add items from the menu to get started.</p>
+                    <ShoppingCart className="w-12 h-12 opacity-20" />
+                    <p>Your cart is empty</p>
                     </div>
                 ) : (
                 <div className="space-y-6">
@@ -684,12 +680,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     const isBeverage = category?.type === 'Beverages';
                     return (
                         <div key={item.id} className="flex items-center gap-4 group">
-                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 shadow-sm">
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
                             <Image
                                 src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
                                 alt={item.menuItem.name}
                                 fill
-                                sizes="64px"
                                 className="object-cover"
                                 data-ai-hint="food item"
                             />
@@ -703,12 +698,12 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             )}
                             <p className="text-xs font-bold text-primary">LKR {item.totalPrice.toFixed(2)}</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-muted p-1 rounded-full shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-md shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}>
                             {item.quantity === 1 ? <Trash2 className="h-3 w-3 text-destructive" /> : <Minus className="h-3 w-3" />}
                             </Button>
-                            <span className="w-4 text-center text-xs font-black">{item.quantity}</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
+                            <span className="w-4 text-center text-xs font-bold">{item.quantity}</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
                             <Plus className="h-3 w-3" />
                             </Button>
                         </div>
@@ -719,53 +714,51 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 )}
             </div>
           </ScrollArea>
-          {cart.length > 0 && (
-            <div className="p-6 border-t bg-muted/5 space-y-4">
-                  <div className="w-full space-y-2 text-xs sm:text-sm">
-                      <div className="flex justify-between text-muted-foreground">
-                          <span>Subtotal</span>
-                          <span>LKR {subtotal.toFixed(2)}</span>
-                      </div>
-                      {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
-                        <div className="flex justify-between text-destructive font-bold">
-                            <span>Item Discounts</span>
-                            <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {serviceCharge > 0 && (
-                        <div className="flex justify-between text-muted-foreground">
-                            <span>Service Charge (10%)</span>
-                            <span>LKR {serviceCharge.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {loyaltyDiscount > 0 && (
-                        <div className="flex justify-between text-destructive font-bold">
-                            <span>Points Redemption</span>
-                            <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-xl font-black text-primary uppercase tracking-tighter pt-2 border-t border-dashed">
-                          <span>Total</span>
-                          <span>LKR {cartTotal.toFixed(2)}</span>
-                      </div>
-                  </div>
-                   <Button size="lg" className="w-full h-14 rounded-full text-lg uppercase tracking-tight shadow-xl shadow-primary/20" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
-                      {isProcessing ? (
-                          <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting...</>
-                      ) : (
-                          <>Checkout <ArrowRight className="ml-2 h-5 w-5" /></>
-                      )}
-                  </Button>
-            </div>
-          )}
+          <div className="border-t pt-6 space-y-4">
+                <div className="w-full space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>LKR {subtotal.toFixed(2)}</span>
+                    </div>
+                    {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
+                    <div className="flex justify-between text-destructive font-bold">
+                        <span>Item Discounts</span>
+                        <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
+                    </div>
+                    )}
+                    {serviceCharge > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                        <span>Service Charge (10%)</span>
+                        <span>LKR {serviceCharge.toFixed(2)}</span>
+                    </div>
+                    )}
+                    {loyaltyDiscount > 0 && (
+                    <div className="flex justify-between text-destructive font-bold">
+                        <span>Points Redemption</span>
+                        <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
+                    </div>
+                    )}
+                    <div className="flex justify-between text-xl font-black text-primary uppercase tracking-tighter pt-2 border-t">
+                        <span>Total</span>
+                        <span>LKR {cartTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+                 <Button size="lg" className="w-full uppercase tracking-tight" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
+                    {isProcessing ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
+                    ) : (
+                        <>Checkout <ArrowRight className="ml-2 h-4 w-4" /></>
+                    )}
+                </Button>
+          </div>
         </SheetContent>
       </Sheet>
 
       <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
-        <DialogContent className="sm:max-w-lg w-[95%] rounded-[2.5rem] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           <div className="p-6 border-b bg-muted/10">
-            <DialogTitle className="font-headline text-xl sm:text-2xl uppercase tracking-tighter">Customize {customizingItem?.menuItem.name}</DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogTitle className="font-headline text-xl uppercase tracking-tighter">Customize {customizingItem?.menuItem.name}</DialogTitle>
+            <DialogDescription>
                 Make it just right.
             </DialogDescription>
           </div>
@@ -780,14 +773,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     
                     return (
                         <div key={group.addonCategoryId}>
-                            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4 flex justify-between items-center px-1">
+                            <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-4 flex justify-between items-center">
                                 <span>{categoryName}</span>
                                 <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", validationErrors[group.addonCategoryId] ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
                                     {selectedCount} / {group.maxSelection || '∞'}
                                 </span>
                             </h4>
                             {validationErrors[group.addonCategoryId] && (
-                                <p className="text-[10px] font-bold text-destructive mb-3 px-1">{validationErrors[group.addonCategoryId]}</p>
+                                <p className="text-xs font-bold text-destructive mb-3">{validationErrors[group.addonCategoryId]}</p>
                             )}
                             <div className="grid grid-cols-1 gap-2">
                                 {availableAddons.map(addon => {
@@ -795,8 +788,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     const isDisabled = !isChecked && group.maxSelection > 0 && selectedCount >= group.maxSelection;
                                     return (
                                         <div key={addon.id} className={cn(
-                                            "flex items-center space-x-3 p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer",
-                                            isChecked ? "border-primary bg-primary/5 shadow-sm" : "border-muted hover:border-primary/30",
+                                            "flex items-center space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
+                                            isChecked ? "border-primary bg-primary/5" : "border-muted hover:border-primary/30",
                                             isDisabled && "opacity-40 cursor-not-allowed grayscale"
                                         )}
                                         onClick={() => !isDisabled && handleAddonToggle(addon)}
@@ -806,7 +799,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                                 checked={isChecked}
                                                 onCheckedChange={() => !isDisabled && handleAddonToggle(addon)}
                                                 disabled={isDisabled}
-                                                className="rounded-md shrink-0"
                                             />
                                             <div className="flex-grow flex justify-between items-center min-w-0">
                                                 <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-sm font-bold truncate", isDisabled && "cursor-not-allowed")}>
@@ -823,9 +815,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 })}
             </div>
           </ScrollArea>
-          <div className="p-6 border-t bg-muted/10 flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="rounded-full flex-1 h-12 uppercase font-bold text-xs">Cancel</Button>
-            <Button onClick={confirmAddToCart} className="rounded-full flex-1 h-12 uppercase font-black text-xs shadow-lg">Confirm</Button>
+          <div className="p-6 border-t bg-muted/10 flex gap-3">
+            <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="flex-1">Cancel</Button>
+            <Button onClick={confirmAddToCart} className="flex-1 uppercase font-black">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>
