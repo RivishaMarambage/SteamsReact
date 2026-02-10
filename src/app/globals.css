@@ -82,6 +82,34 @@
   }
 }
 
+/* Modern Scrollbar for Sidebar */
+[data-sidebar="content"] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 119, 6, 0.3) transparent;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar {
+  width: 4px;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.3);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+[data-sidebar="content"]:hover::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.6);
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.9);
+}
+
 .gold-gradient {
     background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
     -webkit-background-clip: text;
