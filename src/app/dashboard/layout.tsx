@@ -1,6 +1,5 @@
-import AppHeader from '@/components/layout/AppHeader';
 import AppSidebar from '@/components/layout/AppSidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AuthRedirect } from '@/components/auth/AuthRedirect';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -9,7 +8,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <AppHeader />
+          {/* Mobile-only minimal header for the sidebar trigger since the main header is removed */}
+          <div className="flex h-14 items-center px-4 md:hidden border-b border-sidebar-border bg-[#160C08] text-white sticky top-0 z-20">
+            <SidebarTrigger />
+            <span className="ml-4 font-black font-headline text-[10px] uppercase tracking-[0.2em] text-[#d97706]">Steamsbury Portal</span>
+          </div>
           <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-transparent">
             {children}
           </main>

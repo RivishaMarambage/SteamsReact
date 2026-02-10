@@ -12,7 +12,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, Settings, LogOut } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, Settings, LogOut, LifeBuoy } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -24,7 +24,6 @@ const customerMenuItems = [
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 const staffMenuItems = [
@@ -43,13 +42,18 @@ const adminMenuItems = [
   { href: '/dashboard/admin/roles', label: 'Manage Roles', icon: ShieldCheck },
 ];
 
+const secondaryMenuItems = [
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '#', label: 'Support', icon: LifeBuoy },
+];
+
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { setOpen, setOpenMobile, isMobile } = useSidebar();
+  const { setOpenMobile, isMobile } = useSidebar();
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
@@ -82,7 +86,6 @@ export default function AppSidebar() {
   } else if (userRole === 'admin') {
     menuItemsToShow = staffMenuItems;
   }
-
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 bg-[#160C08] text-[#FDFBF7]">
@@ -159,10 +162,29 @@ export default function AppSidebar() {
                 ))}
               </>
             )}
+
+            <div className="mt-6 px-4 py-2 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden">
+              System
+            </div>
+            {secondaryMenuItems.map((item) => (
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton
+                  isActive={isActive(item.href)}
+                  asChild
+                  tooltip={item.label}
+                  className="h-11 w-full justify-start gap-4 rounded-xl px-4 text-[#FDFBF7]/40 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                    <item.icon className="h-4 w-4" />
+                    <span className="text-xs font-bold tracking-wide">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         )}
       </SidebarContent>
-      <SidebarFooter className="bg-[#160C08] p-4 space-y-2">
+      <SidebarFooter className="bg-[#160C08] p-4 space-y-2 border-t border-white/5">
         {userProfile && (
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-[#d97706]/5 border border-[#d97706]/10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 overflow-hidden">
             <div className="h-9 w-9 rounded-full bg-[#d97706] flex items-center justify-center text-white font-black text-sm shadow-lg shrink-0">
