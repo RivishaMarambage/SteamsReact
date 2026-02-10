@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import type { Addon, AddonCategory } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, GripVertical, Search, FilterX } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, GripVertical, Search, FilterX, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -99,8 +98,8 @@ function SortableTableRow({
       <TableCell className="font-bold">{addon.name}</TableCell>
       <TableCell>{getCategoryName(addon.addonCategoryId)}</TableCell>
       <TableCell>
-        <Badge variant={addon.isActive ? "default" : "secondary"}>
-          {addon.isActive ? "Active" : "Inactive"}
+        <Badge variant={addon.isActive !== false ? "default" : "secondary"}>
+          {addon.isActive !== false ? "Active" : "Inactive"}
         </Badge>
       </TableCell>
       <TableCell className="text-right font-mono font-bold text-primary">LKR {addon.price.toFixed(2)}</TableCell>
@@ -332,8 +331,9 @@ export default function AddonTable() {
       </CardHeader>
 
       {isFilterActive && (
-        <div className="px-6 py-2 bg-muted/30 border-y text-xs font-medium text-muted-foreground flex items-center gap-2">
-          <span>Filtering active. Reordering is disabled while searching.</span>
+        <div className="px-6 py-3 bg-primary/5 border-y text-xs font-bold text-primary flex items-center gap-2 animate-in slide-in-from-top-1">
+          <Info className="h-4 w-4" />
+          <span>Manual reordering is disabled while searching or filtering. Clear filters to arrange the menu sequence.</span>
         </div>
       )}
 
@@ -419,7 +419,7 @@ export default function AddonTable() {
                 <Label htmlFor="isActive">Active Status</Label>
                 <Switch 
                   id="isActive" 
-                  checked={formData.isActive} 
+                  checked={formData.isActive !== false} 
                   onCheckedChange={handleStatusChange} 
                 />
               </div>

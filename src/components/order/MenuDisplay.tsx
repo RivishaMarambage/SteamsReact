@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -819,7 +818,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             <div className="p-8 space-y-10">
                 {customizingItem?.menuItem.addonGroups?.map((group) => {
                     const categoryName = getCategoryName(group.addonCategoryId, 'addon');
-                    const availableAddons = allAddons?.filter(addon => addon.addonCategoryId === group.addonCategoryId);
+                    const availableAddons = allAddons?.filter(addon => addon.addonCategoryId === group.addonCategoryId && addon.isActive !== false);
                     const selectedCount = selectedAddons.filter(sa => sa.addonCategoryId === group.addonCategoryId).length;
 
                     if (!availableAddons || availableAddons.length === 0) return null;

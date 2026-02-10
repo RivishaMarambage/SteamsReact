@@ -115,7 +115,7 @@ export default function BeverageBuilder({ coffeeBase, teaBase, allAddons }: Beve
                 <CardContent>
                     <ScrollArea className="h-64 rounded-md border p-4">
                         <div className="space-y-2">
-                            {allAddons.map(addon => (
+                            {allAddons.filter(a => a.isActive !== false).map(addon => (
                                 <div key={addon.id} className="flex items-center space-x-3 p-3 rounded-md has-[:checked]:bg-muted/50">
                                     <Checkbox
                                         id={`addon-creator-${addon.id}`}
