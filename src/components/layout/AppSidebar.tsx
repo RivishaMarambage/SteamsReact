@@ -93,10 +93,6 @@ export default function AppSidebar() {
       <SidebarHeader className="bg-[#160C08] py-6 px-4">
         <div className="flex items-center gap-3">
           <Logo link="/dashboard" className="text-[#FDFBF7]" />
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-2 duration-500">
-            <span className="text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] leading-none">Steamsbury</span>
-            <span className="text-xs font-bold text-white/50 uppercase tracking-widest mt-1">Portal</span>
-          </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="bg-[#160C08] px-2">

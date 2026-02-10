@@ -11,7 +11,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Mobile-only minimal header for the sidebar trigger since the main header is removed */}
           <div className="flex h-14 items-center px-4 md:hidden border-b border-sidebar-border bg-[#160C08] text-white sticky top-0 z-20">
             <SidebarTrigger />
-            <span className="ml-4 font-black font-headline text-[10px] uppercase tracking-[0.2em] text-[#d97706]">Steamsbury Portal</span>
           </div>
           <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-transparent">
             {children}
