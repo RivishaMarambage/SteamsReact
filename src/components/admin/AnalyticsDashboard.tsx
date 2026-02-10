@@ -2,12 +2,18 @@
 
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, ShoppingCart, DollarSign, Coins, TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, Coins, TrendingUp, TrendingDown, Package, Download, Calendar as CalendarIcon, FileBarChart } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 import { collection, query, doc } from "firebase/firestore";
 import type { UserProfile, Order } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType<{className?: string}>, isLoading: boolean }) {
   if (isLoading) {
@@ -40,6 +46,11 @@ export default function AnalyticsDashboard() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
 
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
+
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
@@ -56,12 +67,20 @@ export default function AnalyticsDashboard() {
   const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   const { data: allOrders, isLoading: ordersLoading } = useCollection<Order>(ordersQuery);
 
+  const customerNames = useMemo(() => {
+    if (!users) return {};
+    return users.reduce((acc, user) => {
+        acc[user.id] = user.name;
+        return acc;
+    }, {} as Record<string, string>);
+  }, [users]);
+
   // --- Calculations ---
   const stats = useMemo(() => {
     if (!allOrders) return { totalRevenue: 0, monthlyRedeemables: 0, itemSales: [] };
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonthDate = startOfMonth(now);
     
     let totalRevenue = 0;
     let monthlyRedeemables = 0;
@@ -71,9 +90,9 @@ export default function AnalyticsDashboard() {
       // Revenue
       totalRevenue += (order.totalAmount || 0);
 
-      // Monthly points (1:1 conversion as requested)
+      // Monthly points
       const orderDate = order.orderDate?.toDate();
-      if (orderDate && orderDate >= startOfMonth) {
+      if (orderDate && orderDate >= startOfMonthDate) {
         monthlyRedeemables += (order.pointsRedeemed ?? 0);
       }
 
@@ -100,6 +119,57 @@ export default function AnalyticsDashboard() {
 
   const isLoading = isUserLoading || isProfileLoading || usersLoading || ordersLoading;
 
+  const handleExportCSV = () => {
+    if (!allOrders || !date?.from || !date?.to) return;
+
+    const filteredOrders = allOrders.filter(order => {
+        const orderDate = order.orderDate?.toDate();
+        if (!orderDate) return false;
+        return isWithinInterval(orderDate, { start: date.from!, end: date.to! });
+    }).sort((a, b) => b.orderDate.toMillis() - a.orderDate.toMillis());
+
+    if (filteredOrders.length === 0) {
+        alert("No orders found for the selected date range.");
+        return;
+    }
+
+    const headers = ["Order ID", "Date", "Customer", "Type", "Payment", "Items", "Total (LKR)", "Points Redeemed", "Points Earned"];
+    const rows = filteredOrders.map(order => [
+        order.id.substring(0, 7).toUpperCase(),
+        order.orderDate ? format(order.orderDate.toDate(), 'yyyy-MM-dd HH:mm') : 'N/A',
+        customerNames[order.customerId] || 'Guest',
+        order.orderType,
+        order.paymentMethod || 'Online',
+        order.orderItems.map(item => `${item.quantity}x ${item.menuItemName}`).join('; '),
+        order.totalAmount.toFixed(2),
+        order.pointsRedeemed || 0,
+        order.pointsToEarn || 0
+    ]);
+
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(r => r.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Steamsbury_Report_${format(date.from!, 'yyyy-MM-dd')}_to_${format(date.to!, 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const setRange = (type: 'week' | 'month') => {
+    const now = new Date();
+    if (type === 'week') {
+        setDate({ from: startOfWeek(now), to: endOfWeek(now) });
+    } else {
+        setDate({ from: startOfMonth(now), to: endOfMonth(now) });
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Top Level Stats */}
@@ -109,6 +179,65 @@ export default function AnalyticsDashboard() {
         <StatCard title="Total Revenue" value={`LKR ${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} isLoading={isLoading} />
         <StatCard title="Monthly Redeemables" value={`LKR ${stats.monthlyRedeemables.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={Coins} isLoading={isLoading} />
       </div>
+
+      {/* Reports & Export */}
+      <Card className="shadow-lg border-none bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+                <CardTitle className="text-xl font-headline flex items-center gap-2 text-primary">
+                    <FileBarChart className="h-5 w-5" /> Sales Reports
+                </CardTitle>
+                <CardDescription>Generate and download CSV reports for your accounting.</CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="flex bg-muted rounded-lg p-1 mr-2">
+                    <Button variant="ghost" size="sm" onClick={() => setRange('week')} className="h-8 text-xs font-bold px-3">Weekly</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setRange('month')} className="h-8 text-xs font-bold px-3">Monthly</Button>
+                </div>
+                <div className={cn("grid gap-2")}>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={"outline"}
+                            className={cn(
+                            "w-[300px] justify-start text-left font-normal bg-background",
+                            !date && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date?.from ? (
+                            date.to ? (
+                                <>
+                                {format(date.from, "LLL dd, y")} -{" "}
+                                {format(date.to, "LLL dd, y")}
+                                </>
+                            ) : (
+                                format(date.from, "LLL dd, y")
+                            )
+                            ) : (
+                            <span>Pick a range</span>
+                            )}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={date?.from}
+                            selected={date}
+                            onSelect={setDate}
+                            numberOfMonths={2}
+                        />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <Button onClick={handleExportCSV} disabled={isLoading || !allOrders} className="bg-primary hover:bg-primary/90 text-white font-bold h-10 px-6 rounded-xl">
+                    <Download className="mr-2 h-4 w-4" /> Export CSV
+                </Button>
+            </div>
+        </CardHeader>
+      </Card>
 
       {/* Product Performance Section */}
       <div className="grid gap-6 md:grid-cols-2">
