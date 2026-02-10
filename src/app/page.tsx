@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -119,10 +118,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-
-
-
 
         <section
           ref={clubSectionRef}
@@ -319,8 +314,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-
-
         <OffersHighlight />
 
         <NewsBanner />
@@ -333,10 +326,10 @@ export default function LandingPage() {
         href="https://wa.me/94740479838"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-8 left-8 z-50 h-14 w-14 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 border border-black/5"
+        className="fixed bottom-8 left-8 z-50 h-14 w-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 border border-white/10"
         aria-label="Chat on WhatsApp"
       >
-        <FaWhatsapp className="h-8 w-8 text-[#25D366]" />
+        <FaWhatsapp className="h-8 w-8 text-white" />
       </Link>
     </div >
   );
