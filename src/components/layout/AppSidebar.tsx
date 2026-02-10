@@ -12,7 +12,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut, Dices } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ import { doc } from 'firebase/firestore';
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
+  { href: '/dashboard/game-zone', label: 'Game Zone', icon: Dices },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
