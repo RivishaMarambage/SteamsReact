@@ -135,7 +135,7 @@ export default function LandingPage() {
               "text-center mb-12 xs:mb-20 transition-all duration-700",
               isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-              <h2 className="text-3xl xs:text-4xl md:text-6xl lg:text-7xl font-headline font-black mb-4 xs:mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter leading-none">
+              <h2 className="text-3xl xs:text-4xl md:text-6xl lg:text-7xl font-headline font-black mb-4 xs:mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter leading-none px-4">
                 Why Join The Club?
               </h2>
               <p className="text-white/60 text-base xs:text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4">Three futuristic reasons to make every single sip count.</p>

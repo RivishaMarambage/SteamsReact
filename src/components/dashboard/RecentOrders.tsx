@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestor
 import type { Order } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, ShoppingCart, Clock } from "lucide-react";
+import { RotateCcw, ShoppingCart, Clock, Hash } from "lucide-react";
 import AudioNotifier from "../AudioNotifier";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,7 +85,8 @@ export default function RecentOrders({ userId }: { userId: string }) {
             name: a.addonName,
             price: a.addonPrice
         })),
-        totalPrice: item.totalPrice
+        totalPrice: item.totalPrice,
+        appliedDailyOfferId: item.appliedDailyOfferId
     }));
     
     localStorage.setItem('reorder_items', JSON.stringify(reorderData));
@@ -99,13 +99,16 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   if (isLoading) {
       return (
-         <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
-            <CardHeader className="p-6 sm:p-8">
-              <CardTitle className="font-headline text-xl sm:text-2xl">Recent Orders</CardTitle>
-              <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
+         <Card className="shadow-lg rounded-[2rem] border-none bg-white">
+            <CardHeader className="p-6 md:p-8">
+              <CardTitle className="font-headline text-xl">Recent Orders</CardTitle>
+              <CardDescription className="text-sm">Fetching your history...</CardDescription>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
-              <p className="text-muted-foreground text-sm">Loading orders...</p>
+            <CardContent className="p-6 md:p-8 pt-0">
+              <div className="space-y-2">
+                <div className="h-12 w-full bg-muted animate-pulse rounded-xl" />
+                <div className="h-12 w-full bg-muted animate-pulse rounded-xl" />
+              </div>
             </CardContent>
           </Card>
       )
@@ -113,13 +116,18 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   if (!recentOrders || recentOrders.length === 0) {
     return (
-       <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
-          <CardHeader className="p-6 sm:p-8">
-            <CardTitle className="font-headline text-xl sm:text-2xl">Recent Orders</CardTitle>
-            <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
+       <Card className="shadow-lg rounded-[2rem] border-none bg-white">
+          <CardHeader className="p-6 md:p-8">
+            <CardTitle className="font-headline text-xl text-[#2c1810]">Recent Orders</CardTitle>
+            <CardDescription className="text-sm text-[#6b584b]">No orders yet. Ready for your first brew?</CardDescription>
           </CardHeader>
-          <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
-            <p className="text-muted-foreground text-sm">You haven't placed any orders yet.</p>
+          <CardContent className="p-6 md:p-8 pt-0 flex flex-col items-center py-12">
+            <div className="bg-[#d97706]/5 p-6 rounded-full mb-4">
+                <ShoppingCart className="size-8 text-[#d97706] opacity-40" />
+            </div>
+            <Button asChild variant="outline" className="rounded-full border-2 border-[#d97706] text-[#d97706] hover:bg-[#d97706] hover:text-white font-bold h-10 px-6">
+                <a href="/dashboard/order">Browse Menu</a>
+            </Button>
           </CardContent>
         </Card>
     )
@@ -132,64 +140,70 @@ export default function RecentOrders({ userId }: { userId: string }) {
         soundUrl="https://www.soundjay.com/button/sounds/button-3.mp3"
         resetCondition={recentOrders?.[0]?.status}
       />
-      <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
-        <CardHeader className="p-6 sm:p-8">
-          <CardTitle className="font-headline text-xl sm:text-2xl uppercase tracking-tight">Recent Orders</CardTitle>
-          <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
+      <Card className="shadow-lg rounded-[2rem] overflow-hidden border-none bg-white">
+        <CardHeader className="p-6 md:p-8">
+          <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight text-[#2c1810]">Recent Orders</CardTitle>
+          <CardDescription className="text-sm text-[#6b584b]">Track your active and previous orders.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0 sm:p-8 sm:pt-0">
-          <div className="w-full overflow-x-auto px-6 sm:px-0 pb-6 sm:pb-0">
-            <Table className="min-w-[600px] sm:min-w-full">
-                <TableHeader>
-                <TableRow>
-                    <TableHead className="text-[10px] sm:text-xs">Order</TableHead>
-                    <TableHead className="text-[10px] sm:text-xs">Items</TableHead>
-                    <TableHead className="text-[10px] sm:text-xs">Status</TableHead>
-                    <TableHead className="text-[10px] sm:text-xs">Total</TableHead>
-                    <TableHead className="text-right text-[10px] sm:text-xs">Actions</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {recentOrders.map(order => (
-                    <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
-                    <TableCell className="p-4 sm:p-6">
-                        <div className="font-bold text-xs sm:text-sm whitespace-nowrap">#{order.id.substring(0, 7).toUpperCase()}</div>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                            <Clock className="size-3" />
-                            {order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date N/A'}
-                        </div>
-                    </TableCell>
-                    <TableCell className="p-4 sm:p-6">
-                        <div className="flex flex-col gap-1 text-[10px] sm:text-xs max-w-[150px] sm:max-w-none">
-                            {order.orderItems?.map((item, index) => (
-                                <div key={index} className="truncate">
-                                    <span className="font-black">{item.quantity}x</span> {item.menuItemName}
-                                </div>
-                            ))}
-                        </div>
-                    </TableCell>
-                    <TableCell className="p-4 sm:p-6">
-                        <Badge variant={getStatusVariant(order.status)} className="text-[9px] sm:text-[10px] px-2 py-0.5 whitespace-nowrap">
-                            {order.status}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="p-4 sm:p-6 font-black text-xs sm:text-sm whitespace-nowrap">
-                        LKR {order.totalAmount.toFixed(0)}
-                    </TableCell>
-                    <TableCell className="p-4 sm:p-6 text-right">
-                        <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8 rounded-full text-[10px] font-bold gap-1.5 px-3" 
-                            onClick={() => handleReorder(order)}
-                        >
-                            <RotateCcw className="h-3 w-3" /> <span className="hidden xs:inline">Reorder</span>
-                        </Button>
-                    </TableCell>
+        <CardContent className="p-0 md:p-8 md:pt-0">
+          <div className="w-full overflow-x-auto">
+            <div className="inline-block min-w-full align-middle">
+                <Table className="min-w-full">
+                    <TableHeader className="bg-transparent border-b border-[#2c1810]/5">
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-[10px] md:text-xs font-black text-[#6b584b] h-10 px-6">Order</TableHead>
+                        <TableHead className="text-[10px] md:text-xs font-black text-[#6b584b] h-10 px-6">Items</TableHead>
+                        <TableHead className="text-[10px] md:text-xs font-black text-[#6b584b] h-10 px-6">Status</TableHead>
+                        <TableHead className="text-[10px] md:text-xs font-black text-[#6b584b] h-10 px-6">Total</TableHead>
+                        <TableHead className="text-right text-[10px] md:text-xs font-black text-[#6b584b] h-10 px-6">Action</TableHead>
                     </TableRow>
-                ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                    {recentOrders.map(order => (
+                        <TableRow key={order.id} className="hover:bg-[#d97706]/5 transition-colors border-b border-[#2c1810]/5 last:border-0">
+                        <TableCell className="px-6 py-5">
+                            <div className="flex items-center gap-1.5 font-bold text-xs md:text-sm text-[#2c1810]">
+                                <Hash className="size-3 text-[#d97706]" />
+                                {order.id.substring(0, 7).toUpperCase()}
+                            </div>
+                            <div className="text-[9px] md:text-[10px] text-[#6b584b] flex items-center gap-1 mt-1 font-medium">
+                                <Clock className="size-3" />
+                                {order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Pending'}
+                            </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                            <div className="flex flex-col gap-0.5 max-w-[120px] md:max-w-none">
+                                {order.orderItems?.map((item, index) => (
+                                    <div key={index} className="text-[10px] md:text-xs text-[#6b584b] truncate">
+                                        <span className="font-black text-[#2c1810]">{item.quantity}x</span> {item.menuItemName}
+                                    </div>
+                                ))}
+                            </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                            <Badge variant={getStatusVariant(order.status)} className="text-[8px] md:text-[9px] font-black px-2 py-0.5 border-none uppercase tracking-widest">
+                                {order.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                            <span className="font-black text-xs md:text-sm text-[#2c1810]">LKR {order.totalAmount.toFixed(0)}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-5 text-right">
+                            <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-8 w-8 md:h-10 md:w-auto md:px-4 rounded-full text-[#d97706] hover:bg-[#d97706] hover:text-white transition-all group" 
+                                onClick={() => handleReorder(order)}
+                            >
+                                <RotateCcw className="h-4 w-4 md:mr-2 transition-transform group-hover:rotate-180 duration-500" /> 
+                                <span className="hidden md:inline font-bold">Reorder</span>
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

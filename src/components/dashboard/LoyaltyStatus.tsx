@@ -73,35 +73,40 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   }
 
   return (
-    <Card className="shadow-lg rounded-[2.5rem]">
+    <Card className="shadow-lg rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-none bg-white">
       <CardHeader className="p-6 md:p-8">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
             <div className="space-y-1">
-                <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight">Your Loyalty Status</CardTitle>
-                <CardDescription className="text-sm">Earn points with every rupee spent.</CardDescription>
+                <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight text-[#2c1810]">Your Status</CardTitle>
+                <CardDescription className="text-sm text-[#6b584b]">Earn points with every sip.</CardDescription>
             </div>
-            <div className="flex flex-row items-center gap-3 bg-primary/5 px-4 py-2 rounded-full border border-primary/10 w-fit">
-                <Icon className="h-5 w-5 md:h-6 md:size-6 text-primary" />
-                <span className="font-black capitalize text-primary text-lg">{currentTier.name}</span>
+            <div className="flex flex-row items-center gap-3 bg-[#d97706]/10 px-5 py-2.5 rounded-full border border-[#d97706]/20 w-fit">
+                <Icon className="h-5 w-5 md:h-6 md:w-6 text-[#d97706]" />
+                <span className="font-black capitalize text-[#d97706] text-lg">{currentTier.name}</span>
             </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 md:p-8 pt-0">
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="flex flex-col md:flex-row md:items-baseline gap-2">
-            <span className="text-4xl md:text-5xl font-black text-primary tracking-tighter">{userPoints}</span>
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Redeemable Steam Points</span>
+            <span className="text-5xl md:text-6xl font-black text-[#d97706] tracking-tighter leading-none">{userPoints}</span>
+            <span className="text-xs md:text-sm font-bold text-[#6b584b] uppercase tracking-[0.1em]">Redeemable Steam Points</span>
           </div>
           
-          <div className="space-y-3">
-            <Progress value={progress} className="h-3 bg-muted border border-border" />
-            <div className="flex justify-between items-center text-xs md:text-sm font-bold uppercase tracking-tight">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Trophy className="h-3.5 w-3.5" />
+          <div className="space-y-4">
+            <div className="relative">
+                <Progress value={progress} className="h-4 bg-[#2c1810]/5 border-none rounded-full" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 pointer-events-none" />
+            </div>
+            <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2 text-[#6b584b]">
+                    <Trophy className="h-4 w-4" />
                     <span>{lifetimePoints} Total Lifetime Points</span>
                 </div>
                 {nextTier && (
-                    <span className="text-primary">{pointsToNext} to {nextTier.name}</span>
+                    <div className="bg-[#2c1810] text-white px-3 py-1 rounded-full text-[9px] md:text-[10px]">
+                        {pointsToNext} points to {nextTier.name}
+                    </div>
                 )}
             </div>
           </div>
