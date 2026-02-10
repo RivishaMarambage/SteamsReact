@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt, Ticket, Loader2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -53,29 +53,23 @@ export default function WalletPage() {
 
     const referralCode = userProfile?.referralCode;
 
-    const handleCopy = async () => {
-        if (!userProfile || !authUser || !firestore || !userDocRef) return;
-
-        let codeToCopy = userProfile.referralCode;
-
-        if (!codeToCopy) {
-            codeToCopy = `STM-${authUser.uid.substring(0, 5).toUpperCase()}`;
-            const updateData = { referralCode: codeToCopy };
-
-            updateDoc(userDocRef, updateData)
-                .catch(error => {
-                    const contextualError = new FirestorePermissionError({
-                        path: userDocRef.path,
-                        operation: 'update',
-                        requestResourceData: updateData,
-                    });
-                    errorEmitter.emit('permission-error', contextualError);
-                });
+    // Automatically generate referral code if missing
+    useEffect(() => {
+        if (!isLoading && userProfile && !userProfile.referralCode && userDocRef) {
+            const newCode = `STM-${userProfile.id.substring(0, 5).toUpperCase()}`;
+            updateDoc(userDocRef, { referralCode: newCode }).catch(e => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'update',
+                    requestResourceData: { referralCode: newCode }
+                }));
+            });
         }
+    }, [isLoading, userProfile, userDocRef]);
 
-        if (!codeToCopy) return;
-
-        navigator.clipboard.writeText(codeToCopy);
+    const handleCopy = async () => {
+        if (!referralCode) return;
+        navigator.clipboard.writeText(referralCode);
         setIsCopied(true);
         toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
         setTimeout(() => setIsCopied(false), 2000);
@@ -84,7 +78,9 @@ export default function WalletPage() {
     const handleRedeemReferral = async () => {
         if (!firestore || !userProfile || !authUser || !referralInput || !userDocRef) return;
         
-        if (referralInput === userProfile.referralCode) {
+        const inputCode = referralInput.toUpperCase();
+
+        if (inputCode === userProfile.referralCode) {
             toast({ variant: 'destructive', title: 'Invalid Code', description: 'You cannot use your own referral code.' });
             return;
         }
@@ -98,7 +94,7 @@ export default function WalletPage() {
 
         try {
             const usersRef = collection(firestore, 'users');
-            const q = query(usersRef, where('referralCode', '==', referralInput.toUpperCase()), limit(1));
+            const q = query(usersRef, where('referralCode', '==', inputCode), limit(1));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
@@ -124,7 +120,7 @@ export default function WalletPage() {
             const refereeTxRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
             batch.set(refereeTxRef, {
                 date: serverTimestamp(),
-                description: `Referral Code Redeemed (${referralInput.toUpperCase()})`,
+                description: `Referral Code Redeemed (${inputCode})`,
                 amount: POINT_REWARDS.REFERRAL,
                 type: 'earn'
             });
@@ -144,20 +140,12 @@ export default function WalletPage() {
                 type: 'earn'
             });
 
-            batch.commit()
-                .then(() => {
-                    toast({ title: 'Code Redeemed!', description: `You and your friend earned ${POINT_REWARDS.REFERRAL} points!` });
-                    setReferralInput('');
-                })
-                .catch(error => {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: userDocRef.path,
-                        operation: 'write',
-                    }));
-                });
+            await batch.commit().then(() => {
+                toast({ title: 'Code Redeemed!', description: `You and your friend both earned ${POINT_REWARDS.REFERRAL} points!` });
+                setReferralInput('');
+            });
 
         } catch (error: any) {
-            console.error(error);
             toast({ variant: 'destructive', title: 'Redemption Failed', description: 'Could not process referral code.' });
         } finally {
             setIsRedeeming(false);
@@ -173,15 +161,15 @@ export default function WalletPage() {
 
         if (action === 'linkSocials') {
             if (userProfile.hasLinkedSocials) {
-                toast({ variant: 'destructive', title: 'Already Claimed', description: 'You have already claimed points for this action.' });
+                toast({ variant: 'destructive', title: 'Already Claimed' });
                 return;
             }
             fieldToUpdate = 'hasLinkedSocials';
             pointsToAward = POINT_REWARDS.LINK_SOCIALS;
             description = 'Linked Social Media Accounts';
-        } else { // leaveReview
+        } else {
             if (userProfile.hasLeftReview) {
-                toast({ variant: 'destructive', title: 'Already Claimed', description: 'You have already claimed points for this action.' });
+                toast({ variant: 'destructive', title: 'Already Claimed' });
                 return;
             }
             fieldToUpdate = 'hasLeftReview';
@@ -191,38 +179,28 @@ export default function WalletPage() {
 
         const batch = writeBatch(firestore);
 
-        const profileUpdate = {
+        batch.update(userDocRef, {
             [fieldToUpdate]: true,
             loyaltyPoints: increment(pointsToAward),
             lifetimePoints: increment(pointsToAward),
-        };
-
-        batch.update(userDocRef, profileUpdate);
+        });
 
         const transactionRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
-        const transactionData: Omit<PointTransaction, 'id'> = {
+        batch.set(transactionRef, {
             date: serverTimestamp() as any,
             description,
             amount: pointsToAward,
             type: 'earn'
-        };
-        batch.set(transactionRef, transactionData);
+        });
 
-        batch.commit()
-            .then(() => {
-                toast({
-                    title: 'Points Awarded!',
-                    description: `You've earned ${pointsToAward} points.`,
-                });
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'write',
-                    requestResourceData: { profileUpdate, transactionData },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
+        await batch.commit().then(() => {
+            toast({ title: 'Points Awarded!', description: `You've earned ${pointsToAward} points.` });
+        }).catch(async (serverError) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'write'
+            }));
+        });
     };
 
 
@@ -393,10 +371,10 @@ export default function WalletPage() {
                     {/* Share Your Code */}
                     <div className="p-6 border border-[#d97706]/20 bg-[#d97706]/5 rounded-2xl">
                         <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><UserPlus className="text-[#d97706]" /> Your Referral Code</h3>
-                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Share this with friends. When they redeem it, you both get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Share this with friends. When they sign up or redeem it, you both get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
                         <div className="flex items-center gap-3">
                             <Input
-                                value={referralCode || 'Click to generate'}
+                                value={referralCode || 'Generating...'}
                                 readOnly
                                 className="h-12 bg-white border-[#d97706]/20 font-mono text-center text-lg tracking-widest text-[#2c1810] rounded-xl focus-visible:ring-[#d97706]"
                             />
@@ -404,6 +382,7 @@ export default function WalletPage() {
                                 variant="secondary"
                                 className="h-12 w-12 rounded-xl bg-[#2c1810] hover:bg-[#d97706] text-white transition-colors duration-300 shadow-md"
                                 onClick={handleCopy}
+                                disabled={!referralCode}
                             >
                                 {isCopied ? <Check /> : <Copy />}
                             </Button>
@@ -413,7 +392,7 @@ export default function WalletPage() {
                     {/* Redeem Friend's Code */}
                     <div className="p-6 border border-muted bg-white rounded-2xl">
                         <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><Ticket className="text-primary" /> Redeem a Friend's Code</h3>
-                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Got a code from a friend? Enter it here to claim your <span className="text-primary font-bold">{POINT_REWARDS.REFERRAL} point bonus.</span></p>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Missed entering a code at signup? Enter it here to claim your <span className="text-primary font-bold">{POINT_REWARDS.REFERRAL} point bonus.</span></p>
                         <div className="flex items-center gap-3">
                             <Input
                                 placeholder="STM-XXXXX"
@@ -442,7 +421,7 @@ export default function WalletPage() {
                                         <LinkIcon className="text-blue-600 w-5 h-5" />
                                     </div>
                                     <p className="font-bold text-[#2c1810] text-lg">Link Social Media</p>
-                                    <p className="text-xs text-[#6b584b] mt-1 italic">OAuth link verification simulation.</p>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">Earn points by following us.</p>
                                 </div>
                                 <Button
                                     className="w-full rounded-xl font-bold transition-all duration-300"
@@ -464,7 +443,7 @@ export default function WalletPage() {
                                         <MessageSquare className="text-orange-600 w-5 h-5" />
                                     </div>
                                     <p className="font-bold text-[#2c1810] text-lg">Leave a Review</p>
-                                    <p className="text-xs text-[#6b584b] mt-1 italic">Google My Business API simulation.</p>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">Support us on Google Reviews.</p>
                                 </div>
                                 <Button
                                     className="w-full rounded-xl font-bold transition-all duration-300"

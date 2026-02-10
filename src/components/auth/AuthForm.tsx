@@ -13,11 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3, Loader2 } from 'lucide-react';
+import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3, Loader2, Ticket } from 'lucide-react';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -33,6 +33,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '../ui/checkbox';
 import LoginImg from '../../assets/login.webp';
 
+const REFERRAL_BONUS = 50;
+const BASE_SIGNUP_POINTS = 50;
 
 // Base schema with all possible fields as optional
 const formSchema = z.object({
@@ -45,6 +47,7 @@ const formSchema = z.object({
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
   agreeToTerms: z.boolean().optional(),
+  referralCode: z.string().optional(),
 });
 
 // Schema for just login
@@ -61,8 +64,8 @@ const genericSignupSchema = formSchema.pick({ email: true, password: true, confi
     path: ["confirmPassword"],
   });
 
-// Schema for customer signup, based on new design
-const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true })
+// Schema for customer signup
+const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true, referralCode: true })
   .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
@@ -107,18 +110,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     if (authType === 'login') {
       return loginSchema;
     }
-    // It's a signup
     if (role === 'customer') {
       return customerSignupSchema;
     }
-    return genericSignupSchema; // For admin/staff signup
+    return genericSignupSchema;
   };
 
   const currentFormSchema = getSchema();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false },
+    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false, referralCode: '' },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -147,11 +149,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             };
             
             await setDoc(doc(firestore, "users", user.uid), userProfile);
-            console.log(`Created demo user: ${demoAccount.email}`);
-
-            if (auth.currentUser) {
-              await auth.signOut();
-            }
+            if (auth.currentUser) await auth.signOut();
           } catch (creationError: any) {
               if (creationError.code !== 'auth/email-already-in-use') {
                 console.error(`Failed to create demo user ${demoAccount.email}:`, creationError);
@@ -195,14 +193,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
     try {
         const batch = writeBatch(firestore);
-        console.log("Seeding initial data...");
         let customCreationsCategoryId = '';
         const categoriesRef = collection(firestore, 'categories');
         SEED_CATEGORIES.forEach(category => {
             const docRef = doc(categoriesRef);
-            if(category.name === 'Custom Creations') {
-                customCreationsCategoryId = docRef.id;
-            }
+            if(category.name === 'Custom Creations') customCreationsCategoryId = docRef.id;
             batch.set(docRef, category);
         });
 
@@ -276,17 +271,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         }
 
         await addonBatch.commit();
-        console.log("Database seeded successfully.");
     } catch (e: any) {
         if (e instanceof FirestorePermissionError) {
             errorEmitter.emit('permission-error', e);
         } else {
-            console.error("Error seeding database: ", e);
-            toast({
-                variant: 'destructive',
-                title: 'Database Seeding Failed',
-                description: "Could not set up initial data. Please check Firestore rules.",
-            });
+            toast({ variant: 'destructive', title: 'Database Seeding Failed', description: "Could not set up initial data." });
         }
     }
   };
@@ -311,20 +300,36 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             
             const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
 
+            let referrerProfile: UserProfile | null = null;
+            if (data.referralCode) {
+                const usersRef = collection(firestore, 'users');
+                const q = query(usersRef, where('referralCode', '==', data.referralCode.toUpperCase()), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    referrerProfile = snap.docs[0].data() as UserProfile;
+                } else {
+                    form.setError('referralCode', { type: 'manual', message: 'Invalid referral code.' });
+                    setIsProcessing(false);
+                    return;
+                }
+            }
+
             if (role === 'admin') {
                 const usersRef = collection(firestore, "users");
                 const q = query(usersRef, where("role", "==", "admin"), limit(1));
                 const adminSnapshot = await getDocs(q);
-                if (adminSnapshot.empty) {
-                    await seedDatabase();
-                }
+                if (adminSnapshot.empty) await seedDatabase();
             }
 
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
             await sendEmailVerification(user);
+            
+            const batch = writeBatch(firestore);
             const userDocRef = doc(firestore, "users", user.uid);
             
+            const initialPoints = referrerProfile ? BASE_SIGNUP_POINTS + REFERRAL_BONUS : BASE_SIGNUP_POINTS;
+
             const userProfile: UserProfile = {
               id: user.uid,
               email: data.email,
@@ -333,14 +338,41 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-              loyaltyPoints: 50,
-              lifetimePoints: 50,
+              loyaltyPoints: initialPoints,
+              lifetimePoints: initialPoints,
               loyaltyLevelId: "member",
               orderCount: 0,
               emailVerified: user.emailVerified,
+              referralRedeemed: !!referrerProfile,
             };
 
-            await setDoc(userDocRef, userProfile).catch((error) => {
+            batch.set(userDocRef, userProfile);
+
+            if (referrerProfile) {
+                const referrerRef = doc(firestore, 'users', referrerProfile.id);
+                batch.update(referrerRef, {
+                    loyaltyPoints: increment(REFERRAL_BONUS),
+                    lifetimePoints: increment(REFERRAL_BONUS)
+                });
+
+                const referrerTxRef = doc(collection(firestore, `users/${referrerProfile.id}/point_transactions`));
+                batch.set(referrerTxRef, {
+                    date: serverTimestamp(),
+                    description: `Referred friend (${data.fullName})`,
+                    amount: REFERRAL_BONUS,
+                    type: 'earn'
+                });
+
+                const newTxRef = doc(collection(firestore, `users/${user.uid}/point_transactions`));
+                batch.set(newTxRef, {
+                    date: serverTimestamp(),
+                    description: `Referral Signup Bonus`,
+                    amount: REFERRAL_BONUS,
+                    type: 'earn'
+                });
+            }
+
+            await batch.commit().catch((error) => {
                  throw new FirestorePermissionError({
                     path: `users/${user.uid}`,
                     operation: 'create',
@@ -350,7 +382,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             toast({
               title: 'Account Created!',
-              description: "Welcome! We've sent you a verification email. Please check your inbox, then log in.",
+              description: referrerProfile 
+                ? `Welcome! You've earned ${REFERRAL_BONUS} bonus points. Please check your inbox to verify your email.`
+                : "Welcome! We've sent you a verification email. Please check your inbox.",
             });
             router.replace(`/login/${role}`);
 
@@ -359,11 +393,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             if (error instanceof FirestorePermissionError) {
                 errorEmitter.emit('permission-error', error);
             } else {
-                 toast({
-                  variant: 'destructive',
-                  title: 'Sign Up Failed',
-                  description: error.message || 'An unexpected error occurred.',
-                });
+                 toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message || 'An unexpected error occurred.' });
             }
         }
       
@@ -379,56 +409,38 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 if (userDocSnap.exists()) {
                     const userProfile = userDocSnap.data() as UserProfile;
                     if (userProfile.role === role) {
-                        const targetPath = getDashboardPathForRole(role);
-                        router.replace(targetPath);
+                        router.replace(getDashboardPathForRole(role));
                     } else {
                         auth.signOut();
                         setIsProcessing(false);
-                        toast({
-                            variant: 'destructive',
-                            title: 'Access Denied',
-                            description: `You are not authorized to log in as a ${role}. Please use the correct login page.`,
-                        });
+                        toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
                     }
                 } else {
                     auth.signOut();
                     setIsProcessing(false);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Login Failed',
-                        description: 'User profile not found. Please contact support.',
-                    });
+                    toast({ variant: 'destructive', title: 'Login Failed', description: 'User profile not found.' });
                 }
             })
             .catch(error => {
                 setIsProcessing(false);
-                const contextualError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'get',
-                });
-                errorEmitter.emit('permission-error', contextualError);
+                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'get' }));
             });
         })
         .catch(error => {
             setIsProcessing(false);
-            toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'Invalid email or password. Please try again.',
-            });
+            toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid email or password.' });
         });
     }
   };
 
   const handlePasswordReset = async () => {
-    if (!auth) return;
-    if (!resetEmail) {
-        toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email to reset your password.' });
+    if (!auth || !resetEmail) {
+        toast({ variant: 'destructive', title: 'Email required' });
         return;
     }
     try {
         await sendPasswordResetEmail(auth, resetEmail);
-        toast({ title: 'Password Reset Email Sent', description: 'Please check your inbox.' });
+        toast({ title: 'Password Reset Email Sent' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
@@ -440,14 +452,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     setIsProcessing(true);
 
     try {
-        // If signing in as admin, check if we need to seed the DB first
         if (role === 'admin') {
             const usersRef = collection(firestore, "users");
             const q = query(usersRef, where("role", "==", "admin"), limit(1));
             const adminSnapshot = await getDocs(q);
-            if (adminSnapshot.empty) {
-                await seedDatabase();
-            }
+            if (adminSnapshot.empty) await seedDatabase();
         }
 
         const result = await signInWithPopup(auth, provider);
@@ -471,14 +480,9 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             };
             
             await setDoc(userDocRef, userProfile).catch(err => {
-                throw new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: userProfile
-                });
+                throw new FirestorePermissionError({ path: userDocRef.path, operation: 'create', requestResourceData: userProfile });
             });
-            
-            toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
+            toast({ title: 'Account Created!' });
         } else {
             const userProfile = userDocSnap.data() as UserProfile;
              if (userProfile.role !== role) {
@@ -487,48 +491,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
                 return;
             }
-             
-             // Sync email verification status if it changed
              if (user.emailVerified !== userProfile.emailVerified) {
                  await updateDoc(userDocRef, { emailVerified: user.emailVerified });
              }
-             
              toast({ title: `Welcome back, ${user.displayName}!` });
         }
-
-        const targetPath = getDashboardPathForRole(role);
-        router.replace(targetPath);
-
+        router.replace(getDashboardPathForRole(role));
     } catch (error: any) {
         setIsProcessing(false);
         if (error instanceof FirestorePermissionError) {
             errorEmitter.emit('permission-error', error);
-        } else if (error.code === 'auth/account-exists-with-different-credential' && error.customData?.email) {
-            const email = error.customData.email;
-            const methods = await fetchSignInMethodsForEmail(auth, email);
-
-            if (methods[0] === 'password') {
-                const password = prompt('It looks like you already have an account with this email. Please enter your password to link your Google account.');
-                if (password) {
-                    try {
-                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                        const googleCredential = GoogleAuthProvider.credentialFromError(error);
-                        if (userCredential && googleCredential) {
-                            await linkWithCredential(userCredential.user, googleCredential);
-                            toast({ title: 'Accounts Linked!', description: 'You can now sign in with Google.' });
-                            const targetPath = getDashboardPathForRole(role);
-                            router.replace(targetPath);
-                        }
-                    } catch (linkError: any) {
-                        toast({ variant: 'destructive', title: 'Linking Failed', description: linkError.message });
-                    }
-                }
-            } else {
-                toast({ variant: 'destructive', title: 'Sign-in Failed', description: `You have previously signed in with ${methods[0]}.` });
-            }
-        } else if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup, silent fail
-        } else {
+        } else if (error.code !== 'auth/popup-closed-by-user') {
             toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
         }
     }
@@ -543,15 +516,15 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         {/* Left Panel */}
         <div className="relative p-8 text-white hidden md:flex flex-col justify-between">
             <div className="absolute inset-0">
-        <Image
-            src={LoginImg} 
-            alt="Steamsbury Cafe" 
-            className="absolute inset-0 w-full h-full object-cover" 
-            data-ai-hint="cafe exterior night" 
-            onError={(e) => {
-              e.currentTarget.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
-            }}
-          />
+                <Image
+                    src={LoginImg} 
+                    alt="Steamsbury Cafe" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    data-ai-hint="cafe exterior night" 
+                    onError={(e) => {
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
+                    }}
+                />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
             <div className="relative z-10">
@@ -580,12 +553,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 
                 <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
                     <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
-                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out 
-                     data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md
-                     hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
-                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out 
-                     data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md
-                     hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
+                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
+                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
                     </TabsList>
 
                     <Form {...form}>
@@ -650,25 +619,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             />
                              <FormField
                                 control={form.control}
-                                name="cafeNickname"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <div className="flex justify-between items-center">
-                                        <FormLabel>Nickname</FormLabel>
-                                        <span className="text-xs text-muted-foreground">Optional</span>
-                                    </div>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input placeholder="Enter your nickname" className="pl-10" {...field} />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
                                 name="dateOfBirth"
                                 render={({ field }) => (
                                 <FormItem>
@@ -707,6 +657,25 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                         />
                                     </PopoverContent>
                                     </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="referralCode"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel>Referral Code</FormLabel>
+                                        <span className="text-xs text-muted-foreground">Optional</span>
+                                    </div>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input placeholder="Enter code from a friend" className="pl-10 uppercase font-mono" {...field} />
+                                        </div>
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -762,9 +731,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                             <DialogContent>
                                                 <DialogHeader>
                                                     <DialogTitle>Reset Password</DialogTitle>
-                                                    <DialogDescription>
-                                                        Enter your email and we will send you a link to reset your password.
-                                                    </DialogDescription>
+                                                    <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="grid gap-2">
                                                 <Label htmlFor="reset-email">Email</Label>
