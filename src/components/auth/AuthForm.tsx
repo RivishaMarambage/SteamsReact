@@ -13,11 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3 } from 'lucide-react';
+import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3, Loader2 } from 'lucide-react';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -101,6 +101,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const getSchema = () => {
     if (authType === 'login') {
@@ -169,13 +170,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     if (!firestore) return;
 
     const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
-        { name: 'Coffee Classics', type: 'Beverages' },
-        { name: 'Specialty Lattes', type: 'Beverages' },
-        { name: 'Matcha & Tea', type: 'Beverages' },
-        { name: 'Pastries & Bakes', type: 'Food' },
-        { name: 'Savory Snacks', type: 'Food' },
-        { name: 'Lunch Specials', type: 'Food' },
-        { name: 'Custom Creations', type: 'Beverages' },
+        { name: 'Coffee Classics', type: 'Beverages', displayOrder: 0 },
+        { name: 'Specialty Lattes', type: 'Beverages', displayOrder: 1 },
+        { name: 'Matcha & Tea', type: 'Beverages', displayOrder: 2 },
+        { name: 'Pastries & Bakes', type: 'Food', displayOrder: 3 },
+        { name: 'Savory Snacks', type: 'Food', displayOrder: 4 },
+        { name: 'Lunch Specials', type: 'Food', displayOrder: 5 },
+        { name: 'Custom Creations', type: 'Beverages', displayOrder: 6 },
     ];
 
     const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
@@ -251,6 +252,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 price: 250,
                 categoryId: customCreationsCategoryId,
                 isOutOfStock: false,
+                displayOrder: 0,
                 addonGroups: [
                     { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
                     { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
@@ -263,6 +265,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 price: 200,
                 categoryId: customCreationsCategoryId,
                 isOutOfStock: false,
+                displayOrder: 1,
                 addonGroups: [
                     { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
                     { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
@@ -295,11 +298,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
       return;
     }
 
+    setIsProcessing(true);
+
     if (authType === 'signup') {
         try {
             const signInMethods = await fetchSignInMethodsForEmail(auth, data.email);
             if (signInMethods.length > 0) {
                 form.setError('email', { type: 'manual', message: 'This email address is already in use.' });
+                setIsProcessing(false);
                 return;
             }
             
@@ -346,9 +352,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               title: 'Account Created!',
               description: "Welcome! We've sent you a verification email. Please check your inbox, then log in.",
             });
-            router.push(`/login/${role}`);
+            router.replace(`/login/${role}`);
 
         } catch (error: any) {
+            setIsProcessing(false);
             if (error instanceof FirestorePermissionError) {
                 errorEmitter.emit('permission-error', error);
             } else {
@@ -373,9 +380,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     const userProfile = userDocSnap.data() as UserProfile;
                     if (userProfile.role === role) {
                         const targetPath = getDashboardPathForRole(role);
-                        router.push(targetPath);
+                        router.replace(targetPath);
                     } else {
                         auth.signOut();
+                        setIsProcessing(false);
                         toast({
                             variant: 'destructive',
                             title: 'Access Denied',
@@ -384,6 +392,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     }
                 } else {
                     auth.signOut();
+                    setIsProcessing(false);
                     toast({
                         variant: 'destructive',
                         title: 'Login Failed',
@@ -392,6 +401,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 }
             })
             .catch(error => {
+                setIsProcessing(false);
                 const contextualError = new FirestorePermissionError({
                     path: userDocRef.path,
                     operation: 'get',
@@ -400,6 +410,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             });
         })
         .catch(error => {
+            setIsProcessing(false);
             toast({
             variant: 'destructive',
             title: 'Login Failed',
@@ -426,8 +437,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
     const provider = new GoogleAuthProvider();
+    setIsProcessing(true);
 
     try {
+        // If signing in as admin, check if we need to seed the DB first
+        if (role === 'admin') {
+            const usersRef = collection(firestore, "users");
+            const q = query(usersRef, where("role", "==", "admin"), limit(1));
+            const adminSnapshot = await getDocs(q);
+            if (adminSnapshot.empty) {
+                await seedDatabase();
+            }
+        }
+
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
         const additionalUserInfo = getAdditionalUserInfo(result);
@@ -447,23 +469,41 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 orderCount: 0,
                 emailVerified: user.emailVerified,
             };
-            await setDoc(userDocRef, userProfile);
+            
+            await setDoc(userDocRef, userProfile).catch(err => {
+                throw new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userProfile
+                });
+            });
+            
             toast({ title: 'Account Created!', description: `Welcome, ${user.displayName}!` });
         } else {
             const userProfile = userDocSnap.data() as UserProfile;
              if (userProfile.role !== role) {
                 await auth.signOut();
+                setIsProcessing(false);
                 toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
                 return;
             }
+             
+             // Sync email verification status if it changed
+             if (user.emailVerified !== userProfile.emailVerified) {
+                 await updateDoc(userDocRef, { emailVerified: user.emailVerified });
+             }
+             
              toast({ title: `Welcome back, ${user.displayName}!` });
         }
 
         const targetPath = getDashboardPathForRole(role);
-        router.push(targetPath);
+        router.replace(targetPath);
 
     } catch (error: any) {
-        if (error.code === 'auth/account-exists-with-different-credential' && error.customData.email) {
+        setIsProcessing(false);
+        if (error instanceof FirestorePermissionError) {
+            errorEmitter.emit('permission-error', error);
+        } else if (error.code === 'auth/account-exists-with-different-credential' && error.customData?.email) {
             const email = error.customData.email;
             const methods = await fetchSignInMethodsForEmail(auth, email);
 
@@ -477,7 +517,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             await linkWithCredential(userCredential.user, googleCredential);
                             toast({ title: 'Accounts Linked!', description: 'You can now sign in with Google.' });
                             const targetPath = getDashboardPathForRole(role);
-                            router.push(targetPath);
+                            router.replace(targetPath);
                         }
                     } catch (linkError: any) {
                         toast({ variant: 'destructive', title: 'Linking Failed', description: linkError.message });
@@ -486,6 +526,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             } else {
                 toast({ variant: 'destructive', title: 'Sign-in Failed', description: `You have previously signed in with ${methods[0]}.` });
             }
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            // User closed the popup, silent fail
         } else {
             toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
         }
@@ -507,7 +549,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             className="absolute inset-0 w-full h-full object-cover" 
             data-ai-hint="cafe exterior night" 
             onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
+              e.currentTarget.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
             }}
           />
                 <div className="absolute inset-0 bg-black/60" />
@@ -536,7 +578,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     <p className="text-muted-foreground">{description}</p>
                 </div>
                 
-                <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.push(`/${value}/${role}`)}>
+                <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
                     <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
                         <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out 
                      data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md
@@ -755,17 +797,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                             name="confirmPassword"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
-                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
-                                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
+                                    <FormLabel>Confirm Password</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
+                                            <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
+                                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </Button>
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                             />
@@ -784,7 +826,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                         <FormLabel>
-                                        I agree to the <Link href="#" className="underline">Privacy Policy</Link>
+                                        I agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>
                                         </FormLabel>
                                         <FormMessage />
                                     </div>
@@ -792,8 +834,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 )}
                             />
                         )}
-                        <Button type="submit" className="w-full" size="lg">
-                            {authType === 'login' ? 'Sign In' : 'Create Account'}
+                        <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (authType === 'login' ? 'Sign In' : 'Create Account')}
                         </Button>
                         </form>
                     </Form>
@@ -808,9 +850,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                        <FaGoogle className="mr-2 h-4 w-4" />
-                        Google
+                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><FaGoogle className="mr-2 h-4 w-4" /> Google</>}
                     </Button>
                 </div>
             </div>
