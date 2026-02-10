@@ -13,6 +13,7 @@ import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 
 const POINT_REWARDS = {
@@ -70,57 +71,6 @@ export default function WalletPage() {
         setIsCopied(true);
         toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
         setTimeout(() => setIsCopied(false), 2000);
-    };
-
-    const handleClaimPoints = async (action: 'linkSocials' | 'leaveReview') => {
-        if (!userDocRef || !userProfile || !firestore) return;
-
-        let fieldToUpdate: 'hasLinkedSocials' | 'hasLeftReview';
-        let pointsToAward: number;
-        let description: string;
-
-        if (action === 'linkSocials') {
-            if (userProfile.hasLinkedSocials) {
-                toast({ variant: 'destructive', title: 'Already Claimed' });
-                return;
-            }
-            fieldToUpdate = 'hasLinkedSocials';
-            pointsToAward = POINT_REWARDS.LINK_SOCIALS;
-            description = 'Linked Social Media Accounts';
-        } else {
-            if (userProfile.hasLeftReview) {
-                toast({ variant: 'destructive', title: 'Already Claimed' });
-                return;
-            }
-            fieldToUpdate = 'hasLeftReview';
-            pointsToAward = POINT_REWARDS.LEAVE_REVIEW;
-            description = 'Left a Google Review';
-        }
-
-        const batch = writeBatch(firestore);
-
-        batch.update(userDocRef, {
-            [fieldToUpdate]: true,
-            loyaltyPoints: increment(pointsToAward),
-            lifetimePoints: increment(pointsToAward),
-        });
-
-        const transactionRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
-        batch.set(transactionRef, {
-            date: serverTimestamp() as any,
-            description,
-            amount: pointsToAward,
-            type: 'earn'
-        });
-
-        await batch.commit().then(() => {
-            toast({ title: 'Points Awarded!', description: `You've earned ${pointsToAward} points.` });
-        }).catch(async (serverError) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'write'
-            }));
-        });
     };
 
 
@@ -313,47 +263,43 @@ export default function WalletPage() {
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg text-[#2c1810]">Social Rewards</h3>
                         <div className="grid md:grid-cols-2 gap-4">
-                            <div className="flex flex-col justify-between p-5 bg-white border border-[#2c1810]/5 rounded-2xl shadow-sm hover:shadow-md hover:border-[#d97706]/30 transition-all duration-300 group">
+                            <div className="flex flex-col justify-between p-5 bg-white border border-[#2c1810]/5 rounded-2xl shadow-sm opacity-70 group">
                                 <div className="mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mb-3">
                                         <LinkIcon className="text-blue-600 w-5 h-5" />
                                     </div>
-                                    <p className="font-bold text-[#2c1810] text-lg">Link Social Media</p>
-                                    <p className="text-xs text-[#6b584b] mt-1 italic">Earn points by following us.</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-bold text-[#2c1810] text-lg">Social Media Linking</p>
+                                        <Badge variant="outline" className="text-[8px] uppercase tracking-tighter h-4 px-1.5 border-primary/30 text-primary">Coming Soon</Badge>
+                                    </div>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">Earn points by following our official pages.</p>
                                 </div>
                                 <Button
-                                    className="w-full rounded-xl font-bold transition-all duration-300"
-                                    onClick={() => handleClaimPoints('linkSocials')}
-                                    disabled={userProfile.hasLinkedSocials}
-                                    variant={userProfile.hasLinkedSocials ? "outline" : "default"}
+                                    className="w-full rounded-xl font-bold opacity-50"
+                                    disabled
+                                    variant="outline"
                                 >
-                                    {userProfile.hasLinkedSocials ? (
-                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed {POINT_REWARDS.LINK_SOCIALS} Pts</span>
-                                    ) : (
-                                        `Claim ${POINT_REWARDS.LINK_SOCIALS} Points`
-                                    )}
+                                    {POINT_REWARDS.LINK_SOCIALS} Points
                                 </Button>
                             </div>
 
-                            <div className="flex flex-col justify-between p-5 bg-white border border-[#2c1810]/5 rounded-2xl shadow-sm hover:shadow-md hover:border-[#d97706]/30 transition-all duration-300 group">
+                            <div className="flex flex-col justify-between p-5 bg-white border border-[#2c1810]/5 rounded-2xl shadow-sm opacity-70 group">
                                 <div className="mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center mb-3 group-hover:bg-orange-100 transition-colors">
+                                    <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center mb-3">
                                         <MessageSquare className="text-orange-600 w-5 h-5" />
                                     </div>
-                                    <p className="font-bold text-[#2c1810] text-lg">Leave a Review</p>
-                                    <p className="text-xs text-[#6b584b] mt-1 italic">Support us on Google Reviews.</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-bold text-[#2c1810] text-lg">Google Reviews</p>
+                                        <Badge variant="outline" className="text-[8px] uppercase tracking-tighter h-4 px-1.5 border-primary/30 text-primary">Coming Soon</Badge>
+                                    </div>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">Share your experience to earn rewards.</p>
                                 </div>
                                 <Button
-                                    className="w-full rounded-xl font-bold transition-all duration-300"
-                                    onClick={() => handleClaimPoints('leaveReview')}
-                                    disabled={userProfile.hasLeftReview}
-                                    variant={userProfile.hasLeftReview ? "outline" : "default"}
+                                    className="w-full rounded-xl font-bold opacity-50"
+                                    disabled
+                                    variant="outline"
                                 >
-                                    {userProfile.hasLeftReview ? (
-                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed {POINT_REWARDS.LEAVE_REVIEW} Pts</span>
-                                    ) : (
-                                        `Claim ${POINT_REWARDS.LEAVE_REVIEW} Points`
-                                    )}
+                                    {POINT_REWARDS.LEAVE_REVIEW} Points
                                 </Button>
                             </div>
                         </div>
