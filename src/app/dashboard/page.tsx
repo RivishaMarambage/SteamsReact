@@ -57,15 +57,15 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative rounded-[2rem]">
+          <Card className="shadow-lg border-0 bg-white group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
               <ShoppingCart className="w-16 h-16 sm:w-24 sm:h-24 text-[#d97706] -rotate-12" />
             </div>
-            <CardHeader className="relative z-10 p-6 md:p-8">
-              <CardTitle className="font-headline text-xl md:text-2xl text-[#2c1810]">Order Again</CardTitle>
-              <CardDescription className="text-[#6b584b] text-sm md:text-base">Ready for another coffee?</CardDescription>
+            <CardHeader className="relative z-10 p-6">
+              <CardTitle className="font-headline text-xl text-[#2c1810]">Order Again</CardTitle>
+              <CardDescription className="text-[#6b584b] text-sm">Ready for another coffee?</CardDescription>
             </CardHeader>
-            <CardContent className="relative z-10 pt-0 p-6 md:p-8">
+            <CardContent className="relative z-10 pt-0 p-6">
               <Button asChild className="w-full bg-[#2c1810] hover:bg-[#d97706] text-white rounded-full h-12 font-bold shadow-md transition-all duration-300">
                 <Link href="/dashboard/order" className="flex items-center gap-2">
                   <ShoppingCart className="w-4 h-4" /> Start New Order
@@ -74,15 +74,15 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-[#d97706]/10 to-[#f59e0b]/5 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/20 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative rounded-[2rem]">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-[#d97706]/10 to-[#f59e0b]/5 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
             <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-[#d97706]/10 rounded-full blur-2xl group-hover:bg-[#d97706]/20 transition-all duration-300" />
-            <CardHeader className="relative z-10 p-6 md:p-8">
-              <CardTitle className="font-headline text-xl md:text-2xl flex items-center gap-2 text-[#d97706]">
+            <CardHeader className="relative z-10 p-6">
+              <CardTitle className="font-headline text-xl flex items-center gap-2 text-[#d97706]">
                 Create Own <Sparkles className="w-5 h-5 animate-pulse" />
               </CardTitle>
-              <CardDescription className="text-[#6b584b] text-sm md:text-base">Build your perfect custom drink.</CardDescription>
+              <CardDescription className="text-[#6b584b] text-sm">Build your perfect custom drink.</CardDescription>
             </CardHeader>
-            <CardContent className="relative z-10 pt-0 p-6 md:p-8">
+            <CardContent className="relative z-10 pt-0 p-6">
               <Button asChild className="w-full bg-gradient-to-r from-[#d97706] to-[#f59e0b] hover:from-[#b45309] hover:to-[#d97706] text-white border-none rounded-full h-12 font-bold shadow-md transition-all duration-300">
                 <Link href="/dashboard/creator" className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" /> Build a Drink
@@ -91,12 +91,12 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden rounded-[2rem] sm:col-span-2 lg:col-span-1">
-            <CardHeader className="p-6 md:p-8">
-              <CardTitle className="font-headline text-xl md:text-2xl text-[#2c1810]">Your Profile</CardTitle>
-              <CardDescription className="text-[#6b584b] text-sm md:text-base">Update your details.</CardDescription>
+          <Card className="shadow-lg border-0 bg-white group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden sm:col-span-2 lg:col-span-1">
+            <CardHeader className="p-6">
+              <CardTitle className="font-headline text-xl text-[#2c1810]">Your Profile</CardTitle>
+              <CardDescription className="text-[#6b584b] text-sm">Update your details.</CardDescription>
             </CardHeader>
-            <CardContent className="pt-0 p-6 md:p-8">
+            <CardContent className="pt-0 p-6">
               <Button asChild variant="outline" className="w-full border-2 border-[#2c1810]/10 hover:border-[#d97706] hover:bg-[#d97706]/5 text-[#2c1810] hover:text-[#d97706] rounded-full h-12 font-bold transition-all duration-300">
                 <Link href="/dashboard/profile" className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4" /> View Profile
