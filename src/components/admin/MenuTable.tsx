@@ -356,7 +356,7 @@ export default function MenuTable() {
             minSelection: Number(g.minSelection) || 0,
             maxSelection: Number(g.maxSelection) || 0,
         })),
-        displayOrder: selectedItem ? selectedItem.displayOrder : (menuRaw?.length || 0)
+        displayOrder: selectedItem ? (selectedItem.displayOrder ?? 0) : (menuRaw?.length || 0)
     };
 
     if (selectedItem) {

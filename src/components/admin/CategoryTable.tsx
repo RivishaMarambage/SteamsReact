@@ -219,7 +219,7 @@ export default function CategoryTable() {
 
     const finalData = {
       ...formData,
-      displayOrder: selectedCategory ? selectedCategory.displayOrder : (categoriesRaw?.length || 0)
+      displayOrder: selectedCategory ? (selectedCategory.displayOrder ?? 0) : (categoriesRaw?.length || 0)
     };
 
     if (selectedCategory) {

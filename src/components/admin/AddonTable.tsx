@@ -251,7 +251,7 @@ export default function AddonTable() {
     const finalData = {
         ...formData,
         price: Number(formData.price) || 0,
-        displayOrder: selectedAddon ? selectedAddon.displayOrder : (addonsRaw?.length || 0)
+        displayOrder: selectedAddon ? (selectedAddon.displayOrder ?? 0) : (addonsRaw?.length || 0)
     };
 
     if (selectedAddon) {
