@@ -3,10 +3,10 @@
 
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingCart, DollarSign } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, Coins } from 'lucide-react';
 import { Skeleton } from "../ui/skeleton";
 import { collection, query, doc } from "firebase/firestore";
-import type { UserProfile } from "@/lib/types";
+import type { UserProfile, Order } from "@/lib/types";
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ComponentType<{className?: string}>, isLoading: boolean }) {
   if (isLoading) {
@@ -52,23 +52,39 @@ export default function AnalyticsDashboard() {
     return query(collection(firestore, 'orders'));
   }, [firestore, userProfile]);
 
-  const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
   
   // This is not efficient for large scale, but works for this demo.
   // A better approach would be to use a cloud function to aggregate this data.
-  const { data: allOrders, isLoading: ordersLoading } = useCollection(ordersQuery);
+  const { data: allOrders, isLoading: ordersLoading } = useCollection<Order>(ordersQuery);
 
   const totalUsers = users?.length ?? 0;
   const totalOrders = allOrders?.length ?? 0;
-  const totalRevenue = allOrders?.reduce((acc, order) => acc + order.totalAmount, 0) ?? 0;
+  const totalRevenue = allOrders?.reduce((acc, order) => acc + (order.totalAmount || 0), 0) ?? 0;
+
+  // Monthly Redeemables Calculation (Points redeemed this month)
+  // 1 point = 1 Rupee (LKR)
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const monthlyRedeemablesPoints = allOrders?.reduce((acc, order) => {
+    const orderDate = order.orderDate?.toDate();
+    if (orderDate && orderDate >= startOfMonth) {
+      return acc + (order.pointsRedeemed ?? 0);
+    }
+    return acc;
+  }, 0) ?? 0;
+
+  const monthlyRedeemablesValue = monthlyRedeemablesPoints; // 1:1 conversion
 
   const isLoading = isUserLoading || isProfileLoading || usersLoading || ordersLoading;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard title="Total Users" value={totalUsers} icon={Users} isLoading={isLoading} />
       <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} isLoading={isLoading} />
-      <StatCard title="Total Revenue" value={`LKR ${totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} />
+      <StatCard title="Total Revenue" value={`LKR ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} isLoading={isLoading} />
+      <StatCard title="Monthly Redeemables" value={`LKR ${monthlyRedeemablesValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={Coins} isLoading={isLoading} />
     </div>
   );
 }
