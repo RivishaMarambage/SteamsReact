@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 const TRIVIA_DAILY_LIMIT = 5;
 const TRIVIA_QUEST_GOAL = 5;
 const SPIN_COST = 10;
+const CUP_COST = 5;
 
 const QUESTION_BANK = [
   { category: 'Ancient History', q: 'Which king made Sigiriya his capital in the 5th century AD?', options: ['King Kashyapa', 'King Parakramabahu', 'King Dutugemunu', 'King Devanampiya Tissa'], correct: 0, fact: "King Kashyapa built his palace on the summit of Sigiriya rock." },
@@ -62,7 +63,7 @@ function GameZonePageContent() {
 
 
   useEffect(() => {
-    const defaultProfile = { lastPlayedDate: today, triviaCount: 0, spinCount: 0 };
+    const defaultProfile = { lastPlayedDate: today, triviaCount: 0, spinCount: 0, cupCount: 0 };
     // Initialize game profile on first load for a new day
     if (gameProfileRef && gameProfile && gameProfile.lastPlayedDate !== today) {
         updateDoc(gameProfileRef, defaultProfile);
@@ -164,10 +165,29 @@ function GameZonePageContent() {
   
   // --- PICK A CUP LOGIC ---
   const playPickCup = async (idx: number) => {
-    if (isPicking || !authUser || cupResult) return;
+    if (isPicking || !authUser || cupResult || !gameProfile || !gameProfileRef || !userProfile) return;
     
+    const isFreeChance = (gameProfile.cupCount ?? 0) === 0;
+
+    if (!isFreeChance) {
+        if ((userProfile.loyaltyPoints ?? 0) < CUP_COST) {
+            toast({
+                variant: 'destructive',
+                title: 'Not enough points',
+                description: `You need ${CUP_COST} points for another chance.`,
+            });
+            return;
+        }
+    }
+
     setIsPicking(true);
     setPickedCup(idx);
+
+    if (!isFreeChance) {
+        await updatePoints(-CUP_COST, "Paid Lucky Cup Retry");
+    }
+
+    await updateDoc(gameProfileRef, { cupCount: increment(1) });
 
     // Visual delay for anticipation
     await new Promise(r => setTimeout(r, 1500));
@@ -252,6 +272,7 @@ function GameZonePageContent() {
   if (!userProfile) return <p>Could not load user profile.</p>;
 
   const hasFreeSpin = (gameProfile?.spinCount ?? 0) === 0;
+  const hasFreeCup = (gameProfile?.cupCount ?? 0) === 0;
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
@@ -327,7 +348,7 @@ function GameZonePageContent() {
               {isSpinning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Spinning...</> : hasFreeSpin ? 'SPIN FOR FREE' : `SPIN FOR ${SPIN_COST} PTS`}
             </Button>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-              First spin of the day is FREE! Subsequent spins cost points.
+              First spin of the day is FREE! Subsequent spins cost {SPIN_COST} points.
             </p>
           </Card>
         </div>
@@ -374,16 +395,26 @@ function GameZonePageContent() {
              {cupResult && (
                 <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
                     <p className="text-xl font-black text-primary tracking-tight uppercase">{cupResult}</p>
-                    <Button 
-                        variant="outline" 
-                        className="rounded-full px-8 text-white border-white/20 hover:bg-white/10" 
-                        onClick={() => {
-                            setCupResult(null);
-                            setPickedCup(null);
-                        }}
-                    >
-                        Play Again Tomorrow
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                        {!cupResult.includes("GRAND") && (
+                            <Button 
+                                className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white font-bold" 
+                                onClick={() => {
+                                    setCupResult(null);
+                                    setPickedCup(null);
+                                }}
+                            >
+                                TRY AGAIN ({CUP_COST} PTS)
+                            </Button>
+                        )}
+                        <Button 
+                            variant="ghost" 
+                            className="rounded-full px-8 text-stone-400 hover:text-white" 
+                            onClick={() => setActiveGame('spin')}
+                        >
+                            Try Another Game
+                        </Button>
+                    </div>
                 </div>
              )}
 
@@ -391,6 +422,7 @@ function GameZonePageContent() {
                 <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
                     Daily Grand Prize: <span className="text-primary">Free Club Sandwich</span>
                 </p>
+                <p className="text-[8px] text-stone-600 mt-1 uppercase">First pick is free. Retries cost {CUP_COST} pts.</p>
              </div>
           </Card>
         </div>

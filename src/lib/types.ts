@@ -28,6 +28,7 @@ export type GameProfile = {
   lastPlayedDate: string; // YYYY-MM-DD
   triviaCount: number;
   spinCount: number;
+  cupCount: number;
 };
 
 export type DailyGameWinners = {
