@@ -65,8 +65,15 @@ export default function AppSidebar() {
   };
 
   const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/');
+    try {
+      await auth.signOut();
+      // Using router.replace ensures the dashboard isn't in history
+      router.replace('/');
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Fallback redirect
+      window.location.href = '/';
+    }
   };
 
   const isActive = (href: string) => {
