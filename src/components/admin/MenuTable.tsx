@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -63,12 +62,11 @@ const INITIAL_FORM_DATA: FormData = {
 };
 
 // Sortable Row Component
-function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isReorderDisabled }: { 
+function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete }: { 
   item: MenuItem, 
   getCategoryName: (id: string) => string,
   handleEdit: (item: MenuItem) => void,
-  handleDelete: (item: MenuItem) => void,
-  isReorderDisabled: boolean
+  handleDelete: (item: MenuItem) => void
 }) {
   const {
     attributes,
@@ -77,7 +75,7 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isR
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: isReorderDisabled });
+  } = useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -85,25 +83,18 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isR
     zIndex: isDragging ? 1 : 0,
     position: 'relative' as const,
     backgroundColor: isDragging ? 'hsl(var(--muted))' : undefined,
-    opacity: isReorderDisabled && !isDragging ? 0.8 : 1,
   };
 
   return (
     <TableRow ref={setNodeRef} style={style} className={isDragging ? "shadow-2xl" : ""}>
       <TableCell className="w-[50px]">
-        {!isReorderDisabled ? (
-          <button 
-            {...attributes} 
-            {...listeners} 
-            className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </button>
-        ) : (
-          <div className="p-2 opacity-20">
-            <GripVertical className="h-4 w-4" />
-          </div>
-        )}
+        <button 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
       </TableCell>
       <TableCell className="w-[80px]">
         <div className="relative h-12 w-12 rounded-lg overflow-hidden border bg-muted group-hover:shadow-md transition-shadow">
@@ -215,7 +206,7 @@ export default function MenuTable() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !firestore || !filteredAndSortedMenu || isFilterActive) return;
+    if (!over || active.id === over.id || !firestore || !filteredAndSortedMenu) return;
 
     const oldIndex = filteredAndSortedMenu.findIndex((item) => item.id === active.id);
     const newIndex = filteredAndSortedMenu.findIndex((item) => item.id === over.id);
@@ -461,12 +452,6 @@ export default function MenuTable() {
           </Button>
         </div>
       </CardHeader>
-      
-      {isFilterActive && (
-        <div className="px-6 py-2 bg-muted/30 border-y text-xs font-medium text-muted-foreground flex items-center gap-2">
-          <span>Filtering active. Reordering is disabled while searching.</span>
-        </div>
-      )}
 
       <CardContent>
         <DndContext 
@@ -499,7 +484,6 @@ export default function MenuTable() {
                     getCategoryName={getCategoryName}
                     handleEdit={handleEdit}
                     handleDelete={handleDelete}
-                    isReorderDisabled={isFilterActive}
                   />
                 ))}
               </SortableContext>

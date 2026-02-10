@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import type { Addon, AddonCategory } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, GripVertical, Search, FilterX, Info } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, GripVertical, Search, FilterX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -51,14 +51,12 @@ function SortableTableRow({
   addon, 
   getCategoryName, 
   handleEdit, 
-  handleDelete, 
-  isReorderDisabled 
+  handleDelete
 }: { 
   addon: Addon, 
   getCategoryName: (id: string) => string,
   handleEdit: (addon: Addon) => void,
-  handleDelete: (addon: Addon) => void,
-  isReorderDisabled: boolean
+  handleDelete: (addon: Addon) => void
 }) {
   const {
     attributes,
@@ -67,7 +65,7 @@ function SortableTableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: addon.id, disabled: isReorderDisabled });
+  } = useSortable({ id: addon.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -75,25 +73,18 @@ function SortableTableRow({
     zIndex: isDragging ? 1 : 0,
     position: 'relative' as const,
     backgroundColor: isDragging ? 'hsl(var(--muted))' : undefined,
-    opacity: isReorderDisabled && !isDragging ? 0.8 : 1,
   };
 
   return (
     <TableRow ref={setNodeRef} style={style} className={isDragging ? "shadow-2xl" : ""}>
       <TableCell className="w-[50px]">
-        {!isReorderDisabled ? (
-          <button 
-            {...attributes} 
-            {...listeners} 
-            className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </button>
-        ) : (
-          <div className="p-2 opacity-20">
-            <GripVertical className="h-4 w-4" />
-          </div>
-        )}
+        <button 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
       </TableCell>
       <TableCell className="font-bold">{addon.name}</TableCell>
       <TableCell>{getCategoryName(addon.addonCategoryId)}</TableCell>
@@ -186,7 +177,7 @@ export default function AddonTable() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !firestore || !filteredAndSortedAddons || isFilterActive) return;
+    if (!over || active.id === over.id || !firestore || !filteredAndSortedAddons) return;
 
     const oldIndex = filteredAndSortedAddons.findIndex((addon) => addon.id === active.id);
     const newIndex = filteredAndSortedAddons.findIndex((addon) => addon.id === over.id);
@@ -330,13 +321,6 @@ export default function AddonTable() {
         </div>
       </CardHeader>
 
-      {isFilterActive && (
-        <div className="px-6 py-3 bg-primary/5 border-y text-xs font-bold text-primary flex items-center gap-2 animate-in slide-in-from-top-1">
-          <Info className="h-4 w-4" />
-          <span>Manual reordering is disabled while searching or filtering. Clear filters to arrange the menu sequence.</span>
-        </div>
-      )}
-
       <CardContent>
         <DndContext 
           sensors={sensors}
@@ -367,7 +351,6 @@ export default function AddonTable() {
                     getCategoryName={getCategoryName}
                     handleEdit={handleEdit}
                     handleDelete={handleDelete}
-                    isReorderDisabled={isFilterActive}
                   />
                 ))}
               </SortableContext>
