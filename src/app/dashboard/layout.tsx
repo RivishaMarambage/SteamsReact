@@ -1,5 +1,6 @@
 import AppSidebar from '@/components/layout/AppSidebar';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import AppHeader from '@/components/layout/AppHeader';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AuthRedirect } from '@/components/auth/AuthRedirect';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -7,15 +8,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <AuthRedirect>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="overflow-hidden bg-[#FDFBF7]">
-          {/* Mobile-only header for sidebar trigger */}
-          <div className="flex h-14 items-center px-4 md:hidden border-b border-sidebar-border bg-[#160C08] text-white sticky top-0 z-20 shrink-0">
-            <SidebarTrigger />
-          </div>
-          <div className="flex-1 overflow-y-auto w-full">
-            <main className="p-4 sm:p-6 lg:p-10 max-w-[1600px] mx-auto w-full overflow-x-hidden">
-              {children}
-            </main>
+        <SidebarInset>
+          <AppHeader />
+          <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
