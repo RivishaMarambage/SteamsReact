@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import QrScanner from '@/components/wallet/QrScanner';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function CheckoutPage() {
@@ -148,27 +149,27 @@ export default function CheckoutPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Checkout</h1>
+        <h1 className="text-3xl font-bold font-headline uppercase tracking-tight">Checkout</h1>
         <p className="text-muted-foreground">Please review your order and complete the payment.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-8">
-        <Card>
+        <Card className="rounded-[2.5rem]">
             <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle className="uppercase tracking-tight">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
                     {checkoutData.cart.map((item: CartItem) => (
                          <div key={item.id} className="flex justify-between items-start">
                             <div>
-                                <p className="font-semibold">{item.quantity}x {item.menuItem.name}</p>
+                                <p className="font-bold">{item.quantity}x {item.menuItem.name}</p>
                                 {item.addons.length > 0 && (
                                 <p className="text-xs text-muted-foreground">
                                     {item.addons.map(a => `+ ${a.name}`).join(', ')}
                                 </p>
                                 )}
                             </div>
-                            <p>LKR {(item.totalPrice * item.quantity).toFixed(2)}</p>
+                            <p className="font-bold">LKR {(item.totalPrice * item.quantity).toFixed(2)}</p>
                         </div>
                     ))}
                 </div>
@@ -176,80 +177,87 @@ export default function CheckoutPage() {
                  <div className="w-full space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span>Subtotal</span>
-                        <span>LKR {checkoutData.subtotal.toFixed(2)}</span>
+                        <span className="font-medium">LKR {checkoutData.subtotal.toFixed(2)}</span>
                     </div>
                     {itemDiscount > 0 && (
                     <div className="flex justify-between text-destructive">
                         <span>Item Discounts</span>
-                        <span>- LKR {itemDiscount.toFixed(2)}</span>
+                        <span className="font-bold">- LKR {itemDiscount.toFixed(2)}</span>
                     </div>
                     )}
                     {checkoutData.serviceCharge > 0 && (
                     <div className="flex justify-between">
                         <span>Service Charge (10%)</span>
-                        <span>LKR {checkoutData.serviceCharge.toFixed(2)}</span>
+                        <span className="font-medium">LKR {checkoutData.serviceCharge.toFixed(2)}</span>
                     </div>
                     )}
                     {checkoutData.loyaltyDiscount > 0 && (
                     <div className="flex justify-between text-destructive">
                         <span>Points Redemption</span>
-                        <span>- LKR {checkoutData.loyaltyDiscount.toFixed(2)}</span>
+                        <span className="font-bold">- LKR {checkoutData.loyaltyDiscount.toFixed(2)}</span>
                     </div>
                     )}
-                    <div className="flex justify-between text-lg font-bold">
+                    <div className="flex justify-between text-xl font-black uppercase text-primary pt-2">
                         <span>Total to Pay</span>
                         <span>LKR {checkoutData.cartTotal.toFixed(2)}</span>
                     </div>
                 </div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-[2.5rem]">
              <CardHeader>
-                <CardTitle>Payment</CardTitle>
+                <CardTitle className="uppercase tracking-tight">Payment</CardTitle>
                 <CardDescription>Select a payment method.</CardDescription>
             </CardHeader>
             <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4 mb-6">
-                    <Label htmlFor="card" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                    <Label htmlFor="card" className="flex items-center gap-4 p-4 border rounded-2xl cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary transition-all">
                         <RadioGroupItem value="card" id="card" />
-                        <CreditCard className="h-6 w-6" />
-                        <div className="grid gap-1.5">
-                            <p className="font-medium">Pay Online</p>
-                            <p className="text-sm text-muted-foreground">Visa, Mastercard, Amex via Genie</p>
+                        <CreditCard className="h-6 w-6 text-primary" />
+                        <div className="grid gap-1">
+                            <p className="font-bold">Pay Online</p>
+                            <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex via Genie</p>
                         </div>
                     </Label>
                     
                     {checkoutData.orderType === 'Dine-in' && (
-                        <Label htmlFor="cash" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <Label htmlFor="cash" className="flex items-center gap-4 p-4 border rounded-2xl cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary transition-all">
                             <RadioGroupItem value="cash" id="cash" />
-                            <Banknote className="h-6 w-6" />
-                            <div className="grid gap-1.5">
-                                <p className="font-medium">Cash & Card</p>
-                                <p className="text-sm text-muted-foreground">Pay directly at the counter</p>
+                            <Banknote className="h-6 w-6 text-primary" />
+                            <div className="grid gap-1">
+                                <p className="font-bold">Cash & Card</p>
+                                <p className="text-xs text-muted-foreground">Pay directly at the counter</p>
                             </div>
                         </Label>
                     )}
 
-                    <Label htmlFor="qr" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
-                        <RadioGroupItem value="qr" id="qr" />
-                        <QrCode className="h-6 w-6" />
-                        <div className="grid gap-1.5">
-                            <p className="font-medium">Pay with QR</p>
-                            <p className="text-sm text-muted-foreground">Scan to pay with your mobile</p>
+                    <Label htmlFor="qr" className="flex items-center gap-4 p-4 border rounded-2xl cursor-not-allowed opacity-60 transition-all">
+                        <RadioGroupItem value="qr" id="qr" disabled />
+                        <QrCode className="h-6 w-6 text-muted-foreground" />
+                        <div className="flex-1 grid gap-1">
+                            <div className="flex items-center justify-between">
+                                <p className="font-bold">Pay with QR</p>
+                                <Badge variant="secondary" className="text-[10px] h-5">Coming Soon</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Scan to pay with your mobile</p>
                         </div>
                     </Label>
-                    <Label htmlFor="wallet" className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
-                        <RadioGroupItem value="wallet" id="wallet" />
-                        <Wallet className="h-6 w-6" />
-                        <div className="grid gap-1.5">
-                            <p className="font-medium">Pay with Genie Wallet</p>
-                            <p className="text-sm text-muted-foreground">Use your Genie account balance</p>
+
+                    <Label htmlFor="wallet" className="flex items-center gap-4 p-4 border rounded-2xl cursor-not-allowed opacity-60 transition-all">
+                        <RadioGroupItem value="wallet" id="wallet" disabled />
+                        <Wallet className="h-6 w-6 text-muted-foreground" />
+                        <div className="flex-1 grid gap-1">
+                            <div className="flex items-center justify-between">
+                                <p className="font-bold">Pay with Genie Wallet</p>
+                                <Badge variant="secondary" className="text-[10px] h-5">Coming Soon</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Use your Genie account balance</p>
                         </div>
                     </Label>
                 </RadioGroup>
 
                 {renderPaymentButton()}
-                <div className="mt-4 text-center text-xs text-muted-foreground">
+                <div className="mt-4 text-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                     {paymentMethod === 'cash' ? 'Please pay the staff after your meal or upon pickup.' : 'You will be redirected to Genie to complete your payment.'}
                 </div>
             </CardContent>
