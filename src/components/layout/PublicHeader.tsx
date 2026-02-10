@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Menu, X, ShoppingCart, Tag, LayoutDashboard, LogIn } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogIn, UserPlus } from "lucide-react";
 import { useUser } from "@/firebase";
 
 export default function PublicHeader() {
@@ -45,17 +45,6 @@ export default function PublicHeader() {
 
         <div className="flex items-center gap-2 md:gap-4">
           <nav className="hidden md:flex items-center gap-3">
-            <Button asChild variant="outline" className="hidden lg:flex rounded-full px-6 bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white font-black text-xs uppercase tracking-wider">
-              <Link href="/menu" className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" /> View Menu
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="hidden lg:flex rounded-full px-6 bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white font-black text-xs uppercase tracking-wider">
-              <Link href="/offers" className="flex items-center gap-2">
-                <Tag className="w-4 h-4" /> View Offers
-              </Link>
-            </Button>
-            
             {user ? (
               <Button asChild className="rounded-full px-8 bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs uppercase tracking-widest shadow-lg">
                 <Link href="/dashboard" className="flex items-center gap-2">
@@ -63,11 +52,18 @@ export default function PublicHeader() {
                 </Link>
               </Button>
             ) : (
-              <Button asChild className="rounded-full px-8 bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs uppercase tracking-widest shadow-lg">
-                <Link href="/login/customer" className="flex items-center gap-2">
-                  <LogIn className="w-4 h-4" /> Sign In
-                </Link>
-              </Button>
+              <>
+                <Button asChild variant="ghost" className="rounded-full px-6 text-white hover:bg-white/10 font-black text-xs uppercase tracking-widest">
+                  <Link href="/login/customer" className="flex items-center gap-2">
+                    <LogIn className="w-4 h-4" /> Sign In
+                  </Link>
+                </Button>
+                <Button asChild className="rounded-full px-8 bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs uppercase tracking-widest shadow-lg">
+                  <Link href="/signup/customer" className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" /> Sign Up
+                  </Link>
+                </Button>
+              </>
             )}
           </nav>
 
@@ -101,17 +97,22 @@ export default function PublicHeader() {
           ))}
           
           <div className="flex flex-col w-full max-w-xs gap-4 mt-8">
-            <Button asChild variant="outline" className="w-full h-14 rounded-full border-white/20 text-white bg-transparent font-black uppercase tracking-widest">
-              <Link href="/menu" onClick={() => setIsMenuOpen(false)}>View Menu</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full h-14 rounded-full border-white/20 text-white bg-transparent font-black uppercase tracking-widest">
-              <Link href="/offers" onClick={() => setIsMenuOpen(false)}>View Offers</Link>
-            </Button>
-            <Button asChild className="w-full h-14 rounded-full bg-[#d97706] text-white font-black uppercase tracking-widest shadow-2xl">
-              <Link href={user ? "/dashboard" : "/login/customer"} onClick={() => setIsMenuOpen(false)}>
-                {user ? "Dashboard" : "Sign In"}
-              </Link>
-            </Button>
+            {user ? (
+              <Button asChild className="w-full h-14 rounded-full bg-[#d97706] text-white font-black uppercase tracking-widest shadow-2xl">
+                <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                  Go to Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="outline" className="w-full h-14 rounded-full border-white/20 text-white bg-transparent font-black uppercase tracking-widest">
+                  <Link href="/login/customer" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+                </Button>
+                <Button asChild className="w-full h-14 rounded-full bg-[#d97706] text-white font-black uppercase tracking-widest shadow-2xl">
+                  <Link href="/signup/customer" onClick={() => setIsMenuOpen(false)}>Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
         </nav>
       </div>
