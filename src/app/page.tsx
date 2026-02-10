@@ -97,7 +97,8 @@ export default function LandingPage() {
               <span className="text-[#f59e0b]">One Cup at a Time</span>
             </h1>
             <p className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
-              Experience the art of coffee in the heart of the city. We source the finest beans to bring you a daily ritual worth savoring.
+            We bring together authentic Ceylon teas, expertly crafted coffee and comforting food
+            in a homely space designed for everyday moments and meaningful conversations
             </p>
             <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
               <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">

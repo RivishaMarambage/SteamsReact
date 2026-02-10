@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -9,7 +10,7 @@ import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, Loya
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc, orderBy } from 'firebase/firestore';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -79,6 +80,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
+  const sortedMenuItems = useMemo(() => {
+    return [...menuItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [menuItems]);
 
   const handleTypeSelect = (type: Order['orderType']) => {
     if (type === 'Dine-in') {
@@ -567,7 +572,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 {categories?.map(subCategory => (
                 <TabsContent key={subCategory.id} value={subCategory.id}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
+                    {sortedMenuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
                         const todayString = format(today, 'yyyy-MM-dd');
                         

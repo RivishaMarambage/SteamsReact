@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,18 +11,38 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import type { MenuItem, Category, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+// DND Kit Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
 type FormData = Omit<MenuItem, 'id' | 'price' | 'addonGroups'> & { 
     price: number | '',
@@ -31,7 +51,6 @@ type FormData = Omit<MenuItem, 'id' | 'price' | 'addonGroups'> & {
         maxSelection: number | '',
     })[]
 };
-
 
 const INITIAL_FORM_DATA: FormData = {
   name: '',
@@ -43,14 +62,75 @@ const INITIAL_FORM_DATA: FormData = {
   addonGroups: [],
 };
 
+// Sortable Row Component
+function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete }: { 
+  item: MenuItem, 
+  getCategoryName: (id: string) => string,
+  handleEdit: (item: MenuItem) => void,
+  handleDelete: (item: MenuItem) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+    position: 'relative' as const,
+    backgroundColor: isDragging ? 'hsl(var(--muted))' : undefined,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? "shadow-2xl" : ""}>
+      <TableCell className="w-[50px]">
+        <button 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </TableCell>
+      <TableCell className="font-bold">{item.name}</TableCell>
+      <TableCell>{getCategoryName(item.categoryId)}</TableCell>
+      <TableCell>
+        <Badge variant={item.isOutOfStock ? "destructive" : "secondary"}>
+          {item.isOutOfStock ? "Out of Stock" : "In Stock"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right font-mono">LKR {item.price.toFixed(2)}</TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-haspopup="true" size="icon" variant="ghost">
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(item)}>Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function MenuTable() {
   const firestore = useFirestore();
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
   const addonCategoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "addon_categories") : null, [firestore]);
 
-
-  const { data: menu, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
+  const { data: menuRaw, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   const { data: addonCategories, isLoading: areAddonCategoriesLoading } = useCollection<AddonCategory>(addonCategoriesQuery);
   
@@ -60,7 +140,20 @@ export default function MenuTable() {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const { toast } = useToast();
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const isLoading = isMenuLoading || areCategoriesLoading || areAddonCategoriesLoading;
+
+  // Stable sorted menu list
+  const sortedMenu = useMemo(() => {
+    if (!menuRaw) return [];
+    return [...menuRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [menuRaw]);
 
   useEffect(() => {
     if (isFormOpen) {
@@ -83,6 +176,29 @@ export default function MenuTable() {
     }
   }, [isFormOpen, selectedItem, categories]);
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !firestore || !sortedMenu) return;
+
+    const oldIndex = sortedMenu.findIndex((item) => item.id === active.id);
+    const newIndex = sortedMenu.findIndex((item) => item.id === over.id);
+
+    const newOrder = arrayMove(sortedMenu, oldIndex, newIndex);
+    
+    // Update local display orders and push to Firestore
+    const batch = writeBatch(firestore);
+    newOrder.forEach((item, index) => {
+      const docRef = doc(firestore, 'menu_items', item.id);
+      batch.update(docRef, { displayOrder: index });
+    });
+
+    batch.commit().catch(e => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'menu_items',
+        operation: 'update',
+      }));
+    });
+  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -182,11 +298,12 @@ export default function MenuTable() {
             ...g,
             minSelection: Number(g.minSelection) || 0,
             maxSelection: Number(g.maxSelection) || 0,
-        }))
+        })),
+        // Assign display order if new
+        displayOrder: selectedItem ? selectedItem.displayOrder : (sortedMenu?.length || 0)
     };
 
     if (selectedItem) {
-      // Update existing item
       const docRef = doc(firestore, "menu_items", selectedItem.id);
       setDoc(docRef, finalData, { merge: true })
         .then(() => {
@@ -202,7 +319,6 @@ export default function MenuTable() {
         });
 
     } else {
-      // Add new item
       const collRef = collection(firestore, "menu_items");
       addDoc(collRef, finalData)
         .then(() => {
@@ -249,184 +365,60 @@ export default function MenuTable() {
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="font-headline text-2xl">Menu Items</CardTitle>
-        <Button size="sm" onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Item
-        </Button>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="h-10 px-4 bg-muted/50 hidden sm:flex">
+            Drag items to reorder
+          </Badge>
+          <Button size="sm" onClick={handleAddNew}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New Item
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Add-on Groups</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {menu?.map(item => {
-              return (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{getCategoryName(item.categoryId)}</TableCell>
-                  <TableCell>
-                    <Badge variant={item.isOutOfStock ? "destructive" : "secondary"}>
-                      {item.isOutOfStock ? "Out of Stock" : "In Stock"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {item.addonGroups && item.addonGroups.length > 0 ? `${item.addonGroups.length}` : '0'}
-                  </TableCell>
-                  <TableCell className="text-right">LKR {item.price.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(item)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis]}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SortableContext 
+                items={sortedMenu.map(i => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {sortedMenu.map(item => (
+                  <SortableTableRow 
+                    key={item.id} 
+                    item={item} 
+                    getCategoryName={getCategoryName}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+              </SortableContext>
+            </SortableContext>
+            {sortedMenu.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  No menu items found. Add your first item to get started.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
-      </CardContent>
-
-      <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-3xl h-full flex flex-col sm:h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
-            <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your menu.'}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit} className="flex-1 min-h-0 flex flex-col">
-            <ScrollArea className="flex-1 -mx-6 px-6">
-              <div className="py-4 pr-1 space-y-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                    <Label htmlFor="price">Price (LKR)</Label>
-                    <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
-                    </div>
-                    <div className="grid gap-2">
-                    <Label htmlFor="categoryId">Category</Label>
-                    <select
-                        id="categoryId"
-                        name="categoryId"
-                        value={formData.categoryId || ''}
-                        onChange={handleFormChange}
-                        required
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="" disabled>Select a category</option>
-                        {categories?.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
-                    </div>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="imageUrl">Image URL</Label>
-                    <Input id="imageUrl" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} placeholder="https://example.com/image.jpg" />
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Switch id="isOutOfStock" name="isOutOfStock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
-                    <Label htmlFor="isOutOfStock">Mark as out of stock</Label>
-                </div>
-
-                <div className="space-y-4 pt-4">
-                    <Label className="text-lg font-semibold">Add-on Groups</Label>
-                    <div className="space-y-4">
-                        {formData.addonGroups.map((group, index) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-4 relative">
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => removeAddonGroup(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`addon-cat-${index}`}>Category</Label>
-                                        <Select value={group.addonCategoryId} onValueChange={(val) => handleAddonGroupChange(index, 'addonCategoryId', val)}>
-                                            <SelectTrigger id={`addon-cat-${index}`}>
-                                                <SelectValue placeholder="Select add-on category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {addonCategories?.map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="flex items-end pb-2">
-                                         <div className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id={`is-required-${index}`} 
-                                                checked={group.isRequired}
-                                                onCheckedChange={(checked) => handleAddonGroupChange(index, 'isRequired', !!checked)}
-                                            />
-                                            <Label htmlFor={`is-required-${index}`}>Required</Label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                     <div className="grid gap-2">
-                                        <Label htmlFor={`min-sel-${index}`}>Min Selections</Label>
-                                        <Input id={`min-sel-${index}`} type="number" value={group.minSelection} onChange={(e) => handleAddonGroupChange(index, 'minSelection', e.target.value === '' ? '' : Number(e.target.value))} />
-                                     </div>
-                                      <div className="grid gap-2">
-                                        <Label htmlFor={`max-sel-${index}`}>Max Selections</Label>
-                                        <Input id={`max-sel-${index}`} type="number" value={group.maxSelection} onChange={(e) => handleAddonGroupChange(index, 'maxSelection', e.target.value === '' ? '' : Number(e.target.value))} />
-                                     </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                     <Button type="button" variant="outline" size="sm" onClick={addNewAddonGroup}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Group
-                    </Button>
-                </div>
-                </div>
-            </ScrollArea>
-            <DialogFooter className="border-t pt-4 mt-auto -mx-6 px-6">
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
-              <Button type="submit">Save changes</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      <AlertDialog open={isAlertOpen} onOpenChange={setAlertOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the menu item.
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      </DndContext>
     </Card>
   );
 }

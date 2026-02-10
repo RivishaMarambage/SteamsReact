@@ -64,6 +64,7 @@ export type MenuItem = {
   imageUrl?: string;
   isOutOfStock?: boolean;
   addonGroups?: MenuItemAddonGroup[];
+  displayOrder?: number;
 };
 
 export type Category = {
