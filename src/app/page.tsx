@@ -238,7 +238,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-accent-foreground py-20 lg:py-24 overflow-hidden relative">
+        <section className="bg-gradient-to-br from-[#CF6D17] to-[#F58D37] text-white py-20 lg:py-24 overflow-hidden relative">
           <div className="absolute -top-20 -left-40 w-80 h-80 bg-white/10 rounded-full opacity-50" />
           <div className="absolute -bottom-20 -right-40 w-96 h-96 bg-white/10 rounded-full opacity-50" />
           <div className="container mx-auto px-4 md:px-6 grid md:grid-cols-2 gap-12 items-center relative">
@@ -247,8 +247,8 @@ export default function LandingPage() {
                 <Sparkles className="h-4 w-4" />
                 NEW FEATURE
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold font-headline">Create Your Perfect Cup</h2>
-              <p className="text-lg text-accent-foreground/90">
+              <h2 className="text-4xl lg:text-5xl font-bold font-headline text-white">Create Your Perfect Cup</h2>
+              <p className="text-lg text-white/90">
                 Unleash your inner barista! Choose your base, customize with premium add-ons, and craft a coffee that's uniquely yours. From syrups to milk alternatives, every detail is in your hands.
               </p>
               <div className="flex flex-wrap gap-4 text-sm">
@@ -273,13 +273,13 @@ export default function LandingPage() {
               <div className="absolute w-48 h-48 md:w-72 md:h-72 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
                 <Coffee className="w-24 h-24 md:w-36 md:h-36 text-white drop-shadow-2xl" />
               </div>
-              <div className="absolute top-10 right-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.5s] flex items-center gap-2 text-sm md:text-base">
+              <div className="absolute top-16 right-6 md:right-16 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.5s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Vanilla
               </div>
-              <div className="absolute bottom-20 -right-2 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-1.2s] flex items-center gap-2 text-sm md:text-base">
+              <div className="absolute bottom-24 right-4 md:right-14 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-1.2s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Oat Milk
               </div>
-              <div className="absolute bottom-10 left-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.8s] flex items-center gap-2 text-sm md:text-base">
+              <div className="absolute bottom-16 left-6 md:left-16 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.8s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Extra Shot
               </div>
             </div>
