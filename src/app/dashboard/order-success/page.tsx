@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, Suspense, useRef } from 'react';
@@ -28,10 +27,8 @@ function OrderSuccessContent() {
       
       const checkoutDataString = localStorage.getItem('checkoutData');
       if (!checkoutDataString) {
-        // If data is missing but we are still in processing state, 
-        // it means we either already cleared it or we are on a bad reload.
         if (status === 'processing') {
-            // No data to process, likely already finished or accessed directly.
+            // Already processed or bad reload.
         }
         return;
       }
@@ -51,25 +48,18 @@ function OrderSuccessContent() {
                             
         const paymentStatus = (searchParams.get('state') || searchParams.get('status') || '').toUpperCase();
 
-        // Check for failure status from payment gateway
         if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-          setErrorMessage(`Payment was not successful. Gateway Status: ${paymentStatus}`);
+          setErrorMessage(`Payment was not successful. Status: ${paymentStatus}`);
           setStatus('error');
           return;
         }
 
         const batch = writeBatch(firestore);
 
-        /**
-         * IDEMPOTENCY FIX:
-         * Using the transactionId as the document ID for the order.
-         * This prevents duplicate orders if the effect runs twice or the page is refreshed.
-         */
         const rootOrderRef = doc(firestore, 'orders', transactionId);
         const userOrderRef = doc(firestore, `users/${authUser.uid}/orders`, transactionId);
         const userProfileRef = doc(firestore, 'users', authUser.uid);
 
-        // Map items
         const orderItems = checkoutData.cart.map((item: any) => ({
             menuItemId: item.menuItem.id,
             menuItemName: item.menuItem.name,
@@ -110,21 +100,18 @@ function OrderSuccessContent() {
             welcomeOfferApplied: (checkoutData.welcomeDiscountAmount || 0) > 0,
         };
 
-        // Use setDoc instead of addDoc to ensure idempotency with transactionId
         batch.set(rootOrderRef, orderData);
         batch.set(userOrderRef, orderData);
 
-        // 3. User Profile Updates: Deduct points, inc order count, and CLEAR rewards
+        // REWARD CLEANUP: Strictly clear birthday rewards so they are ONE-TIME use
         const userUpdates: any = {
             loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
-            // REWARD CLEANUP: Strictly clear birthday rewards so they are ONE-TIME use
             birthdayDiscountValue: null,
             birthdayDiscountType: null,
             birthdayFreebieMenuItemIds: []
         };
 
-        // Track redeemed daily offers to prevent re-use
         const today = format(new Date(), 'yyyy-MM-dd');
         orderItems.forEach((item: any) => {
             if (item.appliedDailyOfferId) {
@@ -134,7 +121,6 @@ function OrderSuccessContent() {
 
         batch.update(userProfileRef, userUpdates);
 
-        // Record point redemption history
         if (checkoutData.loyaltyDiscount > 0) {
             const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
             batch.set(transactionRef, {
@@ -145,21 +131,12 @@ function OrderSuccessContent() {
             });
         }
 
-        // Commit all changes
-        await batch.commit().catch(err => {
-            console.error("Batch commit failed:", err);
-            throw new FirestorePermissionError({
-                path: rootOrderRef.path,
-                operation: 'write',
-                requestResourceData: orderData
-            });
-        });
-
+        await batch.commit();
         setStatus('success');
         
       } catch (error: any) {
         console.error("Error finalizing order:", error);
-        setErrorMessage(error.message || "An unexpected error occurred while finalizing your order.");
+        setErrorMessage(error.message || "Unexpected error.");
         setStatus('error');
       }
     };
@@ -171,36 +148,28 @@ function OrderSuccessContent() {
     return (
       <div className="flex flex-col items-center justify-center text-center space-y-4 py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <h2 className="text-2xl font-bold font-headline">Finalizing Your Order</h2>
-        <p className="text-muted-foreground px-4">We're recording your transaction and preparing your receipt. Please do not close this window.</p>
+        <h2 className="text-2xl font-bold">Finalizing Order</h2>
+        <p className="text-muted-foreground">Preparing your receipt. Please wait...</p>
       </div>
     );
   }
 
   if (status === 'error') {
     return (
-       <Card className="w-full max-w-lg mx-auto border-destructive shadow-xl rounded-[2.5rem]">
+       <Card className="w-full max-w-lg mx-auto border-destructive shadow-xl">
           <CardHeader className="text-center">
             <div className="bg-destructive/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-headline text-destructive">Order Completion Failed</CardTitle>
-            <CardDescription>Something went wrong while recording your order details.</CardDescription>
+            <CardTitle className="text-2xl text-destructive">Order Completion Failed</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-6">
-            <div className="p-4 bg-muted rounded-[1.5rem] text-sm text-left font-mono break-all max-h-40 overflow-y-auto">
+            <div className="p-4 bg-muted rounded-md text-sm text-left break-all">
                 {errorMessage}
             </div>
-            <p className="text-sm text-muted-foreground">
-                If money was deducted from your account, <strong>please keep your transaction ID handy</strong> and show this screen to our staff.
-            </p>
             <div className="flex flex-col gap-2">
-                <Button asChild variant="default" className="rounded-full">
-                    <Link href="/dashboard/order">Try Ordering Again</Link>
-                </Button>
-                <Button asChild variant="ghost" className="rounded-full">
-                    <Link href="/dashboard">Back to Dashboard</Link>
-                </Button>
+                <Button asChild><Link href="/dashboard/order">Try Again</Link></Button>
+                <Button asChild variant="ghost"><Link href="/dashboard">Back to Dashboard</Link></Button>
             </div>
           </CardContent>
         </Card>
@@ -208,33 +177,19 @@ function OrderSuccessContent() {
   }
 
   return (
-    <Card className="w-full max-w-lg mx-auto border-green-500 shadow-2xl overflow-hidden rounded-[2.5rem]">
+    <Card className="w-full max-w-lg mx-auto border-green-500 shadow-2xl overflow-hidden">
       <div className="h-2 bg-green-500 w-full" />
       <CardHeader className="text-center pt-8">
          <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-12 h-12 text-green-600" />
          </div>
-        <CardTitle className="text-3xl font-headline text-green-700">Order Confirmed!</CardTitle>
-        <CardDescription>Thank you for your purchase.</CardDescription>
+        <CardTitle className="text-3xl text-green-700">Order Confirmed!</CardTitle>
       </CardHeader>
       <CardContent className="text-center space-y-6 pb-8">
-        <div className="space-y-2">
-            <p className="text-lg">Your coffee journey continues!</p>
-            <p className="text-muted-foreground">Your order has been sent to our baristas. You'll receive a notification when it's ready for pickup.</p>
-        </div>
-        
-        <div className="p-4 bg-muted/50 rounded-[1.5rem] text-sm">
-            <p className="font-semibold text-primary">Steam Points Incoming!</p>
-            <p>Your points will be added once our staff completes your order.</p>
-        </div>
-
+        <p className="text-muted-foreground">Your order has been sent to our baristas.</p>
          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Button asChild className="px-8 rounded-full">
-                <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-             <Button asChild variant="outline" className="rounded-full">
-                <Link href="/dashboard/order">Order More</Link>
-            </Button>
+            <Button asChild className="px-8"><Link href="/dashboard">Go to Dashboard</Link></Button>
+             <Button asChild variant="outline"><Link href="/dashboard/order">Order More</Link></Button>
         </div>
       </CardContent>
     </Card>
@@ -244,12 +199,7 @@ function OrderSuccessContent() {
 export default function OrderSuccessPage() {
     return (
         <div className="container mx-auto flex items-center justify-center min-h-[80vh] p-4">
-            <Suspense fallback={
-                <div className="flex flex-col items-center justify-center text-center space-y-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <h2 className="text-2xl font-bold font-headline">Loading...</h2>
-                </div>
-            }>
+            <Suspense fallback={<Loader2 className="h-12 w-12 animate-spin text-primary" />}>
                 <OrderSuccessContent />
             </Suspense>
         </div>
