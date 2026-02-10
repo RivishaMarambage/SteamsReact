@@ -10,7 +10,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck } from "lucide-react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck, Tag } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
 
 import OffersHighlight from "@/components/home/OffersHighlight";
@@ -110,9 +110,9 @@ export default function LandingPage() {
                   {user ? "Go to Dashboard" : "Become a Member"} <span className="bg-black text-[#f59e0b] rounded-full p-0.5"><Sparkles className="h-3 w-3 fill-current" /></span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 glass-btn text-white border-white/20 w-full sm:w-auto">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40 backdrop-blur-md w-full sm:w-auto transition-all">
                 <Link href="/offers" className="flex items-center justify-center gap-2">
-                  View Offers <span className="text-xl">📅</span>
+                  View Offers <Tag className="w-5 h-5 opacity-50" />
                 </Link>
               </Button>
             </div>
