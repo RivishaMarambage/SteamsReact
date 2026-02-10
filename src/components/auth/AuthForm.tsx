@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -328,7 +327,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             const batch = writeBatch(firestore);
             const userDocRef = doc(firestore, "users", user.uid);
             
-            const initialPoints = referrerProfile ? BASE_SIGNUP_POINTS + REFERRAL_BONUS : BASE_SIGNUP_POINTS;
+            // Only award base points to the new user. Referral bonus goes ONLY to the sender.
+            const initialPoints = BASE_SIGNUP_POINTS;
 
             const userProfile: UserProfile = {
               id: user.uid,
@@ -350,6 +350,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             if (referrerProfile) {
                 const referrerRef = doc(firestore, 'users', referrerProfile.id);
+                // Award points ONLY to the referrer
                 batch.update(referrerRef, {
                     loyaltyPoints: increment(REFERRAL_BONUS),
                     lifetimePoints: increment(REFERRAL_BONUS)
@@ -359,14 +360,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 batch.set(referrerTxRef, {
                     date: serverTimestamp(),
                     description: `Referred friend (${data.fullName})`,
-                    amount: REFERRAL_BONUS,
-                    type: 'earn'
-                });
-
-                const newTxRef = doc(collection(firestore, `users/${user.uid}/point_transactions`));
-                batch.set(newTxRef, {
-                    date: serverTimestamp(),
-                    description: `Referral Signup Bonus`,
                     amount: REFERRAL_BONUS,
                     type: 'earn'
                 });
@@ -383,7 +376,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             toast({
               title: 'Account Created!',
               description: referrerProfile 
-                ? `Welcome! You've earned ${REFERRAL_BONUS} bonus points. Please check your inbox to verify your email.`
+                ? `Welcome! Your referral has been noted and your friend has received bonus points. Please check your inbox to verify your email.`
                 : "Welcome! We've sent you a verification email. Please check your inbox.",
             });
             router.replace(`/login/${role}`);

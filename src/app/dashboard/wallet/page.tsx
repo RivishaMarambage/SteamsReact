@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -109,29 +108,18 @@ export default function WalletPage() {
 
             const batch = writeBatch(firestore);
 
-            // Award points to Referee (current user)
+            // Mark as redeemed for current user (Referee) but DO NOT award points to them
             batch.update(userDocRef, {
-                loyaltyPoints: increment(POINT_REWARDS.REFERRAL),
-                lifetimePoints: increment(POINT_REWARDS.REFERRAL),
                 referralRedeemed: true
             });
 
-            // Log for Referee
-            const refereeTxRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
-            batch.set(refereeTxRef, {
-                date: serverTimestamp(),
-                description: `Referral Code Redeemed (${inputCode})`,
-                amount: POINT_REWARDS.REFERRAL,
-                type: 'earn'
-            });
-
-            // Award points to Referrer
+            // Award points ONLY to Referrer (the sender)
             batch.update(referrerRef, {
                 loyaltyPoints: increment(POINT_REWARDS.REFERRAL),
                 lifetimePoints: increment(POINT_REWARDS.REFERRAL)
             });
 
-            // Log for Referrer
+            // Log ONLY for Referrer
             const referrerTxRef = doc(collection(firestore, `users/${referrerId}/point_transactions`));
             batch.set(referrerTxRef, {
                 date: serverTimestamp(),
@@ -141,7 +129,7 @@ export default function WalletPage() {
             });
 
             await batch.commit().then(() => {
-                toast({ title: 'Code Redeemed!', description: `You and your friend both earned ${POINT_REWARDS.REFERRAL} points!` });
+                toast({ title: 'Code Redeemed!', description: `Your friend has received ${POINT_REWARDS.REFERRAL} points for referring you!` });
                 setReferralInput('');
             });
 
@@ -371,7 +359,7 @@ export default function WalletPage() {
                     {/* Share Your Code */}
                     <div className="p-6 border border-[#d97706]/20 bg-[#d97706]/5 rounded-2xl">
                         <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><UserPlus className="text-[#d97706]" /> Your Referral Code</h3>
-                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Share this with friends. When they sign up or redeem it, you both get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Share this with friends. When they sign up or redeem it, you get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
                         <div className="flex items-center gap-3">
                             <Input
                                 value={referralCode || 'Generating...'}
@@ -392,7 +380,7 @@ export default function WalletPage() {
                     {/* Redeem Friend's Code */}
                     <div className="p-6 border border-muted bg-white rounded-2xl">
                         <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><Ticket className="text-primary" /> Redeem a Friend's Code</h3>
-                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Missed entering a code at signup? Enter it here to claim your <span className="text-primary font-bold">{POINT_REWARDS.REFERRAL} point bonus.</span></p>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Missed entering a code at signup? Enter it here to help your friend claim their <span className="text-primary font-bold">{POINT_REWARDS.REFERRAL} point bonus.</span></p>
                         <div className="flex items-center gap-3">
                             <Input
                                 placeholder="STM-XXXXX"
