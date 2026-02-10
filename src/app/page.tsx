@@ -10,7 +10,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck } from "lucide-react";
+import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck, Tag, LayoutDashboard, LogIn } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
 
 import OffersHighlight from "@/components/home/OffersHighlight";
@@ -106,15 +106,20 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4 w-full sm:w-auto">
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 w-full sm:w-auto">
+            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4 w-full">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
-                  <span className="font-black">View Menu</span> <span className="text-xl">🍴</span>
+                  <span className="font-black">View Menu</span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-[0_0_40px_rgba(245,158,11,0.4)] w-full sm:w-auto transition-all duration-300 hover:scale-105 active:scale-95">
-                <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
-                  <span className="font-black">{user ? "Dashboard" : "Join Club"}</span> <span className="bg-black text-[#f59e0b] rounded-full p-1"><Sparkles className="h-4 w-4 fill-current" /></span>
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
+                <Link href="/offers" className="flex items-center justify-center gap-2">
+                  <span className="font-black">View Offers</span>
+                </Link>
+              </Button>
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-white text-black hover:bg-white/90 font-black text-lg border-none shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
+                <Link href={user ? "/dashboard" : "/login/customer"} className="flex items-center justify-center gap-2">
+                  <span className="font-black">{user ? "Dashboard" : "Sign In"}</span>
                 </Link>
               </Button>
             </div>
