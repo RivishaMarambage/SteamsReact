@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import type { MenuItem, Category, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Trash2, GripVertical, Search, FilterX } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, GripVertical, Search, FilterX, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -22,6 +22,7 @@ import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 // DND Kit Imports
 import {
@@ -104,6 +105,16 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isR
           </div>
         )}
       </TableCell>
+      <TableCell className="w-[80px]">
+        <div className="relative h-12 w-12 rounded-lg overflow-hidden border bg-muted group-hover:shadow-md transition-shadow">
+          <Image 
+            src={item.imageUrl || `https://picsum.photos/seed/${item.id}/100/100`} 
+            alt={item.name} 
+            fill 
+            className="object-cover" 
+          />
+        </div>
+      </TableCell>
       <TableCell className="font-bold">{item.name}</TableCell>
       <TableCell>{getCategoryName(item.categoryId)}</TableCell>
       <TableCell>
@@ -111,7 +122,7 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isR
           {item.isOutOfStock ? "Out of Stock" : "In Stock"}
         </Badge>
       </TableCell>
-      <TableCell className="text-right font-mono">LKR {item.price.toFixed(2)}</TableCell>
+      <TableCell className="text-right font-mono font-bold text-primary">LKR {item.price.toFixed(2)}</TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -231,6 +242,27 @@ export default function MenuTable() {
       ...prev,
       [name]: name === 'price' ? (value === '' ? '' : parseFloat(value)) : value,
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (1MB limit for document-based storage in this prototype)
+    if (file.size > 1024 * 1024) {
+        toast({
+            variant: "destructive",
+            title: "File too large",
+            description: "Please upload an image smaller than 1MB.",
+        });
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddonGroupChange = <K extends keyof FormData['addonGroups'][number]>(index: number, field: K, value: FormData['addonGroups'][number][K]) => {
@@ -447,6 +479,7 @@ export default function MenuTable() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[80px]">Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
@@ -472,7 +505,7 @@ export default function MenuTable() {
               </SortableContext>
               {filteredAndSortedMenu.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     {isFilterActive ? "No items match your search criteria." : "No menu items found. Add your first item to get started."}
                   </TableCell>
                 </TableRow>
@@ -529,9 +562,52 @@ export default function MenuTable() {
                 <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
-                <Input id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleFormChange} placeholder="https://picsum.photos/seed/1/600/400" />
+              <div className="grid gap-4 p-4 border rounded-xl bg-muted/30">
+                <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Item Image</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option 1: Upload File</Label>
+                            <div className="relative">
+                                <Upload className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input type="file" accept="image/*" onChange={handleFileChange} className="pl-10 h-12 pt-3 cursor-pointer file:hidden bg-background border-dashed" />
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center"><Separator /></div>
+                            <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-background px-2 text-muted-foreground">or</span></div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="imageUrl" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Option 2: Image URL</Label>
+                            <Input id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleFormChange} placeholder="https://picsum.photos/seed/1/600/400" className="h-12" />
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preview</Label>
+                        <div className="relative aspect-video w-full rounded-xl overflow-hidden border-2 border-background shadow-inner bg-muted flex items-center justify-center">
+                            {formData.imageUrl ? (
+                                <>
+                                    <Image src={formData.imageUrl} alt="Item Preview" fill className="object-cover" />
+                                    <Button 
+                                        type="button" 
+                                        variant="destructive" 
+                                        size="icon" 
+                                        className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg"
+                                        onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <div className="text-center p-4">
+                                    <ImageIcon className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                                    <p className="text-[10px] text-muted-foreground font-medium">No image selected</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
               </div>
 
               <Separator />
