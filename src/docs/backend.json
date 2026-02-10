@@ -81,6 +81,16 @@
         }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]
+    },
+    "DailyGameWinners": {
+      "title": "Daily Game Winners",
+      "type": "object",
+      "description": "Stores daily winners for game zone games.",
+      "properties": {
+        "spinWinner": { "type": ["string", "null"] },
+        "luckyWinner": { "type": ["string", "null"] },
+        "triviaWinner": { "type": ["string", "null"] }
+      }
     }
   }
 }

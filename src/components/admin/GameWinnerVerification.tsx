@@ -7,13 +7,13 @@ import { doc, collection } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
-import { Dices, Ticket, Trophy, User as UserIcon, Mail } from "lucide-react";
+import { Dices, Ticket, Trophy, User as UserIcon, Mail, Coffee } from "lucide-react";
 import { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const GAME_INFO = {
     spinWinner: { title: "Spin to Win", icon: Dices },
-    scratchWinner: { title: "Silver Ticket Scratch", icon: Ticket },
+    luckyWinner: { title: "Lucky Cup", icon: Coffee },
     triviaWinner: { title: "Trivia Quest", icon: Trophy },
 };
 

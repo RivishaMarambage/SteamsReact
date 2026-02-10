@@ -1,14 +1,16 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, setDoc, updateDoc, increment, collection, onSnapshot, runTransaction, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
-import { Trophy, Coins, Lock, Sparkles, Dices, Coffee, Ticket, RotateCcw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Trophy, Coins, Lock, Sparkles, Dices, Coffee, Ticket, RotateCcw, AlertCircle, CheckCircle2, Loader2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { UserProfile, GameProfile, DailyGameWinners } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // --- CONSTANTS ---
 const TRIVIA_DAILY_LIMIT = 5;
@@ -37,9 +39,10 @@ function GameZonePageContent() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinResult, setSpinResult] = useState<{ type: string; val: string } | null>(null);
 
-  // Scratch State
-  const [isScratching, setIsScratching] = useState(false);
-  const [scratchResult, setScratchResult] = useState<string | null>(null);
+  // Cup Pick State
+  const [isPicking, setIsPicking] = useState(false);
+  const [pickedCup, setPickedCup] = useState<number | null>(null);
+  const [cupResult, setCupResult] = useState<string | null>(null);
 
   // Trivia State
   const [triviaProgress, setTriviaProgress] = useState(0);
@@ -97,10 +100,10 @@ function GameZonePageContent() {
         const globalSnap = await transaction.get(globalWinnersRef);
         
         if (!globalSnap.exists()) {
-             transaction.set(globalWinnersRef, { spinWinner: null, scratchWinner: null, triviaWinner: null });
+             transaction.set(globalWinnersRef, { spinWinner: null, luckyWinner: null, triviaWinner: null });
         }
         
-        const winners = globalSnap.data() as DailyGameWinners | undefined ?? { spinWinner: null, scratchWinner: null, triviaWinner: null };
+        const winners = globalSnap.data() as DailyGameWinners | undefined ?? { spinWinner: null, luckyWinner: null, triviaWinner: null };
 
         if (winners[gameKey]) throw new Error("Taken");
         
@@ -159,36 +162,36 @@ function GameZonePageContent() {
     setIsSpinning(false);
   };
   
-  // --- SCRATCH LOGIC ---
-  const playScratch = async () => {
-    if (isScratching || !authUser) return;
+  // --- PICK A CUP LOGIC ---
+  const playPickCup = async (idx: number) => {
+    if (isPicking || !authUser || cupResult) return;
     
-    setIsScratching(true);
-    setScratchResult(null);
+    setIsPicking(true);
+    setPickedCup(idx);
 
-    // Simulate scratching delay for tactile feel
+    // Visual delay for anticipation
     await new Promise(r => setTimeout(r, 1500));
 
     const rng = Math.random();
     
     // 3% chance for grand prize
-    if (rng < 0.03 && !globalWinners?.scratchWinner) {
-      const won = await handleGrandWin('scratchWinner', 'Club Sandwich');
+    if (rng < 0.03 && !globalWinners?.luckyWinner) {
+      const won = await handleGrandWin('luckyWinner', 'Club Sandwich');
       if (won) {
-          setScratchResult("GRAND PRIZE: CLUB SANDWICH!");
-          setIsScratching(false);
+          setCupResult("GRAND PRIZE: CLUB SANDWICH!");
+          setIsPicking(false);
           return;
       }
     }
     
     // 50% chance for consolation points
     if (Math.random() > 0.5) {
-      await updatePoints(2, "Scratch Consolation");
-      setScratchResult("YOU WON 2 PTS!");
+      await updatePoints(2, "Lucky Cup Bonus");
+      setCupResult("YOU WON 2 PTS!");
     } else {
-      setScratchResult("BETTER LUCK NEXT TIME!");
+      setCupResult("BETTER LUCK NEXT TIME!");
     }
-    setIsScratching(false);
+    setIsPicking(false);
   };
 
   // --- TRIVIA LOGIC ---
@@ -252,7 +255,7 @@ function GameZonePageContent() {
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
-      <Card className="p-6 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none">
+      <Card className="p-6 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none shadow-xl">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight">GAME ZONE</h1>
@@ -273,10 +276,14 @@ function GameZonePageContent() {
           <Dices size={18} /> Spin
         </button>
         <button 
-          onClick={() => setActiveGame('scratch')}
-          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'scratch' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+          onClick={() => {
+              setActiveGame('cups');
+              setCupResult(null);
+              setPickedCup(null);
+          }}
+          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'cups' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
         >
-          <Ticket size={18} /> Scratch
+          <Coffee size={18} /> Lucky Cup
         </button>
         <button 
           onClick={startTrivia}
@@ -326,39 +333,65 @@ function GameZonePageContent() {
         </div>
       )}
 
-      {/* SCRATCH GAME */}
-      {activeGame === 'scratch' && (
+      {/* LUCKY CUP GAME */}
+      {activeGame === 'cups' && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-          <Card className="p-1 text-zinc-100 bg-foreground overflow-hidden relative min-h-[300px] flex flex-col items-center justify-center text-center">
+          <Card className="p-8 text-center space-y-8 bg-[#160C08] text-white overflow-hidden relative border-none shadow-2xl">
              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent" />
-             <Sparkles className="text-primary mb-4" size={48} />
-             <h3 className="text-2xl font-black italic tracking-tighter uppercase">Silver Ticket</h3>
-             <p className="text-xs text-muted-foreground mb-8 max-w-[200px]">Grand Prize: Free Club Sandwich (1 per day)</p>
              
-             {globalWinners?.scratchWinner ? (
-               <div className="flex flex-col items-center gap-2 bg-background/50 p-6 rounded-2xl border border-border">
-                  <Lock className="text-muted-foreground" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Daily Prize Claimed</span>
-               </div>
-             ) : (
-               <div className="space-y-6 w-full px-8">
-                 {isScratching ? (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                        <span className="text-xs font-black uppercase tracking-widest animate-pulse">Scratching...</span>
-                    </div>
-                 ) : scratchResult ? (
-                    <div className="animate-in zoom-in-95 duration-300 py-8 space-y-4">
-                        <p className="text-xl font-black text-primary tracking-tight">{scratchResult}</p>
-                        <Button variant="outline" className="text-white border-white/20 hover:bg-white/10" onClick={() => setScratchResult(null)}>Try Again</Button>
-                    </div>
-                 ) : (
-                    <Button variant="default" size="lg" className="w-full" onClick={playScratch}>
-                        SCRATCH NOW
+             <div className="space-y-2 relative z-10">
+                <h3 className="text-2xl font-black tracking-tight uppercase">The Golden Cup</h3>
+                <p className="text-xs text-stone-400 font-medium">Pick one cup to reveal your daily surprise.</p>
+             </div>
+
+             <div className="grid grid-cols-3 gap-4 relative z-10">
+                {[0, 1, 2].map((idx) => (
+                    <button
+                        key={idx}
+                        disabled={isPicking || !!cupResult}
+                        onClick={() => playPickCup(idx)}
+                        className={cn(
+                            "relative aspect-square flex items-center justify-center rounded-2xl transition-all duration-500",
+                            pickedCup === idx ? "scale-110" : "hover:scale-105",
+                            cupResult && pickedCup !== idx ? "opacity-30 grayscale" : "opacity-100"
+                        )}
+                    >
+                        <div className={cn(
+                            "w-full h-full bg-stone-800/50 rounded-2xl border-2 border-white/5 flex items-center justify-center transition-all duration-500",
+                            isPicking && pickedCup === idx && "animate-bounce",
+                            cupResult && pickedCup === idx && "bg-primary/20 border-primary shadow-[0_0_20px_rgba(217,119,6,0.3)]"
+                        )}>
+                            {cupResult && pickedCup === idx ? (
+                                <Gift className="w-10 h-10 text-primary animate-in zoom-in duration-500" />
+                            ) : (
+                                <Coffee className="w-10 h-10 text-stone-500" />
+                            )}
+                        </div>
+                    </button>
+                ))}
+             </div>
+
+             {cupResult && (
+                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                    <p className="text-xl font-black text-primary tracking-tight uppercase">{cupResult}</p>
+                    <Button 
+                        variant="outline" 
+                        className="rounded-full px-8 text-white border-white/20 hover:bg-white/10" 
+                        onClick={() => {
+                            setCupResult(null);
+                            setPickedCup(null);
+                        }}
+                    >
+                        Play Again Tomorrow
                     </Button>
-                 )}
-               </div>
+                </div>
              )}
+
+             <div className="pt-4 border-t border-white/5 relative z-10">
+                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
+                    Daily Grand Prize: <span className="text-primary">Free Club Sandwich</span>
+                </p>
+             </div>
           </Card>
         </div>
       )}

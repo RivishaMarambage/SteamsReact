@@ -32,7 +32,7 @@ export type GameProfile = {
 
 export type DailyGameWinners = {
   spinWinner: string | null;
-  scratchWinner: string | null;
+  luckyWinner: string | null;
   triviaWinner: string | null;
 }
 
