@@ -19,8 +19,8 @@ import { doc } from 'firebase/firestore';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
-  { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/dashboard/order', label: 'Order Now', icon: ShoppingCart },
+  { href: '/dashboard/wallet', label: 'My Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
 
@@ -89,7 +89,7 @@ export default function AppSidebar() {
         ) : (
           <SidebarMenu>
             {userRole === 'admin' && (
-              <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">
                 Staff View
               </div>
             )}
@@ -100,9 +100,10 @@ export default function AppSidebar() {
                   isActive={isActive(item.href)}
                   asChild
                   tooltip={item.label}
+                  className="font-bold"
                 >
                   <Link href={item.href} onClick={handleNavigate}>
-                    <item.icon />
+                    <item.icon className="size-4" />
                     <span>{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -111,7 +112,7 @@ export default function AppSidebar() {
             
             {userRole === 'admin' && (
               <>
-                <div className="mt-4 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="mt-6 px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">
                   Admin Control
                 </div>
                 {adminMenuItems.map((item) => (
@@ -120,9 +121,10 @@ export default function AppSidebar() {
                       isActive={isActive(item.href)}
                       asChild
                       tooltip={item.label}
+                      className="font-bold"
                     >
                       <Link href={item.href} onClick={handleNavigate}>
-                        <item.icon />
+                        <item.icon className="size-4" />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>

@@ -36,7 +36,7 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
 
   if (isLoading || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
-        <Card className="rounded-[2.5rem]">
+        <Card className="rounded-xl border shadow-md">
             <CardHeader className="p-6 md:p-8">
                  <Skeleton className="h-8 w-1/2" />
                  <Skeleton className="h-4 w-1/3 mt-2" />
@@ -73,39 +73,38 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   }
 
   return (
-    <Card className="shadow-lg rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-none bg-white">
-      <CardHeader className="p-6 md:p-8">
+    <Card className="shadow-md rounded-xl overflow-hidden border bg-white">
+      <CardHeader className="p-6 md:p-8 border-b bg-muted/5">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-            <div className="space-y-1">
-                <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight text-[#2c1810]">Your Status</CardTitle>
-                <CardDescription className="text-sm text-[#6b584b]">Earn points with every sip.</CardDescription>
+            <div className="space-y-1 text-center sm:text-left">
+                <CardTitle className="font-headline text-xl md:text-2xl uppercase tracking-tight text-[#2c1810]">Loyalty Tier</CardTitle>
+                <CardDescription className="text-sm text-[#6b584b]">Your dedication is brewing rewards.</CardDescription>
             </div>
-            <div className="flex flex-row items-center gap-3 bg-[#d97706]/10 px-5 py-2.5 rounded-full border border-[#d97706]/20 w-fit">
+            <div className="flex flex-row items-center gap-3 bg-[#d97706]/10 px-5 py-2.5 rounded-full border border-[#d97706]/20 mx-auto sm:mx-0">
                 <Icon className="h-5 w-5 md:h-6 md:w-6 text-[#d97706]" />
-                <span className="font-black capitalize text-[#d97706] text-lg">{currentTier.name}</span>
+                <span className="font-black capitalize text-[#d97706] text-lg tracking-tight">{currentTier.name}</span>
             </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6 md:p-8 pt-0">
+      <CardContent className="p-6 md:p-8">
         <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-baseline gap-2">
+          <div className="flex flex-col items-center sm:items-baseline sm:flex-row gap-2">
             <span className="text-5xl md:text-6xl font-black text-[#d97706] tracking-tighter leading-none">{userPoints}</span>
-            <span className="text-xs md:text-sm font-bold text-[#6b584b] uppercase tracking-[0.1em]">Redeemable Steam Points</span>
+            <span className="text-xs md:text-sm font-bold text-[#6b584b] uppercase tracking-widest">Available Steam Points</span>
           </div>
           
           <div className="space-y-4">
             <div className="relative">
-                <Progress value={progress} className="h-4 bg-[#2c1810]/5 border-none rounded-full" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 pointer-events-none" />
+                <Progress value={progress} className="h-3 bg-[#2c1810]/5 border rounded-full" />
             </div>
-            <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-wider">
+            <div className="flex flex-col xs:flex-row justify-between items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-widest">
                 <div className="flex items-center gap-2 text-[#6b584b]">
                     <Trophy className="h-4 w-4" />
                     <span>{lifetimePoints} Total Lifetime Points</span>
                 </div>
                 {nextTier && (
-                    <div className="bg-[#2c1810] text-white px-3 py-1 rounded-full text-[9px] md:text-[10px]">
-                        {pointsToNext} points to {nextTier.name}
+                    <div className="bg-[#2c1810] text-white px-3 py-1 rounded-md">
+                        {pointsToNext} points to reach {nextTier.name}
                     </div>
                 )}
             </div>
