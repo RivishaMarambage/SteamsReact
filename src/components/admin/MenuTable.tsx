@@ -149,7 +149,6 @@ export default function MenuTable() {
 
   const isLoading = isMenuLoading || areCategoriesLoading || areAddonCategoriesLoading;
 
-  // Stable sorted menu list
   const sortedMenu = useMemo(() => {
     if (!menuRaw) return [];
     return [...menuRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -185,7 +184,6 @@ export default function MenuTable() {
 
     const newOrder = arrayMove(sortedMenu, oldIndex, newIndex);
     
-    // Update local display orders and push to Firestore
     const batch = writeBatch(firestore);
     newOrder.forEach((item, index) => {
       const docRef = doc(firestore, 'menu_items', item.id);
@@ -299,7 +297,6 @@ export default function MenuTable() {
             minSelection: Number(g.minSelection) || 0,
             maxSelection: Number(g.maxSelection) || 0,
         })),
-        // Assign display order if new
         displayOrder: selectedItem ? selectedItem.displayOrder : (sortedMenu?.length || 0)
     };
 
@@ -408,17 +405,152 @@ export default function MenuTable() {
                   />
                 ))}
               </SortableContext>
-            </SortableContext>
-            {sortedMenu.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  No menu items found. Add your first item to get started.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </DndContext>
+              {sortedMenu.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    No menu items found. Add your first item to get started.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </DndContext>
+      </CardContent>
+
+      <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleFormSubmit}>
+            <DialogHeader>
+              <DialogTitle className="font-headline">{selectedItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+              <DialogDescription>{selectedItem ? 'Make changes to the menu item.' : 'Add a new item to your cafe menu.'}</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" name="name" value={formData.name} onChange={handleFormChange} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="price">Price (LKR)</Label>
+                  <Input id="price" name="price" type="number" step="0.01" value={formData.price} onChange={handleFormChange} required />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="categoryId">Category</Label>
+                  <select
+                    id="categoryId"
+                    name="categoryId"
+                    value={formData.categoryId || ''}
+                    onChange={handleFormChange}
+                    required
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {categories?.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-4 h-full pt-6">
+                    <Label htmlFor="out-of-stock">Out of Stock</Label>
+                    <Switch id="out-of-stock" checked={formData.isOutOfStock} onCheckedChange={handleStockChange} />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="imageUrl">Image URL</Label>
+                <Input id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleFormChange} placeholder="https://picsum.photos/seed/1/600/400" />
+              </div>
+
+              <Separator />
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-lg">Add-on Customization</h4>
+                    <Button type="button" variant="outline" size="sm" onClick={addNewAddonGroup}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Group
+                    </Button>
+                </div>
+                
+                <div className="grid gap-4">
+                    {formData.addonGroups.map((group, index) => (
+                        <Card key={index} className="p-4 border-dashed">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Category</Label>
+                                    <select
+                                        value={group.addonCategoryId}
+                                        onChange={(e) => handleAddonGroupChange(index, 'addonCategoryId', e.target.value)}
+                                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                    >
+                                        {addonCategories?.map(ac => (
+                                            <option key={ac.id} value={ac.id}>{ac.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-4 h-full pt-6">
+                                    <Label>Required</Label>
+                                    <Switch 
+                                        checked={group.isRequired} 
+                                        onCheckedChange={(val) => handleAddonGroupChange(index, 'isRequired', val)} 
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" className="ml-auto text-destructive" onClick={() => removeAddonGroup(index)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="grid gap-2">
+                                    <Label>Min Selections</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={group.minSelection} 
+                                        onChange={(e) => handleAddonGroupChange(index, 'minSelection', e.target.value === '' ? '' : Number(e.target.value))} 
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Max Selections</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={group.maxSelection} 
+                                        onChange={(e) => handleAddonGroupChange(index, 'maxSelection', e.target.value === '' ? '' : Number(e.target.value))} 
+                                    />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+              <Button type="submit">Save changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={isAlertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the menu item.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
