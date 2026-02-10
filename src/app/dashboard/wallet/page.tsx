@@ -2,13 +2,13 @@
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc, increment, collection, query, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, query, orderBy, serverTimestamp, writeBatch, where, getDocs, limit } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt } from 'lucide-react';
+import { Check, Copy, Gift, Link as LinkIcon, MessageSquare, Star, UserPlus, Wallet as WalletIcon, ArrowDown, ArrowUp, History, ShoppingBag, Receipt, Ticket, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { Order, PointTransaction, UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -37,6 +37,8 @@ export default function WalletPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isCopied, setIsCopied] = useState(false);
+    const [referralInput, setReferralInput] = useState('');
+    const [isRedeeming, setIsRedeeming] = useState(false);
 
     const userDocRef = useMemoFirebase(() => (authUser ? doc(firestore, 'users', authUser.uid) : null), [authUser, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -49,7 +51,6 @@ export default function WalletPage() {
 
     const isLoading = isUserLoading || isProfileLoading;
 
-    // We get the referral code, but we don't create it here anymore to avoid writes in render.
     const referralCode = userProfile?.referralCode;
 
     const handleCopy = async () => {
@@ -57,7 +58,6 @@ export default function WalletPage() {
 
         let codeToCopy = userProfile.referralCode;
 
-        // If the code doesn't exist, create it, save it, and then copy it.
         if (!codeToCopy) {
             codeToCopy = `STM-${authUser.uid.substring(0, 5).toUpperCase()}`;
             const updateData = { referralCode: codeToCopy };
@@ -79,6 +79,89 @@ export default function WalletPage() {
         setIsCopied(true);
         toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
         setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    const handleRedeemReferral = async () => {
+        if (!firestore || !userProfile || !authUser || !referralInput || !userDocRef) return;
+        
+        if (referralInput === userProfile.referralCode) {
+            toast({ variant: 'destructive', title: 'Invalid Code', description: 'You cannot use your own referral code.' });
+            return;
+        }
+
+        if (userProfile.referralRedeemed) {
+            toast({ variant: 'destructive', title: 'Already Redeemed', description: 'You have already redeemed a referral code.' });
+            return;
+        }
+
+        setIsRedeeming(true);
+
+        try {
+            const usersRef = collection(firestore, 'users');
+            const q = query(usersRef, where('referralCode', '==', referralInput.toUpperCase()), limit(1));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                toast({ variant: 'destructive', title: 'Code Not Found', description: 'Please check the code and try again.' });
+                setIsRedeeming(false);
+                return;
+            }
+
+            const referrerDoc = querySnapshot.docs[0];
+            const referrerId = referrerDoc.id;
+            const referrerRef = doc(firestore, 'users', referrerId);
+
+            const batch = writeBatch(firestore);
+
+            // Award points to Referee (current user)
+            batch.update(userDocRef, {
+                loyaltyPoints: increment(POINT_REWARDS.REFERRAL),
+                lifetimePoints: increment(POINT_REWARDS.REFERRAL),
+                referralRedeemed: true
+            });
+
+            // Log for Referee
+            const refereeTxRef = doc(collection(firestore, `users/${userProfile.id}/point_transactions`));
+            batch.set(refereeTxRef, {
+                date: serverTimestamp(),
+                description: `Referral Code Redeemed (${referralInput.toUpperCase()})`,
+                amount: POINT_REWARDS.REFERRAL,
+                type: 'earn'
+            });
+
+            // Award points to Referrer
+            batch.update(referrerRef, {
+                loyaltyPoints: increment(POINT_REWARDS.REFERRAL),
+                lifetimePoints: increment(POINT_REWARDS.REFERRAL)
+            });
+
+            // Log for Referrer
+            const referrerTxRef = doc(collection(firestore, `users/${referrerId}/point_transactions`));
+            batch.set(referrerTxRef, {
+                date: serverTimestamp(),
+                description: `Friend Referred (${userProfile.name})`,
+                amount: POINT_REWARDS.REFERRAL,
+                type: 'earn'
+            });
+
+            batch.commit()
+                .then(() => {
+                    toast({ title: 'Code Redeemed!', description: `You and your friend earned ${POINT_REWARDS.REFERRAL} points!` });
+                    setReferralInput('');
+                })
+                .catch(error => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'write',
+                    }));
+                });
+
+        } catch (error: any) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Redemption Failed', description: 'Could not process referral code.' });
+        } finally {
+            setIsRedeeming(false);
+        }
     };
 
     const handleClaimPoints = async (action: 'linkSocials' | 'leaveReview') => {
@@ -125,7 +208,6 @@ export default function WalletPage() {
         };
         batch.set(transactionRef, transactionData);
 
-        // No await here, chain the .catch block.
         batch.commit()
             .then(() => {
                 toast({
@@ -135,12 +217,10 @@ export default function WalletPage() {
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path, // The primary path being written to.
-                    operation: 'write', // Batches are generic writes
+                    path: userDocRef.path,
+                    operation: 'write',
                     requestResourceData: { profileUpdate, transactionData },
                 });
-
-                // Emit the error with the global error emitter
                 errorEmitter.emit('permission-error', permissionError);
             });
     };
@@ -309,19 +389,17 @@ export default function WalletPage() {
                     <CardTitle className="font-headline flex items-center gap-2 text-2xl text-[#2c1810]"><Star className="text-[#d97706] fill-current" /> Earn More Points</CardTitle>
                     <CardDescription className="text-[#6b584b]">Complete actions to boost your point balance.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Refer a Friend */}
-                    <div className="p-6 border border-[#d97706]/20 bg-[#d97706]/5 rounded-2xl hover:bg-[#d97706]/10 transition-colors duration-300">
-                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><UserPlus className="text-[#d97706]" /> Refer a Friend</h3>
-                        <p className="text-[#6b584b] mb-4 font-medium">Share your code with a friend. When they sign up, you'll both get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
+                <CardContent className="space-y-8">
+                    {/* Share Your Code */}
+                    <div className="p-6 border border-[#d97706]/20 bg-[#d97706]/5 rounded-2xl">
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><UserPlus className="text-[#d97706]" /> Your Referral Code</h3>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Share this with friends. When they redeem it, you both get <span className="text-[#d97706] font-bold">{POINT_REWARDS.REFERRAL} points!</span></p>
                         <div className="flex items-center gap-3">
-                            <div className="flex-1 relative">
-                                <Input
-                                    value={referralCode || 'Click to generate & copy'}
-                                    readOnly
-                                    className="h-12 bg-white border-[#d97706]/20 font-mono text-center text-lg tracking-widest text-[#2c1810] rounded-xl focus-visible:ring-[#d97706]"
-                                />
-                            </div>
+                            <Input
+                                value={referralCode || 'Click to generate'}
+                                readOnly
+                                className="h-12 bg-white border-[#d97706]/20 font-mono text-center text-lg tracking-widest text-[#2c1810] rounded-xl focus-visible:ring-[#d97706]"
+                            />
                             <Button
                                 variant="secondary"
                                 className="h-12 w-12 rounded-xl bg-[#2c1810] hover:bg-[#d97706] text-white transition-colors duration-300 shadow-md"
@@ -332,9 +410,31 @@ export default function WalletPage() {
                         </div>
                     </div>
 
+                    {/* Redeem Friend's Code */}
+                    <div className="p-6 border border-muted bg-white rounded-2xl">
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-[#2c1810] mb-2"><Ticket className="text-primary" /> Redeem a Friend's Code</h3>
+                        <p className="text-[#6b584b] mb-4 font-medium text-sm">Got a code from a friend? Enter it here to claim your <span className="text-primary font-bold">{POINT_REWARDS.REFERRAL} point bonus.</span></p>
+                        <div className="flex items-center gap-3">
+                            <Input
+                                placeholder="STM-XXXXX"
+                                value={referralInput}
+                                onChange={(e) => setReferralInput(e.target.value)}
+                                disabled={userProfile.referralRedeemed || isRedeeming}
+                                className="h-12 uppercase font-mono text-center text-lg tracking-widest rounded-xl"
+                            />
+                            <Button 
+                                onClick={handleRedeemReferral} 
+                                disabled={!referralInput || userProfile.referralRedeemed || isRedeeming}
+                                className="h-12 px-6 rounded-xl font-bold"
+                            >
+                                {isRedeeming ? <Loader2 className="animate-spin" /> : userProfile.referralRedeemed ? 'Already Redeemed' : 'Redeem'}
+                            </Button>
+                        </div>
+                    </div>
+
                     {/* Engage & Earn */}
                     <div className="space-y-4">
-                        <h3 className="font-bold text-lg text-[#2c1810]">Engage &amp; Earn</h3>
+                        <h3 className="font-bold text-lg text-[#2c1810]">Social Rewards</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="flex flex-col justify-between p-5 bg-white border border-[#2c1810]/5 rounded-2xl shadow-sm hover:shadow-md hover:border-[#d97706]/30 transition-all duration-300 group">
                                 <div className="mb-4">
@@ -342,7 +442,7 @@ export default function WalletPage() {
                                         <LinkIcon className="text-blue-600 w-5 h-5" />
                                     </div>
                                     <p className="font-bold text-[#2c1810] text-lg">Link Social Media</p>
-                                    <p className="text-sm text-[#6b584b] mt-1">Earn <span className="font-bold text-[#d97706]">{POINT_REWARDS.LINK_SOCIALS} points</span> instantly.</p>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">OAuth link verification simulation.</p>
                                 </div>
                                 <Button
                                     className="w-full rounded-xl font-bold transition-all duration-300"
@@ -351,9 +451,9 @@ export default function WalletPage() {
                                     variant={userProfile.hasLinkedSocials ? "outline" : "default"}
                                 >
                                     {userProfile.hasLinkedSocials ? (
-                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed</span>
+                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed {POINT_REWARDS.LINK_SOCIALS} Pts</span>
                                     ) : (
-                                        'Claim Reward'
+                                        `Claim ${POINT_REWARDS.LINK_SOCIALS} Points`
                                     )}
                                 </Button>
                             </div>
@@ -364,7 +464,7 @@ export default function WalletPage() {
                                         <MessageSquare className="text-orange-600 w-5 h-5" />
                                     </div>
                                     <p className="font-bold text-[#2c1810] text-lg">Leave a Review</p>
-                                    <p className="text-sm text-[#6b584b] mt-1">Earn <span className="font-bold text-[#d97706]">{POINT_REWARDS.LEAVE_REVIEW} points</span> for your feedback.</p>
+                                    <p className="text-xs text-[#6b584b] mt-1 italic">Google My Business API simulation.</p>
                                 </div>
                                 <Button
                                     className="w-full rounded-xl font-bold transition-all duration-300"
@@ -373,9 +473,9 @@ export default function WalletPage() {
                                     variant={userProfile.hasLeftReview ? "outline" : "default"}
                                 >
                                     {userProfile.hasLeftReview ? (
-                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed</span>
+                                        <span className="flex items-center gap-2 text-green-600"><Check className="w-4 h-4" /> Claimed {POINT_REWARDS.LEAVE_REVIEW} Pts</span>
                                     ) : (
-                                        'Claim Reward'
+                                        `Claim ${POINT_REWARDS.LEAVE_REVIEW} Points`
                                     )}
                                 </Button>
                             </div>

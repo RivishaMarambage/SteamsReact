@@ -18,6 +18,7 @@ export type UserProfile = {
   orderCount?: number;
   emailVerified?: boolean;
   referralCode?: string;
+  referralRedeemed?: boolean; // Track if this user has already used someone's code
   hasLinkedSocials?: boolean;
   hasLeftReview?: boolean;
   dailyOffersRedeemed?: Record<string, string>; // e.g. { "offerId": "YYYY-MM-DD" }
