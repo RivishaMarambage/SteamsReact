@@ -71,6 +71,7 @@ export type Category = {
   id:string;
   name: string;
   type: 'Food' | 'Beverages';
+  displayOrder?: number;
 };
 
 export type LoyaltyLevel = {
