@@ -1,22 +1,47 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Eye, Lock, Globe, Trash2, ShieldCheck } from "lucide-react";
+import { Bell, Eye, Lock, Trash2, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSave = () => {
     toast({
       title: "Settings Saved",
       description: "Your preferences have been updated successfully.",
     });
+  };
+
+  const handleRequestDeletion = () => {
+    setIsDeleting(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsDeleting(false);
+      toast({
+        title: "Deletion Request Sent",
+        description: "Your request has been received. Our team will contact you within 48 hours to confirm the process.",
+      });
+    }, 1500);
   };
 
   return (
@@ -126,9 +151,32 @@ export default function SettingsPage() {
               <Button variant="outline" className="rounded-full h-12 flex-1 font-bold">
                 Change Password
               </Button>
-              <Button variant="outline" className="rounded-full h-12 flex-1 font-bold text-destructive hover:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Account
-              </Button>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="rounded-full h-12 flex-1 font-bold text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-[2.5rem]">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="font-headline text-2xl">Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action will send a formal request to delete your Steamsbury account. You will lose all your accumulated Steam Points, loyalty tier benefits, and order history. This process is irreversible once finalized.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-full h-12 font-bold px-6">Keep My Account</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleRequestDeletion}
+                      className="rounded-full h-12 font-bold px-6 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Processing..." : "Yes, Request Deletion"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>
