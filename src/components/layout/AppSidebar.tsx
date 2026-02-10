@@ -19,12 +19,15 @@ import Link from 'next/link';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-const customerMenuItems = [
+const customerPrimaryItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
   { href: '/dashboard/game-zone', label: 'Game Zone', icon: Dices },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
+];
+
+const customerSupportItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/support', label: 'Support', icon: LifeBuoy },
 ];
@@ -74,13 +77,6 @@ export default function AppSidebar() {
     return pathname.startsWith(href);
   };
 
-  let menuItemsToShow: typeof customerMenuItems = [];
-  if (userRole === 'customer') {
-    menuItemsToShow = customerMenuItems;
-  } else if (userRole === 'staff' || userRole === 'admin') {
-    menuItemsToShow = staffMenuItems;
-  }
-
   return (
     <Sidebar collapsible="icon" className="border-r-0 bg-[#160C08] text-[#FDFBF7] shadow-2xl">
       <SidebarRail className="hover:after:bg-[#d97706]" />
@@ -96,40 +92,45 @@ export default function AppSidebar() {
           </div>
         ) : (
           <SidebarMenu className="gap-2">
-            {userRole === 'admin' && (
-              <div className="px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700">
-                Staff Operations
-              </div>
+            {/* STAFF & ADMIN PRIMARY SECTION */}
+            {(userRole === 'staff' || userRole === 'admin') && (
+              <>
+                {userRole === 'admin' && (
+                  <div className="px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700">
+                    Staff Operations
+                  </div>
+                )}
+                {staffMenuItems.map((item, index) => (
+                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${index * 50}ms` }}>
+                    <SidebarMenuButton
+                      isActive={isActive(item.href)}
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
+                        isActive(item.href)
+                          ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
+                          : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                      )}
+                    >
+                      <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                        <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
+                        <span className="text-base tracking-wide">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </>
             )}
 
-            {menuItemsToShow.map((item, index) => (
-              <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${index * 50}ms` }}>
-                <SidebarMenuButton
-                  isActive={isActive(item.href)}
-                  asChild
-                  tooltip={item.label}
-                  className={cn(
-                    "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
-                    isActive(item.href)
-                      ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
-                      : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
-                  )}
-                >
-                  <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
-                    <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
-                    <span className="text-base tracking-wide">{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-
+            {/* ADMIN SPECIFIC SECTION */}
             {userRole === 'admin' && (
               <>
                 <div className="mt-8 px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
                   Administrative
                 </div>
                 {adminMenuItems.map((item, index) => (
-                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${(index + menuItemsToShow.length) * 50}ms` }}>
+                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${(index + staffMenuItems.length) * 50}ms` }}>
                     <SidebarMenuButton
                       isActive={isActive(item.href)}
                       asChild
@@ -143,6 +144,57 @@ export default function AppSidebar() {
                     >
                       <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
                         <item.icon className="h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:-rotate-6" />
+                        <span className="text-base tracking-wide">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </>
+            )}
+
+            {/* CUSTOMER SECTION */}
+            {userRole === 'customer' && (
+              <>
+                {customerPrimaryItems.map((item, index) => (
+                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${index * 50}ms` }}>
+                    <SidebarMenuButton
+                      isActive={isActive(item.href)}
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
+                        isActive(item.href)
+                          ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
+                          : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                      )}
+                    >
+                      <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                        <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
+                        <span className="text-base tracking-wide">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+
+                <div className="mt-8 px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700">
+                  Settings & Help
+                </div>
+
+                {customerSupportItems.map((item, index) => (
+                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${(index + customerPrimaryItems.length) * 50}ms` }}>
+                    <SidebarMenuButton
+                      isActive={isActive(item.href)}
+                      asChild
+                      tooltip={item.label}
+                      className={cn(
+                        "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
+                        isActive(item.href)
+                          ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
+                          : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                      )}
+                    >
+                      <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                        <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
                         <span className="text-base tracking-wide">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
