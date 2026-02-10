@@ -3,30 +3,27 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Wallet, AppWindow, Blocks, Gift, Settings, LifeBuoy, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow, LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Separator } from '../ui/separator';
 
 const customerMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/order', label: 'Order Now', icon: ShoppingCart },
-  { href: '/dashboard/wallet', label: 'My Wallet', icon: Wallet },
+  { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
+  { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
-  { href: '#', label: 'Settings', icon: Settings },
-  { href: '#', label: 'Support', icon: LifeBuoy },
 ];
 
 const staffMenuItems = [
@@ -47,11 +44,11 @@ const adminMenuItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
-  const router = useRouter();
-  const { setOpenMobile, isMobile } = useSidebar();
+  const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<any>(userDocRef);
@@ -65,15 +62,8 @@ export default function AppSidebar() {
   };
 
   const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      // Using router.replace ensures the dashboard isn't in history
-      router.replace('/');
-    } catch (error) {
-      console.error("Logout failed:", error);
-      // Fallback redirect
-      window.location.href = '/';
-    }
+    await auth.signOut();
+    router.replace('/');
   };
 
   const isActive = (href: string) => {
@@ -81,70 +71,76 @@ export default function AppSidebar() {
     return pathname.startsWith(href);
   };
 
-  let menuItemsToShow: any[] = [];
-
+  let menuItemsToShow: typeof customerMenuItems = [];
   if (userRole === 'customer') {
     menuItemsToShow = customerMenuItems;
-  } else if (userRole === 'staff') {
-    menuItemsToShow = staffMenuItems;
-  } else if (userRole === 'admin') {
+  } else if (userRole === 'staff' || userRole === 'admin') {
     menuItemsToShow = staffMenuItems;
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0 shadow-2xl">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-6">
-          <Logo link="/dashboard" />
-        </div>
+    <Sidebar collapsible="icon" className="border-r-0 bg-[#160C08] text-[#FDFBF7] shadow-2xl">
+      <SidebarRail className="hover:after:bg-[#d97706]" />
+      <SidebarHeader className="bg-[#160C08] py-8 px-6">
+        <Logo link="/dashboard" className="text-[#FDFBF7] transition-transform duration-500 hover:scale-105" />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-[#160C08] px-3">
         {isLoading ? (
-          <div className="p-4 space-y-4">
-            <div className="h-4 w-3/4 bg-muted animate-pulse rounded-full" />
-            <div className="h-4 w-1/2 bg-muted animate-pulse rounded-full" />
-            <div className="h-4 w-2/3 bg-muted animate-pulse rounded-full" />
+          <div className="p-2 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-12 w-full bg-[#d97706]/5 animate-pulse rounded-xl" />
+            ))}
           </div>
         ) : (
-          <SidebarMenu className="px-2">
+          <SidebarMenu className="gap-2">
             {userRole === 'admin' && (
-              <div className="px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-50">
-                Staff View
+              <div className="px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700">
+                Staff Operations
               </div>
             )}
 
-            {menuItemsToShow.map((item) => (
-              <SidebarMenuItem key={item.label}>
+            {menuItemsToShow.map((item, index) => (
+              <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${index * 50}ms` }}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
                   asChild
                   tooltip={item.label}
-                  className="font-bold py-6 px-4 rounded-xl"
+                  className={cn(
+                    "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
+                    isActive(item.href)
+                      ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
+                      : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                  )}
                 >
-                  <Link href={item.href} onClick={handleNavigate}>
-                    <item.icon className="size-5" />
-                    <span className="text-sm">{item.label}</span>
+                  <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                    <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
+                    <span className="text-base tracking-wide">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-            
+
             {userRole === 'admin' && (
               <>
-                <div className="mt-8 px-4 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-50">
-                  Admin Control
+                <div className="mt-8 px-4 py-3 text-[10px] font-black text-[#d97706] uppercase tracking-[0.2em] group-data-[collapsible=icon]:hidden animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
+                  Administrative
                 </div>
-                {adminMenuItems.map((item) => (
-                  <SidebarMenuItem key={item.label}>
+                {adminMenuItems.map((item, index) => (
+                  <SidebarMenuItem key={item.href} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${(index + menuItemsToShow.length) * 50}ms` }}>
                     <SidebarMenuButton
                       isActive={isActive(item.href)}
                       asChild
                       tooltip={item.label}
-                      className="font-bold py-6 px-4 rounded-xl"
+                      className={cn(
+                        "h-14 w-full justify-start gap-4 rounded-xl px-4 transition-all duration-300 group/btn",
+                        isActive(item.href)
+                          ? "bg-[#d97706] text-white shadow-[0_10px_20px_rgba(217,119,6,0.3)] font-bold hover:bg-[#b45309] hover:text-white"
+                          : "text-[#FDFBF7]/50 hover:text-white hover:bg-[#d97706]/10 hover:pl-6 focus:bg-[#d97706]/10"
+                      )}
                     >
-                      <Link href={item.href} onClick={handleNavigate}>
-                        <item.icon className="size-5" />
-                        <span className="text-sm">{item.label}</span>
+                      <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
+                        <item.icon className="h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:-rotate-6" />
+                        <span className="text-base tracking-wide">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -154,33 +150,29 @@ export default function AppSidebar() {
           </SidebarMenu>
         )}
       </SidebarContent>
-      
-      {!isLoading && userProfile && (
-        <SidebarFooter className="p-4">
-          <Separator className="mb-4 opacity-10" />
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 px-2 py-2 mb-2">
-              <Avatar className="h-10 w-10 border-2 border-primary/20">
-                <AvatarImage src={`https://avatar.vercel.sh/${userProfile.email}.png`} />
-                <AvatarFallback>{userProfile.name?.charAt(0)}</AvatarFallback>
-              </Avatar>
+      <SidebarFooter className="bg-[#160C08] p-4 space-y-2">
+        {userProfile && (
+          <>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 transition-all duration-300 hover:bg-white/10">
+              <div className="h-10 w-10 rounded-full bg-[#d97706] flex items-center justify-center text-white font-black text-lg shadow-lg shrink-0 border-2 border-white/10">
+                {userProfile.name?.[0]?.toUpperCase() || 'U'}
+              </div>
               <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-black truncate">{userProfile.name}</span>
-                <span className="text-[10px] font-bold text-muted-foreground truncate uppercase tracking-widest">{userProfile.role}</span>
+                <span className="text-sm font-bold text-white truncate">{userProfile.name}</span>
+                <span className="text-[10px] font-black text-[#d97706] truncate uppercase tracking-widest">{userProfile.role}</span>
               </div>
             </div>
             <SidebarMenuButton 
               onClick={handleLogout}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 font-black rounded-xl py-6 px-4"
+              className="h-12 w-full justify-start gap-4 rounded-xl px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-300 group/logout"
               tooltip="Log Out"
             >
-              <LogOut className="size-5" />
-              <span className="group-data-[collapsible=icon]:hidden">Log Out</span>
+              <LogOut className="h-5 w-5 transition-transform group-hover/logout:-translate-x-1" />
+              <span className="font-bold group-data-[collapsible=icon]:hidden">Sign Out</span>
             </SidebarMenuButton>
-          </div>
-        </SidebarFooter>
-      )}
-      <SidebarRail />
+          </>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
