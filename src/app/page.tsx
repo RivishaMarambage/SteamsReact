@@ -124,7 +124,7 @@ export default function LandingPage() {
         <section
           ref={clubSectionRef}
           className={cn(
-            "bg-gradient-to-b from-[#1a110a] via-[#2c1810] to-[#1a110a] text-white py-24 lg:py-40 transition-all duration-1000 ease-out relative overflow-hidden",
+            "bg-gradient-to-b from-[#1a110a] via-[#2c1810] to-[#1a110a] text-white py-16 xs:py-24 lg:py-40 transition-all duration-1000 ease-out relative overflow-hidden",
             isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
@@ -132,16 +132,16 @@ export default function LandingPage() {
 
           <div className="container mx-auto px-4 md:px-6 relative z-10">
             <div className={cn(
-              "text-center mb-20 transition-all duration-700",
+              "text-center mb-12 xs:mb-20 transition-all duration-700",
               isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-              <h2 className="text-4xl xs:text-5xl md:text-7xl font-headline font-black mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter">
+              <h2 className="text-3xl xs:text-4xl md:text-6xl lg:text-7xl font-headline font-black mb-4 xs:mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter leading-none">
                 Why Join The Club?
               </h2>
-              <p className="text-white/60 text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4">Three futuristic reasons to make every single sip count.</p>
+              <p className="text-white/60 text-base xs:text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4">Three futuristic reasons to make every single sip count.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 xs:mb-16">
               {[
                 { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire and unlock instant value.", color: "text-amber-400", glow: "bg-amber-500/20", borderColor: "border-amber-500/30" },
                 { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, artisanal food, or limited merchandise.", color: "text-rose-400", glow: "bg-rose-500/20", borderColor: "border-rose-500/30" },
@@ -150,7 +150,7 @@ export default function LandingPage() {
                 <div
                   key={idx}
                   className={cn(
-                    "glass-card p-8 sm:p-10 rounded-[2.5rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
+                    "glass-card p-6 xs:p-8 sm:p-10 rounded-[2.5rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
                     "hover:-translate-y-4 hover:shadow-[0_20px_80px_rgba(217,119,6,0.15)]",
                     isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                   )}
@@ -163,15 +163,15 @@ export default function LandingPage() {
                   )} />
 
                   <div className={cn(
-                    "w-16 h-16 sm:w-20 rounded-[1.5rem] bg-white/5 flex items-center justify-center mb-8 relative z-10 transition-all duration-500",
+                    "w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-[1.25rem] xs:rounded-[1.5rem] bg-white/5 flex items-center justify-center mb-6 xs:mb-8 relative z-10 transition-all duration-500",
                     "border group-hover:border-white/30 group-hover:scale-110",
                     item.borderColor,
                     item.color
                   )}>
-                    <item.icon className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />
+                    <item.icon className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />
                   </div>
 
-                  <h3 className="text-xl sm:text-2xl font-black font-headline mb-4 relative z-10 transition-colors duration-300 group-hover:text-white uppercase tracking-tight">
+                  <h3 className="text-xl sm:text-2xl font-black font-headline mb-3 xs:mb-4 relative z-10 transition-colors duration-300 group-hover:text-white uppercase tracking-tight">
                     {item.title}
                   </h3>
                   <p className="text-white/50 leading-relaxed relative z-10 text-sm sm:text-base transition-colors duration-300 group-hover:text-white/80 font-medium">
@@ -185,10 +185,10 @@ export default function LandingPage() {
               "text-center transition-all duration-700 delay-500",
               isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-lg font-black transition-all duration-300 hover:scale-110 active:scale-95">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 xs:px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-base xs:text-lg font-black transition-all duration-300 hover:scale-110 active:scale-95">
                 <Link href="/rewards" className="flex items-center gap-3">
                   <span className="font-black uppercase tracking-tight">Explore Benefits</span>
-                  <Sparkles className="w-6 h-6 animate-pulse" />
+                  <Sparkles className="w-5 h-5 xs:w-6 xs:h-6 animate-pulse" />
                 </Link>
               </Button>
             </div>
