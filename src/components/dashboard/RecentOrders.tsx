@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestor
 import type { Order } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, ShoppingCart } from "lucide-react";
+import { RotateCcw, ShoppingCart, Clock } from "lucide-react";
 import AudioNotifier from "../AudioNotifier";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,7 +47,6 @@ export default function RecentOrders({ userId }: { userId: string }) {
         }
       });
 
-      // Update the status history after processing changes
       const newStatusHistory: Record<string, Order['status']> = {};
       snapshot.docs.forEach(doc => {
         const order = doc.data() as Order;
@@ -68,18 +68,12 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   const getStatusVariant = (status?: Order['status']) => {
     switch (status) {
-      case 'Placed':
-        return 'secondary';
-      case 'Processing':
-        return 'outline';
-      case 'Ready for Pickup':
-        return 'default'; 
-      case 'Completed':
-        return 'secondary';
-      case 'Rejected':
-        return 'destructive';
-      default:
-        return 'secondary';
+      case 'Placed': return 'secondary';
+      case 'Processing': return 'outline';
+      case 'Ready for Pickup': return 'default'; 
+      case 'Completed': return 'secondary';
+      case 'Rejected': return 'destructive';
+      default: return 'secondary';
     }
   };
 
@@ -92,7 +86,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
             name: a.addonName,
             price: a.addonPrice
         })),
-        totalPrice: item.totalPrice // this is unit price in our schema
+        totalPrice: item.totalPrice
     }));
     
     localStorage.setItem('reorder_items', JSON.stringify(reorderData));
@@ -105,13 +99,13 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   if (isLoading) {
       return (
-         <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-              <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
+         <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
+            <CardHeader className="p-6 sm:p-8">
+              <CardTitle className="font-headline text-xl sm:text-2xl">Recent Orders</CardTitle>
+              <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Loading orders...</p>
+            <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
+              <p className="text-muted-foreground text-sm">Loading orders...</p>
             </CardContent>
           </Card>
       )
@@ -119,13 +113,13 @@ export default function RecentOrders({ userId }: { userId: string }) {
 
   if (!recentOrders || recentOrders.length === 0) {
     return (
-       <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-            <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
+       <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
+          <CardHeader className="p-6 sm:p-8">
+            <CardTitle className="font-headline text-xl sm:text-2xl">Recent Orders</CardTitle>
+            <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">You haven't placed any orders yet.</p>
+          <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
+            <p className="text-muted-foreground text-sm">You haven't placed any orders yet.</p>
           </CardContent>
         </Card>
     )
@@ -138,61 +132,65 @@ export default function RecentOrders({ userId }: { userId: string }) {
         soundUrl="https://www.soundjay.com/button/sounds/button-3.mp3"
         resetCondition={recentOrders?.[0]?.status}
       />
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Recent Orders</CardTitle>
-          <CardDescription>Your latest pickups from Steamsbury.</CardDescription>
+      <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
+        <CardHeader className="p-6 sm:p-8">
+          <CardTitle className="font-headline text-xl sm:text-2xl uppercase tracking-tight">Recent Orders</CardTitle>
+          <CardDescription className="text-sm">Your latest pickups from Steamsbury.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentOrders.map(order => (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    <div className="font-medium">{order.id.substring(0, 7).toLocaleUpperCase()}</div>
-                    <div className="text-sm text-muted-foreground">{order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date not available'}</div>
-                  </TableCell>
-                   <TableCell>
-                      <div className="flex flex-col gap-1 text-xs">
-                          {order.orderItems?.map((item, index) => (
-                              <div key={index}>
-                                  <span className="font-semibold">{item.quantity}x {item.menuItemName}</span>
-                                  {item.addons && item.addons.length > 0 && (
-                                      <div className="pl-2 text-muted-foreground">
-                                          {item.addons.map(addon => `+ ${addon.addonName}`).join(', ')}
-                                      </div>
-                                  )}
-                              </div>
-                          ))}
-                      </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                  </TableCell>
-                  <TableCell>LKR {order.totalAmount.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="gap-2" 
-                        onClick={() => handleReorder(order)}
-                    >
-                        <RotateCcw className="h-3 w-3" /> Reorder
-                    </Button>
-                  </TableCell>
+        <CardContent className="p-0 sm:p-8 sm:pt-0">
+          <div className="w-full overflow-x-auto px-6 sm:px-0 pb-6 sm:pb-0">
+            <Table className="min-w-[600px] sm:min-w-full">
+                <TableHeader>
+                <TableRow>
+                    <TableHead className="text-[10px] sm:text-xs">Order</TableHead>
+                    <TableHead className="text-[10px] sm:text-xs">Items</TableHead>
+                    <TableHead className="text-[10px] sm:text-xs">Status</TableHead>
+                    <TableHead className="text-[10px] sm:text-xs">Total</TableHead>
+                    <TableHead className="text-right text-[10px] sm:text-xs">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                {recentOrders.map(order => (
+                    <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
+                    <TableCell className="p-4 sm:p-6">
+                        <div className="font-bold text-xs sm:text-sm whitespace-nowrap">#{order.id.substring(0, 7).toUpperCase()}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Clock className="size-3" />
+                            {order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Date N/A'}
+                        </div>
+                    </TableCell>
+                    <TableCell className="p-4 sm:p-6">
+                        <div className="flex flex-col gap-1 text-[10px] sm:text-xs max-w-[150px] sm:max-w-none">
+                            {order.orderItems?.map((item, index) => (
+                                <div key={index} className="truncate">
+                                    <span className="font-black">{item.quantity}x</span> {item.menuItemName}
+                                </div>
+                            ))}
+                        </div>
+                    </TableCell>
+                    <TableCell className="p-4 sm:p-6">
+                        <Badge variant={getStatusVariant(order.status)} className="text-[9px] sm:text-[10px] px-2 py-0.5 whitespace-nowrap">
+                            {order.status}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="p-4 sm:p-6 font-black text-xs sm:text-sm whitespace-nowrap">
+                        LKR {order.totalAmount.toFixed(0)}
+                    </TableCell>
+                    <TableCell className="p-4 sm:p-6 text-right">
+                        <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 rounded-full text-[10px] font-bold gap-1.5 px-3" 
+                            onClick={() => handleReorder(order)}
+                        >
+                            <RotateCcw className="h-3 w-3" /> <span className="hidden xs:inline">Reorder</span>
+                        </Button>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </>

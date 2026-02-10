@@ -32,18 +32,17 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   
   const loyaltyTiers = useMemo(() => {
     if (!loyaltyTiersFromDB) return null;
-    // Filter out any tier named "Standard" to handle stale data in the database.
     return loyaltyTiersFromDB.filter(tier => tier.name.toLowerCase() !== 'standard');
   }, [loyaltyTiersFromDB]);
 
   if (isLoading || !loyaltyTiers || loyaltyTiers.length === 0) {
     return (
-        <Card className="shadow-lg">
-            <CardHeader>
+        <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
+            <CardHeader className="p-6 sm:p-8">
                  <Skeleton className="h-8 w-1/2" />
                  <Skeleton className="h-4 w-1/3 mt-2" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
                 <div className="space-y-4">
                     <Skeleton className="h-8 w-1/4" />
                     <Skeleton className="h-3 w-full" />
@@ -55,13 +54,9 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
   }
   
   const userPoints = user.loyaltyPoints ?? 0;
-
-  // Find the current tier based on lifetime points
   const lifetimePoints = user.lifetimePoints ?? 0;
   const currentTier = [...loyaltyTiers].reverse().find(tier => lifetimePoints >= tier.minimumPoints) || loyaltyTiers[0];
   const currentTierIndex = loyaltyTiers.findIndex(tier => tier.id === currentTier.id);
-
-  // Find the next tier
   const nextTier = currentTierIndex < loyaltyTiers.length - 1 ? loyaltyTiers[currentTierIndex + 1] : null;
 
   const Icon = ICONS[currentTier.id.toLowerCase()] || Minus;
@@ -75,43 +70,43 @@ export default function LoyaltyStatus({ user }: { user: UserProfile }) {
       progress = pointsForNextTier > 0 ? (pointsInCurrentTier / pointsForNextTier) * 100 : 100;
       pointsToNext = nextTier.minimumPoints - lifetimePoints;
   } else {
-      // User is at the highest tier
       progress = 100;
   }
 
-
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="shadow-lg rounded-[2rem] sm:rounded-[2.5rem]">
+      <CardHeader className="p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
             <div>
-                <CardTitle className="font-headline text-2xl">Your Loyalty Status</CardTitle>
-                <CardDescription>Earn points with every purchase.</CardDescription>
+                <CardTitle className="font-headline text-xl sm:text-2xl">Your Loyalty Status</CardTitle>
+                <CardDescription className="text-sm">Earn points with every purchase.</CardDescription>
             </div>
-            <div className="text-right">
-              <div className="flex items-center justify-end gap-2 text-lg font-semibold capitalize text-primary">
-                  <Icon className="h-6 w-6" />
+            <div className="flex flex-col items-start sm:items-end">
+              <div className="flex items-center gap-2 text-lg sm:text-xl font-black capitalize text-primary bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
+                  <Icon className="h-5 w-5 sm:h-6 sm:size-6" />
                   <span>{currentTier.name}</span>
               </div>
-              <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mt-1">
+              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mt-2 px-1">
                  <Trophy className="h-3 w-3" />
                  <span>{user.lifetimePoints ?? 0} Lifetime Points</span>
               </div>
             </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="text-3xl font-bold text-primary">{userPoints} Redeemable Points</div>
+      <CardContent className="p-6 sm:p-8 pt-0 sm:pt-0">
+        <div className="space-y-6">
+          <div className="text-2xl sm:text-3xl font-black text-primary uppercase tracking-tight">
+            {userPoints} <span className="text-sm font-bold text-muted-foreground">Redeemable Points</span>
+          </div>
           
-          <div>
-            <Progress value={progress} className="h-3" />
+          <div className="space-y-3">
+            <Progress value={progress} className="h-3 sm:h-4 bg-muted border border-border" />
             {nextTier ? (
-                <p className="text-sm text-muted-foreground mt-2">
-                    You're <strong>{pointsToNext}</strong> points away from the <strong>{nextTier.name}</strong> tier!
+                <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
+                    You're <strong>{pointsToNext}</strong> points away from the <strong className="text-primary">{nextTier.name}</strong> tier!
                 </p>
             ) : (
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-xs sm:text-sm text-primary font-bold">
                     You've reached the highest loyalty tier! Congratulations!
                 </p>
             )}
