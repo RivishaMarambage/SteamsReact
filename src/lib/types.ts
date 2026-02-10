@@ -46,6 +46,8 @@ export type Addon = {
   name: string;
   price: number;
   addonCategoryId: string;
+  isActive?: boolean;
+  displayOrder?: number;
 };
 
 export type MenuItemAddonGroup = {
