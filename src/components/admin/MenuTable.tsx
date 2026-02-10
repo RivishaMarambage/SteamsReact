@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import type { MenuItem, Category, AddonCategory, MenuItemAddonGroup } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Trash2, GripVertical } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, GripVertical, Search, FilterX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -20,9 +20,7 @@ import { useCollection, useFirestore, useMemoFirebase, errorEmitter } from '@/fi
 import { collection, doc, setDoc, deleteDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 // DND Kit Imports
@@ -64,11 +62,12 @@ const INITIAL_FORM_DATA: FormData = {
 };
 
 // Sortable Row Component
-function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete }: { 
+function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete, isReorderDisabled }: { 
   item: MenuItem, 
   getCategoryName: (id: string) => string,
   handleEdit: (item: MenuItem) => void,
-  handleDelete: (item: MenuItem) => void
+  handleDelete: (item: MenuItem) => void,
+  isReorderDisabled: boolean
 }) {
   const {
     attributes,
@@ -77,7 +76,7 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete }: {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({ id: item.id, disabled: isReorderDisabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -85,18 +84,25 @@ function SortableTableRow({ item, getCategoryName, handleEdit, handleDelete }: {
     zIndex: isDragging ? 1 : 0,
     position: 'relative' as const,
     backgroundColor: isDragging ? 'hsl(var(--muted))' : undefined,
+    opacity: isReorderDisabled && !isDragging ? 0.8 : 1,
   };
 
   return (
     <TableRow ref={setNodeRef} style={style} className={isDragging ? "shadow-2xl" : ""}>
       <TableCell className="w-[50px]">
-        <button 
-          {...attributes} 
-          {...listeners} 
-          className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </button>
+        {!isReorderDisabled ? (
+          <button 
+            {...attributes} 
+            {...listeners} 
+            className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ) : (
+          <div className="p-2 opacity-20">
+            <GripVertical className="h-4 w-4" />
+          </div>
+        )}
       </TableCell>
       <TableCell className="font-bold">{item.name}</TableCell>
       <TableCell>{getCategoryName(item.categoryId)}</TableCell>
@@ -135,6 +141,9 @@ export default function MenuTable() {
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   const { data: addonCategories, isLoading: areAddonCategoriesLoading } = useCollection<AddonCategory>(addonCategoriesQuery);
   
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -150,10 +159,27 @@ export default function MenuTable() {
 
   const isLoading = isMenuLoading || areCategoriesLoading || areAddonCategoriesLoading;
 
-  const sortedMenu = useMemo(() => {
+  const isFilterActive = searchTerm !== '' || categoryFilter !== 'all';
+
+  const filteredAndSortedMenu = useMemo(() => {
     if (!menuRaw) return [];
-    return [...menuRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [menuRaw]);
+    
+    let items = [...menuRaw];
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      items = items.filter(item => item.categoryId === categoryFilter);
+    }
+
+    // Filter by name
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      items = items.filter(item => item.name.toLowerCase().includes(lowerSearch));
+    }
+
+    // Sort by display order
+    return items.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [menuRaw, searchTerm, categoryFilter]);
 
   useEffect(() => {
     if (isFormOpen) {
@@ -178,12 +204,12 @@ export default function MenuTable() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !firestore || !sortedMenu) return;
+    if (!over || active.id === over.id || !firestore || !filteredAndSortedMenu || isFilterActive) return;
 
-    const oldIndex = sortedMenu.findIndex((item) => item.id === active.id);
-    const newIndex = sortedMenu.findIndex((item) => item.id === over.id);
+    const oldIndex = filteredAndSortedMenu.findIndex((item) => item.id === active.id);
+    const newIndex = filteredAndSortedMenu.findIndex((item) => item.id === over.id);
 
-    const newOrder = arrayMove(sortedMenu, oldIndex, newIndex);
+    const newOrder = arrayMove(filteredAndSortedMenu, oldIndex, newIndex);
     
     const batch = writeBatch(firestore);
     newOrder.forEach((item, index) => {
@@ -298,7 +324,7 @@ export default function MenuTable() {
             minSelection: Number(g.minSelection) || 0,
             maxSelection: Number(g.maxSelection) || 0,
         })),
-        displayOrder: selectedItem ? selectedItem.displayOrder : (sortedMenu?.length || 0)
+        displayOrder: selectedItem ? selectedItem.displayOrder : (menuRaw?.length || 0)
     };
 
     if (selectedItem) {
@@ -361,18 +387,55 @@ export default function MenuTable() {
 
   return (
     <Card className="shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <CardTitle className="font-headline text-2xl">Menu Items</CardTitle>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="h-10 px-4 bg-muted/50 hidden sm:flex">
-            Drag items to reorder
-          </Badge>
-          <Button size="sm" onClick={handleAddNew}>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search items..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+          
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full md:w-48 h-10">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories?.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {isFilterActive && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => { setSearchTerm(''); setCategoryFilter('all'); }}
+              title="Clear filters"
+            >
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+
+          <Button size="sm" onClick={handleAddNew} className="h-10 ml-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Item
           </Button>
         </div>
       </CardHeader>
+      
+      {isFilterActive && (
+        <div className="px-6 py-2 bg-muted/30 border-y text-xs font-medium text-muted-foreground flex items-center gap-2">
+          <span>Filtering active. Reordering is disabled while searching.</span>
+        </div>
+      )}
+
       <CardContent>
         <DndContext 
           sensors={sensors}
@@ -393,23 +456,24 @@ export default function MenuTable() {
             </TableHeader>
             <TableBody>
               <SortableContext 
-                items={sortedMenu.map(i => i.id)}
+                items={filteredAndSortedMenu.map(i => i.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {sortedMenu.map(item => (
+                {filteredAndSortedMenu.map(item => (
                   <SortableTableRow 
                     key={item.id} 
                     item={item} 
                     getCategoryName={getCategoryName}
                     handleEdit={handleEdit}
                     handleDelete={handleDelete}
+                    isReorderDisabled={isFilterActive}
                   />
                 ))}
               </SortableContext>
-              {sortedMenu.length === 0 && (
+              {filteredAndSortedMenu.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No menu items found. Add your first item to get started.
+                    {isFilterActive ? "No items match your search criteria." : "No menu items found. Add your first item to get started."}
                   </TableCell>
                 </TableRow>
               )}
