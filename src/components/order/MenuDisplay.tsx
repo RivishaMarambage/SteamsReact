@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw, Coffee, Pizza } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc, orderBy } from 'firebase/firestore';
@@ -37,6 +37,8 @@ const WELCOME_OFFERS = [
     { order: 2, discount: 15 }, // 3rd order (orderCount is 2)
 ];
 
+const MAIN_GROUPS: Category['type'][] = ['Beverages', 'Food'];
+
 export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, offerToClaim }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType'] | null>(null);
@@ -44,6 +46,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const [pointsToRedeemInput, setPointsToRedeemInput] = useState<number | string>('');
   const [appliedPoints, setAppliedPoints] = useState(0);
   const [activeTab, setActiveTab] = useState<string | undefined>();
+  const [selectedMainGroup, setSelectedMainGroup] = useState<Category['type']>(MAIN_GROUPS[0]);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -81,9 +84,27 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
+  // robust client-side sorting for items
   const sortedMenuItems = useMemo(() => {
     return [...menuItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [menuItems]);
+
+  // robust client-side sorting and filtering for categories
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    return categories
+      .filter(c => c.type === selectedMainGroup)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [categories, selectedMainGroup]);
+
+  // Reset active tab when main group changes
+  useEffect(() => {
+    if (filteredCategories.length > 0) {
+      setActiveTab(filteredCategories[0].id);
+    } else {
+      setActiveTab(undefined);
+    }
+  }, [filteredCategories]);
 
   const handleTypeSelect = (type: Order['orderType']) => {
     if (type === 'Dine-in') {
@@ -111,12 +132,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     };
     checkVerification();
   }, [authUser]);
-
-  useEffect(() => {
-    if (!activeTab && categories && categories.length > 0) {
-      setActiveTab(categories[0].id);
-    }
-  }, [categories, activeTab]);
 
   // Reorder handling logic
   useEffect(() => {
@@ -548,29 +563,60 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       {!isOrderTypeDialogOpen && (
         <>
             <div className="mb-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline text-lg sm:text-2xl uppercase tracking-tight">Order Details</CardTitle>
-                        <CardDescription>
-                            Order Type: <span className="font-bold text-primary uppercase">{orderType}</span>
-                            {orderType === 'Dine-in' && tableNumber && (
-                                <> • Table: <span className="font-bold text-primary">#{tableNumber}</span></>
-                            )}
-                        </CardDescription>
+                <Card className="border-none shadow-md overflow-hidden bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardHeader className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div>
+                            <CardTitle className="font-headline text-lg sm:text-2xl uppercase tracking-tight">Order Details</CardTitle>
+                            <CardDescription>
+                                Order Type: <span className="font-bold text-primary uppercase">{orderType}</span>
+                                {orderType === 'Dine-in' && tableNumber && (
+                                    <> • Table: <span className="font-bold text-primary">#{tableNumber}</span></>
+                                )}
+                            </CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => { setOrderTypeDialogOpen(true); setDialogStep('type'); }} className="text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
+                            <RotateCcw className="mr-2 h-3 w-3" /> Change Mode
+                        </Button>
                     </CardHeader>
                 </Card>
             </div>
 
+            {/* Main Selection: Food or Beverages */}
+            <div className="flex justify-center mb-8">
+                <div className="bg-muted p-1 rounded-full flex gap-1">
+                    {MAIN_GROUPS.map((group) => (
+                        <Button
+                            key={group}
+                            variant={selectedMainGroup === group ? "default" : "ghost"}
+                            className={cn(
+                                "rounded-full px-8 py-6 text-sm font-bold uppercase tracking-widest transition-all",
+                                selectedMainGroup === group ? "shadow-lg scale-105" : "text-muted-foreground"
+                            )}
+                            onClick={() => setSelectedMainGroup(group)}
+                        >
+                            {group === 'Beverages' ? <Coffee className="mr-2 h-4 w-4" /> : <Pizza className="mr-2 h-4 w-4" />}
+                            {group}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="mb-6 overflow-x-auto pb-2">
-                    <TabsList className="h-auto p-1 bg-muted rounded-md">
-                        {categories?.map(category => (
-                        <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap px-6 py-2">{category.name}</TabsTrigger>
+                <div className="mb-8 overflow-x-auto pb-2 scrollbar-none">
+                    <TabsList className="h-auto p-1 bg-muted/50 rounded-xl border border-muted flex justify-start sm:justify-center">
+                        {filteredCategories.map(category => (
+                        <TabsTrigger 
+                            key={category.id} 
+                            value={category.id} 
+                            className="whitespace-nowrap px-6 py-3 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs font-black uppercase tracking-widest"
+                        >
+                            {category.name}
+                        </TabsTrigger>
                         ))}
                     </TabsList>
                 </div>
-                {categories?.map(subCategory => (
-                <TabsContent key={subCategory.id} value={subCategory.id}>
+                {filteredCategories.map(subCategory => (
+                <TabsContent key={subCategory.id} value={subCategory.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {sortedMenuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
@@ -612,38 +658,38 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         displayPrice = Math.max(0, displayPrice);
 
                         return (
-                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg", item.isOutOfStock && "opacity-60")}>
-                            <div className="relative w-full h-48">
+                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg border-0 bg-white group hover:shadow-2xl transition-all duration-500 rounded-[2rem]", item.isOutOfStock && "opacity-60 grayscale")}>
+                            <div className="relative w-full h-52 overflow-hidden">
                                 <Image
                                     src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
                                     alt={item.name}
                                     fill
-                                    className="object-cover"
+                                    className="object-cover transition-transform duration-700 group-hover:scale-110"
                                     data-ai-hint="food item"
                                 />
                                 {item.isOutOfStock && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                        <Badge variant="destructive">Out of Stock</Badge>
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                                        <Badge variant="destructive" className="h-10 px-6 uppercase font-black tracking-widest">Out of Stock</Badge>
                                     </div>
                                 )}
                                 {isOfferApplied && !item.isOutOfStock && (
-                                    <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
-                                    <Tag className="h-3 w-3"/> Daily Special
+                                    <Badge variant="destructive" className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 shadow-xl animate-pulse">
+                                    <Tag className="h-3 w-3 fill-current"/> <span className="font-black text-[10px] uppercase">Daily Special</span>
                                     </Badge>
                                 )}
                             </div>
-                            <CardContent className="p-4 flex-grow">
-                            <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
-                            <CardDescription className="line-clamp-2">{item.description}</CardDescription>
+                            <CardContent className="p-6 flex-grow">
+                                <CardTitle className="font-headline text-2xl mb-2 text-[#2c1810]">{item.name}</CardTitle>
+                                <CardDescription className="line-clamp-2 text-[#6b584b] leading-relaxed">{item.description}</CardDescription>
                             </CardContent>
-                            <CardFooter className="p-4 flex justify-between items-center border-t bg-muted/10">
-                            <div className="font-bold text-lg text-primary">
-                                {isOfferApplied && <span className="block text-xs text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
-                                LKR {displayPrice.toFixed(2)}
-                            </div>
-                            <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
-                                {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
-                            </Button>
+                            <CardFooter className="p-6 flex justify-between items-center border-t border-muted/50 bg-muted/5">
+                                <div className="flex flex-col">
+                                    {isOfferApplied && <span className="text-xs text-muted-foreground line-through opacity-60 font-bold">LKR {originalPrice.toFixed(0)}</span>}
+                                    <span className="font-black text-2xl text-primary tracking-tighter">LKR {displayPrice.toFixed(0)}</span>
+                                </div>
+                                <Button size="lg" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="rounded-full px-6 bg-[#2c1810] hover:bg-primary transition-colors">
+                                    {item.isOutOfStock ? "Sold Out" : <><Plus className="mr-2 h-4 w-4" /> Add</>}
+                                </Button>
                             </CardFooter>
                         </Card>
                         );
@@ -657,26 +703,28 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-2xl z-50">
-            <ShoppingCart className="h-6 w-6" />
+          <Button className="fixed bottom-6 right-6 rounded-full w-20 h-20 shadow-[0_15px_40px_rgba(217,119,6,0.4)] z-50 transition-transform active:scale-95 group">
+            <ShoppingCart className="h-8 w-8 group-hover:rotate-12 transition-transform" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold ring-2 ring-background">
+              <span className="absolute -top-1 -right-1 bg-white text-primary rounded-full h-8 w-8 flex items-center justify-center text-sm font-black ring-4 ring-primary shadow-lg">
                 {cartItemCount}
               </span>
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex h-full flex-col w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="font-headline text-2xl uppercase tracking-tighter">Your Order</SheetTitle>
-            <SheetDescription>Review your items before placing order.</SheetDescription>
+        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 overflow-hidden border-l-0 shadow-2xl">
+          <SheetHeader className="p-8 border-b bg-muted/10">
+            <SheetTitle className="font-headline text-3xl uppercase tracking-tighter text-[#2c1810]">Your Order</SheetTitle>
+            <SheetDescription className="font-medium text-[#6b584b]">Review your items before placing order.</SheetDescription>
           </SheetHeader>
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="py-6">
+          <ScrollArea className="flex-1">
+            <div className="p-8 space-y-8">
                 {cart.length === 0 ? (
-                <div className="text-center text-muted-foreground h-64 flex flex-col items-center justify-center space-y-4">
-                    <ShoppingCart className="w-12 h-12 opacity-20" />
-                    <p>Your cart is empty</p>
+                <div className="text-center text-muted-foreground h-64 flex flex-col items-center justify-center space-y-6">
+                    <div className="bg-muted p-8 rounded-full">
+                        <ShoppingBag className="w-12 h-12 opacity-20" />
+                    </div>
+                    <p className="font-bold uppercase tracking-widest text-xs">Your cart is feeling lonely</p>
                     </div>
                 ) : (
                 <div className="space-y-6">
@@ -684,8 +732,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     const category = categories?.find(c => c.id === item.menuItem.categoryId);
                     const isBeverage = category?.type === 'Beverages';
                     return (
-                        <div key={item.id} className="flex items-center gap-4 group">
-                        <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
+                        <div key={item.id} className="flex items-center gap-4 group animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-md">
                             <Image
                                 src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
                                 alt={item.menuItem.name}
@@ -695,21 +743,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             />
                         </div>
                         <div className="flex-grow min-w-0">
-                            <p className="font-bold text-sm leading-tight truncate">{item.menuItem.name}</p>
+                            <p className="font-bold text-base leading-tight truncate text-[#2c1810]">{item.menuItem.name}</p>
                             {item.addons.length > 0 && (
-                            <p className="text-[10px] text-muted-foreground truncate italic">
+                            <p className="text-[10px] text-muted-foreground truncate italic mt-1">
                                 {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
                             </p>
                             )}
-                            <p className="text-xs font-bold text-primary">LKR {item.totalPrice.toFixed(2)}</p>
+                            <p className="text-sm font-black text-primary mt-1">LKR {item.totalPrice.toFixed(0)}</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-muted p-1 rounded-md shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, -1)}>
-                            {item.quantity === 1 ? <Trash2 className="h-3 w-3 text-destructive" /> : <Minus className="h-3 w-3" />}
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-full shrink-0">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-background" onClick={() => updateQuantity(item.id, -1)}>
+                            {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
                             </Button>
-                            <span className="w-4 text-center text-xs font-bold">{item.quantity}</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
-                            <Plus className="h-3 w-3" />
+                            <span className="w-6 text-center text-sm font-black">{item.quantity}</span>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-background" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
+                            <Plus className="h-4 w-4" />
                             </Button>
                         </div>
                         </div>
@@ -719,14 +767,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 )}
             </div>
           </ScrollArea>
-          <div className="border-t pt-6 space-y-4">
-                <div className="w-full space-y-2 text-sm">
-                    <div className="flex justify-between">
+          <div className="p-8 border-t bg-muted/5 space-y-6">
+                <div className="w-full space-y-3 text-sm font-medium">
+                    <div className="flex justify-between text-[#6b584b]">
                         <span>Subtotal</span>
                         <span>LKR {subtotal.toFixed(2)}</span>
                     </div>
                     {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
-                    <div className="flex justify-between text-destructive font-bold">
+                    <div className="flex justify-between text-destructive font-black uppercase text-[10px] tracking-widest">
                         <span>Item Discounts</span>
                         <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
                     </div>
@@ -738,21 +786,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     </div>
                     )}
                     {loyaltyDiscount > 0 && (
-                    <div className="flex justify-between text-destructive font-bold">
+                    <div className="flex justify-between text-destructive font-black uppercase text-[10px] tracking-widest">
                         <span>Points Redemption</span>
                         <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
                     </div>
                     )}
-                    <div className="flex justify-between text-xl font-black text-primary uppercase tracking-tighter pt-2 border-t">
+                    <div className="flex justify-between text-3xl font-black text-primary uppercase tracking-tighter pt-4 border-t border-muted/50">
                         <span>Total</span>
-                        <span>LKR {cartTotal.toFixed(2)}</span>
+                        <span>LKR {cartTotal.toFixed(0)}</span>
                     </div>
                 </div>
-                 <Button size="lg" className="w-full uppercase tracking-tight" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
+                 <Button size="lg" className="w-full h-16 rounded-full text-lg font-black uppercase tracking-widest shadow-xl group" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
                     {isProcessing ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
+                        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparing...</>
                     ) : (
-                        <>Checkout <ArrowRight className="ml-2 h-4 w-4" /></>
+                        <>Checkout <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
                     )}
                 </Button>
           </div>
@@ -760,15 +808,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       </Sheet>
 
       <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
-          <div className="p-6 border-b bg-muted/10">
-            <DialogTitle className="font-headline text-xl uppercase tracking-tighter">Customize {customizingItem?.menuItem.name}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 shadow-2xl rounded-[3rem]">
+          <div className="p-8 border-b bg-muted/10">
+            <DialogTitle className="font-headline text-2xl uppercase tracking-tighter text-[#2c1810]">Customize {customizingItem?.menuItem.name}</DialogTitle>
+            <DialogDescription className="font-medium text-[#6b584b]">
                 Make it just right.
             </DialogDescription>
           </div>
           <ScrollArea className="max-h-[60vh]">
-            <div className="p-6 space-y-8">
+            <div className="p-8 space-y-10">
                 {customizingItem?.menuItem.addonGroups?.map((group) => {
                     const categoryName = getCategoryName(group.addonCategoryId, 'addon');
                     const availableAddons = allAddons?.filter(addon => addon.addonCategoryId === group.addonCategoryId);
@@ -778,23 +826,25 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     
                     return (
                         <div key={group.addonCategoryId}>
-                            <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-4 flex justify-between items-center">
-                                <span>{categoryName}</span>
-                                <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", validationErrors[group.addonCategoryId] ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                            <div className="flex justify-between items-end mb-6">
+                                <div>
+                                    <h4 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground">{categoryName}</h4>
+                                    {validationErrors[group.addonCategoryId] && (
+                                        <p className="text-[10px] font-black text-destructive uppercase tracking-widest mt-1">{validationErrors[group.addonCategoryId]}</p>
+                                    )}
+                                </div>
+                                <span className={cn("text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest", validationErrors[group.addonCategoryId] ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
                                     {selectedCount} / {group.maxSelection || '∞'}
                                 </span>
-                            </h4>
-                            {validationErrors[group.addonCategoryId] && (
-                                <p className="text-xs font-bold text-destructive mb-3">{validationErrors[group.addonCategoryId]}</p>
-                            )}
-                            <div className="grid grid-cols-1 gap-2">
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
                                 {availableAddons.map(addon => {
                                     const isChecked = !!selectedAddons.find(a => a.id === addon.id);
                                     const isDisabled = !isChecked && group.maxSelection > 0 && selectedCount >= group.maxSelection;
                                     return (
                                         <div key={addon.id} className={cn(
-                                            "flex items-center space-x-3 p-4 rounded-lg border transition-all cursor-pointer",
-                                            isChecked ? "border-primary bg-primary/5" : "border-muted hover:border-primary/30",
+                                            "flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer",
+                                            isChecked ? "border-primary bg-primary/5 shadow-inner" : "border-muted/50 hover:border-primary/30",
                                             isDisabled && "opacity-40 cursor-not-allowed grayscale"
                                         )}
                                         onClick={() => !isDisabled && handleAddonToggle(addon)}
@@ -804,9 +854,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                                 checked={isChecked}
                                                 onCheckedChange={() => !isDisabled && handleAddonToggle(addon)}
                                                 disabled={isDisabled}
+                                                className="h-6 w-6"
                                             />
                                             <div className="flex-grow flex justify-between items-center min-w-0">
-                                                <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-sm font-bold truncate", isDisabled && "cursor-not-allowed")}>
+                                                <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-base font-bold truncate text-[#2c1810]", isDisabled && "cursor-not-allowed")}>
                                                     {addon.name}
                                                 </Label>
                                                 <span className="text-xs font-black text-primary ml-2 shrink-0">+ LKR {addon.price.toFixed(0)}</span>
@@ -820,9 +871,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 })}
             </div>
           </ScrollArea>
-          <div className="p-6 border-t bg-muted/10 flex gap-3">
-            <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="flex-1">Cancel</Button>
-            <Button onClick={confirmAddToCart} className="flex-1 uppercase font-black">Confirm</Button>
+          <div className="p-8 border-t bg-muted/10 flex gap-4">
+            <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="flex-1 h-14 rounded-full font-black uppercase tracking-widest">Cancel</Button>
+            <Button onClick={confirmAddToCart} className="flex-1 h-14 rounded-full font-black uppercase tracking-widest shadow-lg">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>

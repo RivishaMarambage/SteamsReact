@@ -27,7 +27,7 @@ function PublicMenuDisplayContent() {
   const { data: menuRaw, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+  const { data: categoriesRaw, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
 
   // Apply robust client-side sorting to match the Admin tool's logic
   const sortedMenuItems = useMemo(() => {
@@ -35,33 +35,39 @@ function PublicMenuDisplayContent() {
     return [...menuRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [menuRaw]);
 
+  // Robust client-side sorting for categories
+  const sortedCategories = useMemo(() => {
+    if (!categoriesRaw) return [];
+    return [...categoriesRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [categoriesRaw]);
+
   const isLoading = menuLoading || areCategoriesLoading;
   
   if (isLoading) {
     return (
        <div className="space-y-8">
         <div className="flex justify-center mb-6">
-            <Skeleton className="h-10 w-64 rounded-full" />
+            <Skeleton className="h-14 w-64 rounded-full" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <Skeleton className="h-80 w-full rounded-3xl" />
-            <Skeleton className="h-80 w-full rounded-3xl" />
-            <Skeleton className="h-80 w-full rounded-3xl" />
-            <Skeleton className="h-80 w-full rounded-3xl" />
+            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
+            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
+            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
+            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
         </div>
       </div>
     )
   }
   
   return (
-    <Tabs defaultValue={MAIN_CATEGORIES[0]} className="w-full">
-        <div className="flex justify-center mb-10">
-          <TabsList className="bg-muted/50 p-1 h-14 rounded-full">
+    <Tabs defaultValue={MAIN_CATEGORIES[1]} className="w-full">
+        <div className="flex justify-center mb-16">
+          <TabsList className="bg-muted/50 p-1.5 h-16 rounded-full border border-muted">
             {MAIN_CATEGORIES.map(categoryType => (
               <TabsTrigger 
                 key={categoryType} 
                 value={categoryType}
-                className="rounded-full px-8 font-bold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                className="rounded-full px-10 font-black text-xs uppercase tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-xl transition-all"
               >
                 {categoryType}
               </TabsTrigger>
@@ -69,47 +75,47 @@ function PublicMenuDisplayContent() {
           </TabsList>
         </div>
         {MAIN_CATEGORIES.map(categoryType => (
-          <TabsContent key={categoryType} value={categoryType} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="space-y-16">
-               {categories?.filter(c => c.type === categoryType).map(subCategory => {
+          <TabsContent key={categoryType} value={categoryType} className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <div className="space-y-24">
+               {sortedCategories.filter(c => c.type === categoryType).map(subCategory => {
                 const subItems = sortedMenuItems.filter(item => item.categoryId === subCategory.id);
                 if (!subItems || subItems.length === 0) return null;
 
                 return (
-                  <div key={subCategory.id}>
-                      <div className="flex items-center gap-4 mb-8">
-                        <h2 className="text-3xl font-headline font-black uppercase tracking-tight text-[#2c1810]">{subCategory.name}</h2>
-                        <div className="h-[2px] flex-1 bg-[#d97706]/10" />
+                  <div key={subCategory.id} className="animate-in fade-in slide-in-from-left-4 duration-1000">
+                      <div className="flex items-center gap-6 mb-12">
+                        <h2 className="text-4xl md:text-5xl font-headline font-black uppercase tracking-tight text-[#2c1810] italic">{subCategory.name}</h2>
+                        <div className="h-[2px] flex-1 bg-gradient-to-r from-primary/20 to-transparent" />
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
                         {subItems.map(item => (
-                            <Card key={item.id} className={cn("flex flex-col overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-[2.5rem]", item.isOutOfStock && "opacity-60 grayscale")}>
-                               <div className="relative w-full h-52 overflow-hidden">
+                            <Card key={item.id} className={cn("flex flex-col overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 group rounded-[3rem] bg-white", item.isOutOfStock && "opacity-60 grayscale")}>
+                               <div className="relative w-full h-60 overflow-hidden">
                                   <Image
                                       src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
                                       alt={item.name}
                                       fill
-                                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                      className="object-cover transition-transform duration-1000 group-hover:scale-110"
                                       data-ai-hint="food item"
                                   />
                                    {item.isOutOfStock && (
                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
-                                          <Badge variant="destructive" className="h-10 px-6 text-sm">Sold Out</Badge>
+                                          <Badge variant="destructive" className="h-12 px-8 text-xs font-black uppercase tracking-[0.2em] shadow-2xl">Sold Out</Badge>
                                       </div>
                                   )}
                               </div>
-                              <CardContent className="p-6 flex-grow flex flex-col justify-between">
+                              <CardContent className="p-8 flex-grow flex flex-col justify-between">
                                 <div>
-                                    <CardTitle className="font-headline text-2xl mb-2 text-[#2c1810]">{item.name}</CardTitle>
-                                    <CardDescription className="text-[#6b584b] line-clamp-2 leading-relaxed">
+                                    <CardTitle className="font-headline text-3xl mb-3 text-[#2c1810] tracking-tight">{item.name}</CardTitle>
+                                    <CardDescription className="text-[#6b584b] line-clamp-3 leading-relaxed text-sm font-medium">
                                         {item.description}
                                     </CardDescription>
                                 </div>
-                                <div className="mt-6 pt-4 border-t border-muted flex items-center justify-between">
-                                    <div className="font-black text-xl text-primary">
+                                <div className="mt-8 pt-6 border-t border-muted/50 flex items-center justify-between">
+                                    <div className="font-black text-2xl text-primary tracking-tighter">
                                         LKR {item.price.toFixed(0)}
                                     </div>
-                                    <Badge variant="secondary" className="bg-muted/50 text-[#6b584b] lowercase">
+                                    <Badge variant="secondary" className="bg-muted/50 text-[#6b584b] text-[10px] font-black uppercase tracking-widest px-3 py-1">
                                         per portion
                                     </Badge>
                                 </div>
