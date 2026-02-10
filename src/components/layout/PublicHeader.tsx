@@ -53,7 +53,7 @@ export default function PublicHeader() {
               </Button>
             ) : (
               <>
-                <Button asChild variant="ghost" className="rounded-full px-6 text-white hover:bg-white/10 font-black text-xs uppercase tracking-widest">
+                <Button asChild variant="ghost" className="rounded-full px-6 text-white hover:bg-white hover:text-[#1a110a] font-black text-xs uppercase tracking-widest transition-all duration-300">
                   <Link href="/login/customer" className="flex items-center gap-2">
                     <LogIn className="w-4 h-4" /> Sign In
                   </Link>
@@ -105,7 +105,7 @@ export default function PublicHeader() {
               </Button>
             ) : (
               <>
-                <Button asChild variant="outline" className="w-full h-14 rounded-full border-white/20 text-white bg-transparent font-black uppercase tracking-widest">
+                <Button asChild variant="outline" className="w-full h-14 rounded-full border-white/20 text-white hover:bg-white hover:text-[#1a110a] bg-transparent font-black uppercase tracking-widest transition-all duration-300">
                   <Link href="/login/customer" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
                 </Button>
                 <Button asChild className="w-full h-14 rounded-full bg-[#d97706] text-white font-black uppercase tracking-widest shadow-2xl">
