@@ -10,7 +10,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Tag, Wallet, Blocks, Gift, AppWindow } from 'lucide-react';
+import { AreaChart, BookMarked, LayoutDashboard, ShoppingCart, User as UserIcon, ScanSearch, Users, ShieldCheck, FolderPlus, Wallet, AppWindow, Blocks, Gift } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../Logo';
 import Link from 'next/link';
@@ -47,7 +47,7 @@ export default function AppSidebar() {
   const { setOpenMobile, isMobile } = useSidebar();
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<any>(userDocRef);
   const userRole = userProfile?.role;
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -62,7 +62,7 @@ export default function AppSidebar() {
     return pathname.startsWith(href);
   };
 
-  let menuItemsToShow: typeof customerMenuItems = [];
+  let menuItemsToShow: any[] = [];
 
   if (userRole === 'customer') {
     menuItemsToShow = customerMenuItems;

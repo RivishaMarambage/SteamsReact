@@ -25,7 +25,7 @@
     --ring: 25 95% 53%;
     --radius: 0.5rem;
 
-    /* Sidebar dark theme for light mode */
+    /* Sidebar theme */
     --sidebar-background: 0 0% 5% / 0.76;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 25 95% 53%;
@@ -61,7 +61,7 @@
     --ring: 25 95% 53%;
     --radius: 0.5rem;
 
-    /* Sidebar dark theme */
+    /* Sidebar theme */
     --sidebar-background: 0 0% 5% / 0.76;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 25 95% 53%;

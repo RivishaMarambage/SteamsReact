@@ -31,7 +31,6 @@ export default function AppHeader() {
   const { user } = useUser();
   const router = useRouter();
 
-
   const handleLogout = async () => {
     await auth.signOut();
     router.push('/');
@@ -61,7 +60,6 @@ export default function AppHeader() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
                 <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                 <p className="text-xs leading-none text-muted-foreground pt-1 font-mono">{user?.uid}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
