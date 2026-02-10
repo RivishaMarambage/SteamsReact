@@ -498,21 +498,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   return (
     <>
       <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" hideCloseButton>
+        <DialogContent className="sm:max-w-md w-[90%] rounded-[2.5rem]" hideCloseButton>
            {dialogStep === 'type' && (
              <>
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl text-center">How will you be joining us?</DialogTitle>
-                    <DialogDescription className="text-center">Please select whether you want to dine-in or take your order away.</DialogDescription>
+                    <DialogTitle className="font-headline text-xl sm:text-2xl text-center">How will you be joining us?</DialogTitle>
+                    <DialogDescription className="text-center text-xs sm:text-sm">Please select whether you want to dine-in or take your order away.</DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-2 gap-4 py-4">
-                    <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
-                        <Utensils className="h-8 w-8"/>
-                        <span className="text-lg">Dine-in</span>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 py-4">
+                    <Button variant="outline" className="h-24 sm:h-32 flex-col gap-2 rounded-[1.5rem] sm:rounded-[2rem]" onClick={() => handleTypeSelect('Dine-in')}>
+                        <Utensils className="h-6 w-6 sm:h-8 sm:size-8"/>
+                        <span className="text-sm sm:text-lg">Dine-in</span>
                     </Button>
-                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Takeaway')}>
-                        <ShoppingBag className="h-8 w-8"/>
-                        <span className="text-lg">Takeaway</span>
+                     <Button variant="outline" className="h-24 sm:h-32 flex-col gap-2 rounded-[1.5rem] sm:rounded-[2rem]" onClick={() => handleTypeSelect('Takeaway')}>
+                        <ShoppingBag className="h-6 w-6 sm:h-8 sm:size-8"/>
+                        <span className="text-sm sm:text-lg">Takeaway</span>
                     </Button>
                 </div>
              </>
@@ -520,20 +520,20 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
            {dialogStep === 'table' && (
                <>
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl text-center">Please select your table number</DialogTitle>
-                    <DialogDescription className="text-center">Choose the table where you are currently seated.</DialogDescription>
+                    <DialogTitle className="font-headline text-xl sm:text-2xl text-center">Select Table Number</DialogTitle>
+                    <DialogDescription className="text-center text-xs sm:text-sm">Choose the table where you are currently seated.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                         {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                            <Button key={num} variant="outline" className="h-16 text-lg" onClick={() => handleTableSelect(String(num))}>
+                            <Button key={num} variant="outline" className="h-12 sm:h-16 text-base sm:text-lg rounded-xl" onClick={() => handleTableSelect(String(num))}>
                                 {num}
                             </Button>
                         ))}
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogStep('type')}>Back</Button>
+                    <Button variant="outline" onClick={() => setDialogStep('type')} className="w-full sm:w-auto">Back</Button>
                 </DialogFooter>
                </>
            )}
@@ -543,13 +543,13 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       {!isOrderTypeDialogOpen && (
         <>
             <div className="mb-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Your Order Details</CardTitle>
-                        <CardDescription>
-                            You are placing a <span className="font-semibold">{orderType}</span> order.
+                <Card className="rounded-[2rem] sm:rounded-[2.5rem]">
+                    <CardHeader className="p-6 sm:p-8">
+                        <CardTitle className="font-headline text-lg sm:text-2xl">Your Order Details</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
+                            You are placing a <span className="font-bold text-primary uppercase">{orderType}</span> order.
                             {orderType === 'Dine-in' && tableNumber && (
-                                <> You are seated at <span className="font-semibold">Table #{tableNumber}</span>.</>
+                                <> You are seated at <span className="font-bold text-primary">Table #{tableNumber}</span>.</>
                             )}
                         </CardDescription>
                     </CardHeader>
@@ -557,18 +557,18 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex justify-center mb-6 overflow-x-auto">
-                <TabsList>
-                    {categories?.map(category => (
-                    <TabsTrigger key={category.id} value={category.id}>{category.name}</TabsTrigger>
-                    ))}
-                </TabsList>
+                <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                    <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:flex sm:justify-center h-auto p-1 bg-muted rounded-full">
+                        {categories?.map(category => (
+                        <TabsTrigger key={category.id} value={category.id} className="whitespace-nowrap rounded-full px-4 sm:px-6 py-2">{category.name}</TabsTrigger>
+                        ))}
+                    </TabsList>
                 </div>
                 {categories?.map(subCategory => (
                 <TabsContent key={subCategory.id} value={subCategory.id}>
                     <div className="space-y-8">
                         <div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                             {menuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                                 const today = new Date();
                                 const todayString = format(today, 'yyyy-MM-dd');
@@ -606,12 +606,11 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     }
                                 }
 
-                                // Ensure price is not negative
                                 displayPrice = Math.max(0, displayPrice);
 
                                 return (
-                                <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300", item.isOutOfStock && "opacity-60")}>
-                                    <div className="relative w-full h-40">
+                                <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 rounded-[2rem]", item.isOutOfStock && "opacity-60")}>
+                                    <div className="relative w-full h-40 sm:h-48">
                                         <Image
                                             src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
                                             alt={item.name}
@@ -626,21 +625,21 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                             </div>
                                         )}
                                         {isOfferApplied && !item.isOutOfStock && (
-                                            <Badge variant="destructive" className="absolute top-2 right-2 flex items-center gap-1">
+                                            <Badge variant="destructive" className="absolute top-3 right-3 flex items-center gap-1 shadow-md">
                                             <Tag className="h-3 w-3"/> Daily Special
                                             </Badge>
                                         )}
                                     </div>
-                                    <CardContent className="p-4 flex-grow">
-                                    <CardTitle className="font-headline text-xl mb-1">{item.name}</CardTitle>
-                                    <CardDescription>{item.description}</CardDescription>
+                                    <CardContent className="p-5 flex-grow">
+                                    <CardTitle className="font-headline text-lg sm:text-xl mb-1 uppercase tracking-tight">{item.name}</CardTitle>
+                                    <CardDescription className="text-xs sm:text-sm line-clamp-2">{item.description}</CardDescription>
                                     </CardContent>
-                                    <CardFooter className="p-4 flex justify-between items-center">
+                                    <CardFooter className="p-5 flex justify-between items-center border-t bg-muted/10">
                                     <div className="font-bold text-lg text-primary">
-                                        {isOfferApplied && <span className="text-sm font-normal text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>}
+                                        {isOfferApplied && <span className="block text-[10px] text-muted-foreground line-through opacity-60">LKR {originalPrice.toFixed(2)}</span>}
                                         LKR {displayPrice.toFixed(2)}
                                     </div>
-                                    <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock}>
+                                    <Button size="sm" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="h-10 px-5 rounded-full shadow-sm">
                                         {item.isOutOfStock ? "Unavailable" : <><PlusCircle className="mr-2 h-4 w-4" /> Add</>}
                                     </Button>
                                     </CardFooter>
@@ -658,112 +657,112 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
       <Sheet>
         <SheetTrigger asChild>
-          <Button className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-2xl bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button className="fixed bottom-6 right-6 rounded-full w-14 h-14 sm:w-16 sm:h-16 shadow-2xl bg-accent hover:bg-accent/90 text-accent-foreground z-50">
             <ShoppingCart className="h-6 w-6" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center text-[10px] sm:text-xs font-bold ring-2 ring-background">
                 {cartItemCount}
               </span>
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex h-full flex-col w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="font-headline text-2xl">Your Order</SheetTitle>
-            <SheetDescription>Review your items before placing your {orderType} order.</SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 py-4 overflow-y-auto">
-            {cart.length === 0 ? (
-              <div className="text-center text-muted-foreground h-full flex flex-col items-center justify-center">
-                <ShoppingCart className="w-16 h-16 mb-4 text-muted-foreground/50" />
-                <p>Your cart is empty.</p>
-                <p className="text-sm">Add items from the menu to get started.</p>
-                </div>
-            ) : (
-              <div className="space-y-4">
-                {cart.map(item => {
-                  const category = categories?.find(c => c.id === item.menuItem.categoryId);
-                  const isBeverage = category?.type === 'Beverages';
-                  return (
-                    <div key={item.id} className="flex items-start gap-4">
-                      <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0">
-                          <Image
-                              src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
-                              alt={item.menuItem.name}
-                              fill
-                              sizes="64px"
-                              className="object-cover"
-                              data-ai-hint="food item"
-                          />
-                      </div>
-                      <div className="flex-grow grid gap-1">
-                        <p className="font-semibold leading-tight">{item.menuItem.name}</p>
-                        {item.addons.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                              {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground">LKR {item.totalPrice.toFixed(2)}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
-                          {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
-                        </Button>
-                        <span className="w-6 text-center font-medium">{item.quantity}</span>
-                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0">
+          <div className="p-6 border-b">
+            <SheetTitle className="font-headline text-2xl uppercase tracking-tighter">Your Order</SheetTitle>
+            <SheetDescription className="text-xs sm:text-sm">Review your items before placing your {orderType} order.</SheetDescription>
           </div>
+          <ScrollArea className="flex-1 px-6">
+            <div className="py-6">
+                {cart.length === 0 ? (
+                <div className="text-center text-muted-foreground h-64 flex flex-col items-center justify-center space-y-4">
+                    <div className="bg-muted p-6 rounded-full">
+                        <ShoppingCart className="w-10 h-10 text-muted-foreground/30" />
+                    </div>
+                    <p className="font-bold">Your cart is empty</p>
+                    <p className="text-xs">Add items from the menu to get started.</p>
+                    </div>
+                ) : (
+                <div className="space-y-6">
+                    {cart.map(item => {
+                    const category = categories?.find(c => c.id === item.menuItem.categoryId);
+                    const isBeverage = category?.type === 'Beverages';
+                    return (
+                        <div key={item.id} className="flex items-center gap-4 group">
+                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 shadow-sm">
+                            <Image
+                                src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                                alt={item.menuItem.name}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                                data-ai-hint="food item"
+                            />
+                        </div>
+                        <div className="flex-grow min-w-0">
+                            <p className="font-bold text-sm leading-tight truncate">{item.menuItem.name}</p>
+                            {item.addons.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground truncate italic">
+                                {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
+                            </p>
+                            )}
+                            <p className="text-xs font-bold text-primary">LKR {item.totalPrice.toFixed(2)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-full">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, -1)}>
+                            {item.quantity === 1 ? <Trash2 className="h-3 w-3 text-destructive" /> : <Minus className="h-3 w-3" />}
+                            </Button>
+                            <span className="w-4 text-center text-xs font-black">{item.quantity}</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
+                            <Plus className="h-3 w-3" />
+                            </Button>
+                        </div>
+                        </div>
+                    );
+                    })}
+                </div>
+                )}
+            </div>
+          </ScrollArea>
           {cart.length > 0 && (
-            <SheetFooter className="pt-4 border-t">
-              <div className="w-full space-y-4">
+            <div className="p-6 border-t bg-muted/5 space-y-4">
                   {potentialWelcomeOffer && !isEmailVerified && (
-                     <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                      <h3 className="font-headline text-lg text-yellow-600 flex items-center gap-2"><MailWarning /> Verify Your Email</h3>
-                      <p className="text-sm text-muted-foreground">
-                        You have a <span className="font-bold">{potentialWelcomeOffer.discount}% welcome discount</span> waiting! Please verify your email to apply it to this order.
+                     <div className="p-3 bg-yellow-500/10 rounded-2xl border border-yellow-500/20 shadow-sm">
+                      <h3 className="font-headline text-sm text-yellow-700 flex items-center gap-2"><MailWarning className="size-4" /> Verify Email</h3>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Get <span className="font-bold text-yellow-700">{potentialWelcomeOffer.discount}% off</span>. Verify your email to apply.
                       </p>
                     </div>
                   )}
 
                   {applicableWelcomeOffer && (
-                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                      <h3 className="font-headline text-lg text-blue-600 flex items-center gap-2"><Percent /> Welcome Offer Applied!</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Your <span className='font-bold'>{applicableWelcomeOffer.discount}%</span> discount for your{' '}
-                        {
-                            {0: 'first', 1: 'second', 2: 'third'}[applicableWelcomeOffer.order]
-                        }{' '}
-                        order has been automatically applied.
+                    <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shadow-sm animate-in zoom-in-95">
+                      <h3 className="font-headline text-sm text-blue-700 flex items-center gap-2"><Percent className="size-4" /> Welcome Discount</h3>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        <span className='font-bold text-blue-700'>{applicableWelcomeOffer.discount}% discount</span> automatically applied.
                       </p>
                     </div>
                   )}
                   
                   {birthdayDiscountAmount > 0 && (
-                     <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
-                      <h3 className="font-headline text-lg text-accent flex items-center gap-2"><Gift /> Birthday Discount Applied!</h3>
-                      <p className="text-sm text-muted-foreground">Your <span className="font-bold">LKR {birthdayDiscountAmount.toFixed(2)}</span> discount has been automatically applied.</p>
+                     <div className="p-3 bg-accent/10 rounded-2xl border border-accent/20 shadow-sm animate-in zoom-in-95">
+                      <h3 className="font-headline text-sm text-accent flex items-center gap-2"><Gift className="size-4" /> Birthday Gift</h3>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Your <span className="font-bold text-accent">LKR {birthdayDiscountAmount.toFixed(2)}</span> credit applied.
+                      </p>
                     </div>
                   )}
 
                   <div className="space-y-2">
-                      <h3 className="font-headline text-lg">Redeem Points</h3>
-                       {!canRedeemPoints && userProfile && (
-                        <p className="text-xs text-destructive">You must be in the Bronze tier or higher to redeem points.</p>
-                       )}
-                      <div className='text-sm text-primary font-bold'>You have {userProfile?.loyaltyPoints ?? 0} points available.</div>
+                      <div className='flex items-center justify-between'>
+                        <h3 className="font-headline text-xs uppercase tracking-widest text-muted-foreground">Redeem Points</h3>
+                        <span className='text-[10px] text-primary font-bold'>{userProfile?.loyaltyPoints ?? 0} available</span>
+                      </div>
                       <div className="flex items-center gap-2">
-                          <Label htmlFor='redeem-points' className='sr-only'>Points to redeem</Label>
                           <Input 
                               id="redeem-points"
                               type="number"
-                              placeholder="Points to use"
+                              placeholder="Amount"
+                              className="h-10 rounded-full text-xs"
                               value={pointsToRedeemInput}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -771,68 +770,68 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     setPointsToRedeemInput(val);
                                 }
                               }}
-                              max={userProfile?.loyaltyPoints ?? 0}
-                              min={0}
                               disabled={!canRedeemPoints}
                           />
-                          <Button variant="secondary" onClick={handleRedeemPoints} disabled={!canRedeemPoints}><Ticket className='mr-2 h-4 w-4' /> Apply</Button>
+                          <Button variant="secondary" size="sm" onClick={handleRedeemPoints} disabled={!canRedeemPoints} className="h-10 rounded-full px-4"><Ticket className='mr-2 h-3 w-3' /> Apply</Button>
                       </div>
+                      {!canRedeemPoints && userProfile && (
+                        <p className="text-[10px] text-destructive italic font-medium px-2">Reach Bronze Tier to unlock redemptions.</p>
+                       )}
                   </div>
                   <Separator />
-                  <div className="w-full space-y-2 text-sm">
-                      <div className="flex justify-between">
+                  <div className="w-full space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between text-muted-foreground">
                           <span>Subtotal</span>
                           <span>LKR {subtotal.toFixed(2)}</span>
                       </div>
                       {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
-                        <div className="flex justify-between text-destructive">
+                        <div className="flex justify-between text-destructive font-bold">
                             <span>Item Discounts</span>
                             <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
                         </div>
                       )}
                       {serviceCharge > 0 && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-muted-foreground">
                             <span>Service Charge (10%)</span>
                             <span>LKR {serviceCharge.toFixed(2)}</span>
                         </div>
                       )}
                       {loyaltyDiscount > 0 && (
-                        <div className="flex justify-between text-destructive">
+                        <div className="flex justify-between text-destructive font-bold">
                             <span>Points Redemption</span>
                             <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-lg font-bold">
+                      <div className="flex justify-between text-xl font-black text-primary uppercase tracking-tighter pt-2 border-t border-dashed">
                           <span>Total</span>
                           <span>LKR {cartTotal.toFixed(2)}</span>
                       </div>
                   </div>
-                   <Button size="lg" className="w-full" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
+                   <Button size="lg" className="w-full h-14 rounded-full text-lg uppercase tracking-tight shadow-xl shadow-primary/20" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
                       {isProcessing ? (
                           <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                               Redirecting...
                           </>
                       ) : (
-                          <>Proceed to Checkout <ArrowRight className="ml-2" /></>
+                          <>Checkout <ArrowRight className="ml-2 h-5 w-5" /></>
                       )}
                   </Button>
-              </div>
-            </SheetFooter>
+            </div>
           )}
         </SheetContent>
       </Sheet>
 
       <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl">Customize {customizingItem?.menuItem.name}</DialogTitle>
-            <DialogDescription>
-                Make it just right. The final price will be calculated based on your selections.
+        <DialogContent className="sm:max-w-lg w-[95%] rounded-[2.5rem] p-0 overflow-hidden">
+          <div className="p-6 border-b bg-muted/10">
+            <DialogTitle className="font-headline text-xl sm:text-2xl uppercase tracking-tighter">Customize {customizingItem?.menuItem.name}</DialogTitle>
+            <DialogDescription className="text-xs">
+                Make it just right. The final price updates based on your choices.
             </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] -mx-6 px-6">
-            <div className="py-4 space-y-6">
+          </div>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="p-6 space-y-8">
                 {customizingItem?.menuItem.addonGroups?.map((group) => {
                     const categoryName = getCategoryName(group.addonCategoryId, 'addon');
                     const availableAddons = allAddons?.filter(addon => addon.addonCategoryId === group.addonCategoryId);
@@ -842,29 +841,40 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     
                     return (
                         <div key={group.addonCategoryId}>
-                            <h4 className="font-semibold text-lg mb-2 sticky top-0 bg-background py-2 flex justify-between items-center">
+                            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4 flex justify-between items-center px-1">
                                 <span>{categoryName}</span>
-                                <span className="text-sm font-normal text-muted-foreground">({selectedCount} / {group.maxSelection || 'any'})</span>
+                                <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", validationErrors[group.addonCategoryId] ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                                    {selectedCount} / {group.maxSelection || '∞'}
+                                </span>
                             </h4>
                             {validationErrors[group.addonCategoryId] && (
-                                <p className="text-sm text-destructive mb-2">{validationErrors[group.addonCategoryId]}</p>
+                                <p className="text-[10px] font-bold text-destructive mb-3 px-1">{validationErrors[group.addonCategoryId]}</p>
                             )}
-                            <div className="space-y-2">
+                            <div className="grid grid-cols-1 gap-2">
                                 {availableAddons.map(addon => {
                                     const isChecked = !!selectedAddons.find(a => a.id === addon.id);
                                     const isDisabled = !isChecked && group.maxSelection > 0 && selectedCount >= group.maxSelection;
                                     return (
-                                        <div key={addon.id} className={cn("flex items-center space-x-3 p-3 rounded-md border has-[:checked]:border-primary has-[:checked]:bg-muted/50", isDisabled && "opacity-50")}>
+                                        <div key={addon.id} className={cn(
+                                            "flex items-center space-x-3 p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer",
+                                            isChecked ? "border-primary bg-primary/5 shadow-sm" : "border-muted hover:border-primary/30",
+                                            isDisabled && "opacity-40 cursor-not-allowed grayscale"
+                                        )}
+                                        onClick={() => !isDisabled && handleAddonToggle(addon)}
+                                        >
                                             <Checkbox
                                                 id={`addon-check-${addon.id}`}
                                                 checked={isChecked}
-                                                onCheckedChange={() => handleAddonToggle(addon)}
+                                                onCheckedChange={() => !isDisabled && handleAddonToggle(addon)}
                                                 disabled={isDisabled}
+                                                className="rounded-md"
                                             />
-                                            <Label htmlFor={`addon-check-${addon.id}`} className={cn("flex-grow text-base", isDisabled && "cursor-not-allowed")}>
-                                                {addon.name}
-                                            </Label>
-                                            <span className="font-semibold">+ LKR {addon.price.toFixed(2)}</span>
+                                            <div className="flex-grow flex justify-between items-center min-w-0">
+                                                <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-sm font-bold truncate", isDisabled && "cursor-not-allowed")}>
+                                                    {addon.name}
+                                                </Label>
+                                                <span className="text-xs font-black text-primary ml-2">+ LKR {addon.price.toFixed(0)}</span>
+                                            </div>
                                         </div>
                                     )
                                 })}
@@ -874,10 +884,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 })}
             </div>
           </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCustomizationOpen(false)}>Cancel</Button>
-            <Button onClick={confirmAddToCart}>Add to Order</Button>
-          </DialogFooter>
+          <div className="p-6 border-t bg-muted/10 flex flex-col sm:flex-row gap-3">
+            <Button variant="outline" onClick={() => setCustomizationOpen(false)} className="rounded-full flex-1 h-12 uppercase font-bold text-xs">Cancel</Button>
+            <Button onClick={confirmAddToCart} className="rounded-full flex-1 h-12 uppercase font-black text-xs shadow-lg">Confirm Selections</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

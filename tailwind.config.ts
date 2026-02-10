@@ -12,10 +12,14 @@ export default {
       center: true,
       padding: '2rem',
       screens: {
+        'xs': '475px',
         '2xl': '1400px',
       },
     },
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         headline: ["Archivo", "sans-serif"],
         body: ["Montserrat", "sans-serif"],
