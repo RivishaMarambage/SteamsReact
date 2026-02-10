@@ -18,11 +18,12 @@ import { Logo } from '../Logo';
 import Link from 'next/link';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { Badge } from '../ui/badge';
 
 const customerPrimaryItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/order', label: 'Order', icon: ShoppingCart },
-  { href: '/dashboard/game-zone', label: 'Game Zone', icon: Dices },
+  { href: '/dashboard/game-zone', label: 'Game Zone', icon: Dices, comingSoon: true },
   { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { href: '/dashboard/profile', label: 'My Profile', icon: UserIcon },
 ];
@@ -170,7 +171,10 @@ export default function AppSidebar() {
                     >
                       <Link href={item.href} onClick={handleNavigate} className="flex items-center gap-3">
                         <item.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover/btn:scale-125 group-hover/btn:rotate-6", isActive(item.href) && "animate-pulse")} />
-                        <span className="text-base tracking-wide">{item.label}</span>
+                        <span className="text-base tracking-wide flex-grow">{item.label}</span>
+                        {item.comingSoon && (
+                          <Badge variant="outline" className="ml-auto text-[8px] h-4 px-1.5 border-[#d97706]/30 text-[#d97706] group-data-[collapsible=icon]:hidden">SOON</Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -1,506 +1,66 @@
-
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useUser, useFirestore, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, setDoc, updateDoc, increment, collection, onSnapshot, runTransaction, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
-import { Trophy, Coins, Lock, Sparkles, Dices, Coffee, Ticket, RotateCcw, AlertCircle, CheckCircle2, Loader2, Gift } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import type { UserProfile, GameProfile, DailyGameWinners } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-
-// --- CONSTANTS ---
-const TRIVIA_DAILY_LIMIT = 5;
-const TRIVIA_QUEST_GOAL = 5;
-const SPIN_COST = 10;
-const CUP_COST = 5;
-
-const QUESTION_BANK = [
-  { category: 'Ancient History', q: 'Which king made Sigiriya his capital in the 5th century AD?', options: ['King Kashyapa', 'King Parakramabahu', 'King Dutugemunu', 'King Devanampiya Tissa'], correct: 0, fact: "King Kashyapa built his palace on the summit of Sigiriya rock." },
-  { category: 'Tea & Coffee', q: 'Who first planted coffee in Sri Lanka on a commercial scale?', options: ['The Portuguese', 'The Dutch', 'The British', 'The Kandyans'], correct: 1, fact: 'The Dutch were the first to attempt commercial coffee cultivation.' },
-  { category: 'Culture', q: 'The Temple of the Tooth in Kandy holds a relic of whom?', options: ['Shiva', 'Vishnu', 'The Buddha', 'Ganesha'], correct: 2, fact: 'The Sacred Tooth Relic is one of the most revered objects in Buddhism.' },
-  { category: 'Geography', q: 'What is the highest mountain in Sri Lanka?', options: ['Adam\'s Peak', 'Pidurutalagala', 'Knuckles Range', 'Horton Plains'], correct: 1, fact: 'Pidurutalagala stands at 2,524 meters.' },
-  { category: 'Nature', q: 'Which national park is most famous for its leopard population?', options: ['Wilpattu', 'Yala', 'Udawalawe', 'Kumana'], correct: 1, fact: 'Yala National Park has one of the highest leopard densities in the world.' },
-  { category: 'Food', q: 'What is the base ingredient of "Hoppers" (Appa)?', options: ['Wheat flour', 'Rice flour & coconut milk', 'Gram flour', 'Manioc'], correct: 1, fact: 'Hoppers are made from a fermented batter of rice flour and coconut milk.' },
-  { category: 'History', q: 'In which city was the last kingdom of Sri Lanka located?', options: ['Anuradhapura', 'Polonnaruwa', 'Kandy', 'Galle'], correct: 2, fact: 'Kandy was the last independent monarchy of Sri Lanka.' }
-];
-
-
-function GameZonePageContent() {
-  const { user: authUser, isUserLoading: authLoading } = useUser();
-  const firestore = useFirestore();
-  const { toast } = useToast();
-
-  const [activeGame, setActiveGame] = useState('spin');
-  
-  // Spin State
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [spinResult, setSpinResult] = useState<{ type: string; val: string } | null>(null);
-
-  // Cup Pick State
-  const [isPicking, setIsPicking] = useState(false);
-  const [pickedCup, setPickedCup] = useState<number | null>(null);
-  const [cupResult, setCupResult] = useState<string | null>(null);
-
-  // Trivia State
-  const [triviaProgress, setTriviaProgress] = useState(0);
-  const [currentTrivia, setCurrentTrivia] = useState<(typeof QUESTION_BANK)[0] | null>(null);
-  const [triviaFeedback, setTriviaFeedback] = useState<{ correct: boolean; text: string; reset?: boolean } | null>(null);
-  
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
-  
-  const userProfileRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
-  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
-  
-  const gameProfileRef = useMemoFirebase(() => authUser ? doc(firestore, `users/${authUser.uid}/data/game_profile`) : null, [authUser, firestore]);
-  const { data: gameProfile, isLoading: gameProfileLoading } = useDoc<GameProfile>(gameProfileRef);
-
-  const globalWinnersRef = useMemoFirebase(() => doc(firestore, 'daily_game_winners', today), [firestore, today]);
-  const { data: globalWinners, isLoading: winnersLoading } = useDoc<DailyGameWinners>(globalWinnersRef);
-
-
-  useEffect(() => {
-    const defaultProfile = { lastPlayedDate: today, triviaCount: 0, spinCount: 0, cupCount: 0 };
-    // Initialize game profile on first load for a new day
-    if (gameProfileRef && gameProfile && gameProfile.lastPlayedDate !== today) {
-        updateDoc(gameProfileRef, defaultProfile);
-    } else if (gameProfileRef && !gameProfile && !gameProfileLoading && authUser) {
-        setDoc(gameProfileRef, defaultProfile);
-    }
-  }, [gameProfile, gameProfileRef, gameProfileLoading, today, authUser]);
-
-  const isLoading = authLoading || profileLoading || gameProfileLoading || winnersLoading;
-  
-  const updatePoints = async (amount: number, desc: string) => {
-    if (!authUser || !firestore || !userProfileRef) return;
-    const batch = writeBatch(firestore);
-    batch.update(userProfileRef, { 
-      loyaltyPoints: increment(amount),
-      lifetimePoints: increment(amount > 0 ? amount : 0) 
-    });
-    const transactionRef = doc(collection(firestore, `users/${authUser.uid}/point_transactions`));
-    batch.set(transactionRef, {
-      date: serverTimestamp(),
-      description: desc,
-      amount: amount,
-      type: amount > 0 ? 'earn' : 'redeem',
-    });
-    await batch.commit().catch(e => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({path: userProfileRef.path, operation: 'update', requestResourceData: {loyaltyPoints: increment(amount)}}));
-    });
-  };
-
-  const handleGrandWin = async (gameKey: keyof DailyGameWinners, prizeName: string) => {
-    if (!authUser || !globalWinnersRef || !userProfileRef) return false;
-
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        const globalSnap = await transaction.get(globalWinnersRef);
-        
-        if (!globalSnap.exists()) {
-             transaction.set(globalWinnersRef, { spinWinner: null, luckyWinner: null, triviaWinner: null });
-        }
-        
-        const winners = globalSnap.data() as DailyGameWinners | undefined ?? { spinWinner: null, luckyWinner: null, triviaWinner: null };
-
-        if (winners[gameKey]) throw new Error("Taken");
-        
-        transaction.update(globalWinnersRef, { [gameKey]: authUser.uid });
-        transaction.update(userProfileRef, { loyaltyPoints: increment(50) });
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-  
-  // --- SPIN LOGIC ---
-  const playSpin = async () => {
-    if (isSpinning || !authUser || !userProfile || !gameProfile || !gameProfileRef) return;
-
-    const isFreeSpin = (gameProfile.spinCount ?? 0) === 0;
-
-    if (!isFreeSpin) {
-        if ((userProfile.loyaltyPoints ?? 0) < SPIN_COST) {
-            toast({
-                variant: 'destructive',
-                title: 'Not enough points',
-                description: `You need ${SPIN_COST} points for another spin.`,
-            });
-            return;
-        }
-    }
-
-    setIsSpinning(true);
-    setSpinResult(null);
-
-    if (!isFreeSpin) {
-        await updatePoints(-SPIN_COST, "Paid Spin to Win");
-    }
-
-    await updateDoc(gameProfileRef, { spinCount: increment(1) });
-
-    await new Promise(r => setTimeout(r, 2000));
-
-    const rng = Math.random();
-    if (rng < 0.05 && !globalWinners?.spinWinner) {
-      const won = await handleGrandWin('spinWinner', 'Free Coffee');
-      if (won) {
-          setSpinResult({ type: 'GRAND', val: 'FREE COFFEE' });
-      } else { 
-          setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
-      }
-    } else if (rng < 0.3) {
-      const pts = Math.floor(Math.random() * 5) + 1;
-      await updatePoints(pts, "Lucky Spin Win");
-      setSpinResult({ type: 'POINTS', val: `${pts} PTS` });
-    } else {
-      setSpinResult({ type: 'LOSE', val: 'TRY AGAIN' });
-    }
-    setIsSpinning(false);
-  };
-  
-  // --- PICK A CUP LOGIC ---
-  const playPickCup = async (idx: number) => {
-    if (isPicking || !authUser || cupResult || !gameProfile || !gameProfileRef || !userProfile) return;
-    
-    const isFreeChance = (gameProfile.cupCount ?? 0) === 0;
-
-    if (!isFreeChance) {
-        if ((userProfile.loyaltyPoints ?? 0) < CUP_COST) {
-            toast({
-                variant: 'destructive',
-                title: 'Not enough points',
-                description: `You need ${CUP_COST} points for another chance.`,
-            });
-            return;
-        }
-    }
-
-    setIsPicking(true);
-    setPickedCup(idx);
-
-    if (!isFreeChance) {
-        await updatePoints(-CUP_COST, "Paid Lucky Cup Retry");
-    }
-
-    await updateDoc(gameProfileRef, { cupCount: increment(1) });
-
-    // Visual delay for anticipation
-    await new Promise(r => setTimeout(r, 1500));
-
-    const rng = Math.random();
-    
-    // 3% chance for grand prize
-    if (rng < 0.03 && !globalWinners?.luckyWinner) {
-      const won = await handleGrandWin('luckyWinner', 'Club Sandwich');
-      if (won) {
-          setCupResult("GRAND PRIZE: CLUB SANDWICH!");
-          setIsPicking(false);
-          return;
-      }
-    }
-    
-    // 50% chance for consolation points
-    if (Math.random() > 0.5) {
-      await updatePoints(2, "Lucky Cup Bonus");
-      setCupResult("YOU WON 2 PTS!");
-    } else {
-      setCupResult("BETTER LUCK NEXT TIME!");
-    }
-    setIsPicking(false);
-  };
-
-  // --- TRIVIA LOGIC ---
-  const startTrivia = () => {
-    if ((gameProfile?.triviaCount ?? 0) >= TRIVIA_DAILY_LIMIT) setActiveGame('trivia_limit');
-    else {
-      getNextQuestion();
-      setActiveGame('trivia');
-    }
-  };
-
-  const getNextQuestion = () => {
-    // Avoid picking the exact same question twice in a row
-    let nextQ;
-    do {
-      nextQ = QUESTION_BANK[Math.floor(Math.random() * QUESTION_BANK.length)];
-    } while (nextQ.q === currentTrivia?.q && QUESTION_BANK.length > 1);
-    
-    setCurrentTrivia(nextQ);
-    setTriviaFeedback(null);
-  };
-
-  const handleTriviaAnswer = async (idx: number) => {
-    if (!currentTrivia || !authUser || !gameProfileRef) return;
-    const isCorrect = idx === currentTrivia.correct;
-
-    if (isCorrect) {
-      const nextProgress = triviaProgress + 1;
-      await updateDoc(gameProfileRef, { triviaCount: increment(1) });
-
-      if (nextProgress >= TRIVIA_QUEST_GOAL) {
-        setTriviaProgress(0);
-        const won = !globalWinners?.triviaWinner 
-          ? await handleGrandWin('triviaWinner', '40% Discount') 
-          : false;
-        
-        if (!won) await updatePoints(10, 'Trivia Master');
-        setTriviaFeedback({ correct: true, text: won ? "QUEST COMPLETE: GRAND PRIZE!" : "QUEST COMPLETE: 10 PTS", reset: true });
-      } else {
-        setTriviaProgress(nextProgress);
-        setTriviaFeedback({ correct: true, text: `Correct! (${nextProgress}/${TRIVIA_QUEST_GOAL})` });
-      }
-    } else {
-      setTriviaFeedback({ correct: false, text: "Incorrect! Better luck with the next one." });
-    }
-  };
-
-  if (isLoading) {
-      return (
-          <div className="space-y-6">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-96 w-full" />
-          </div>
-      )
-  }
-  
-  if (!userProfile) return <p>Could not load user profile.</p>;
-
-  const hasFreeSpin = (gameProfile?.spinCount ?? 0) === 0;
-  const hasFreeCup = (gameProfile?.cupCount ?? 0) === 0;
-
-  return (
-    <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
-      <Card className="p-6 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none shadow-xl">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">GAME ZONE</h1>
-            <p className="text-primary-foreground/80 text-xs font-medium uppercase tracking-widest">Win Daily Rewards</p>
-          </div>
-          <div className="bg-background/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2">
-            <Coins size={16} className="text-amber-300" />
-            <span className="font-bold text-sm">{userProfile.loyaltyPoints}</span>
-          </div>
-        </div>
-      </Card>
-
-      <div className="flex bg-muted p-1 rounded-2xl">
-        <button 
-          onClick={() => setActiveGame('spin')}
-          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'spin' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-        >
-          <Dices size={18} /> Spin
-        </button>
-        <button 
-          onClick={() => {
-              setActiveGame('cups');
-              setCupResult(null);
-              setPickedCup(null);
-          }}
-          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame === 'cups' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-        >
-          <Coffee size={18} /> Lucky Cup
-        </button>
-        <button 
-          onClick={startTrivia}
-          className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all flex flex-col items-center gap-1 ${activeGame.includes('trivia') ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
-        >
-          <Trophy size={18} /> Trivia
-        </button>
-      </div>
-
-      {/* SPIN GAME */}
-      {activeGame === 'spin' && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-          <Card className="p-8 text-center space-y-6">
-            <div className="relative mx-auto w-48 h-48">
-              <div 
-                className={`w-full h-full rounded-full border-8 border-muted/50 dark:border-zinc-800 relative flex items-center justify-center transition-transform duration-[2000ms] ease-out ${isSpinning ? 'rotate-[1080deg]' : 'rotate-0'}`}
-                style={{ transitionTimingFunction: 'cubic-bezier(0.15, 0, 0.15, 1)' }}
-              >
-                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 rotate-45">
-                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-background/50 dark:bg-zinc-900"><RotateCcw size={16} className="opacity-20"/></div>
-                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-primary/10 dark:bg-blue-900/20"><Coins size={16} className="text-primary/60 opacity-40"/></div>
-                  <div className="border border-muted dark:border-zinc-800 flex items-center justify-center bg-background/50 dark:bg-zinc-900"><RotateCcw size={16} className="opacity-20"/></div>
-                  <div className={`border border-muted dark:border-zinc-800 flex items-center justify-center ${globalWinners?.spinWinner ? 'bg-muted' : 'bg-green-100 text-green-600'}`}>
-                    {globalWinners?.spinWinner ? <Lock size={16} /> : <Coffee size={16} />}
-                  </div>
-                </div>
-                <div className="w-4 h-4 bg-foreground rounded-full z-10 border-2 border-background shadow-lg" />
-              </div>
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[15px] border-t-red-500 z-20" />
-            </div>
-
-            {spinResult && (
-              <div className="animate-bounce">
-                <p className={`text-xl font-black ${spinResult.type === 'LOSE' ? 'text-muted-foreground' : 'text-primary'}`}>
-                  {spinResult.val}
-                </p>
-              </div>
-            )}
-
-            <Button size="lg" className="w-full" onClick={playSpin} disabled={isSpinning}>
-              {isSpinning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Spinning...</> : hasFreeSpin ? 'SPIN FOR FREE' : `SPIN FOR ${SPIN_COST} PTS`}
-            </Button>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-              First spin of the day is FREE! Subsequent spins cost {SPIN_COST} points.
-            </p>
-          </Card>
-        </div>
-      )}
-
-      {/* LUCKY CUP GAME */}
-      {activeGame === 'cups' && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-          <Card className="p-8 text-center space-y-8 bg-[#160C08] text-white overflow-hidden relative border-none shadow-2xl">
-             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent" />
-             
-             <div className="space-y-2 relative z-10">
-                <h3 className="text-2xl font-black tracking-tight uppercase">The Golden Cup</h3>
-                <p className="text-xs text-stone-400 font-medium">Pick one cup to reveal your daily surprise.</p>
-             </div>
-
-             <div className="grid grid-cols-3 gap-4 relative z-10">
-                {[0, 1, 2].map((idx) => (
-                    <button
-                        key={idx}
-                        disabled={isPicking || !!cupResult}
-                        onClick={() => playPickCup(idx)}
-                        className={cn(
-                            "relative aspect-square flex items-center justify-center rounded-2xl transition-all duration-500",
-                            pickedCup === idx ? "scale-110" : "hover:scale-105",
-                            cupResult && pickedCup !== idx ? "opacity-30 grayscale" : "opacity-100"
-                        )}
-                    >
-                        <div className={cn(
-                            "w-full h-full bg-stone-800/50 rounded-2xl border-2 border-white/5 flex items-center justify-center transition-all duration-500",
-                            isPicking && pickedCup === idx && "animate-bounce",
-                            cupResult && pickedCup === idx && "bg-primary/20 border-primary shadow-[0_0_20px_rgba(217,119,6,0.3)]"
-                        )}>
-                            {cupResult && pickedCup === idx ? (
-                                <Gift className="w-10 h-10 text-primary animate-in zoom-in duration-500" />
-                            ) : (
-                                <Coffee className="w-10 h-10 text-stone-500" />
-                            )}
-                        </div>
-                    </button>
-                ))}
-             </div>
-
-             {cupResult && (
-                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                    <p className="text-xl font-black text-primary tracking-tight uppercase">{cupResult}</p>
-                    <div className="flex flex-col gap-2">
-                        {!cupResult.includes("GRAND") && (
-                            <Button 
-                                className="rounded-full px-8 bg-primary hover:bg-primary/90 text-white font-bold" 
-                                onClick={() => {
-                                    setCupResult(null);
-                                    setPickedCup(null);
-                                }}
-                            >
-                                TRY AGAIN ({CUP_COST} PTS)
-                            </Button>
-                        )}
-                        <Button 
-                            variant="ghost" 
-                            className="rounded-full px-8 text-stone-400 hover:text-white" 
-                            onClick={() => setActiveGame('spin')}
-                        >
-                            Try Another Game
-                        </Button>
-                    </div>
-                </div>
-             )}
-
-             <div className="pt-4 border-t border-white/5 relative z-10">
-                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
-                    Daily Grand Prize: <span className="text-primary">Free Club Sandwich</span>
-                </p>
-                <p className="text-[8px] text-stone-600 mt-1 uppercase">First pick is free. Retries cost {CUP_COST} pts.</p>
-             </div>
-          </Card>
-        </div>
-      )}
-
-      {/* TRIVIA GAME */}
-      {activeGame === 'trivia' && currentTrivia && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-           <div className="flex justify-between items-center px-1">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary/10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-primary"><Trophy size={14}/></div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Quest: {triviaProgress}/{TRIVIA_QUEST_GOAL}</span>
-              </div>
-              <span className="text-[10px] font-black text-muted-foreground">Daily: {gameProfile?.triviaCount ?? 0}/{TRIVIA_DAILY_LIMIT}</span>
-           </div>
-
-           <Card className="p-6">
-              {!triviaFeedback ? (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{currentTrivia.category}</p>
-                    <h2 className="text-lg font-bold leading-snug">{currentTrivia.q}</h2>
-                  </div>
-                  <div className="grid gap-2">
-                    {currentTrivia.options.map((opt, i) => (
-                      <Button key={i} variant="outline" className="justify-start text-left h-auto py-4 px-4 whitespace-normal" onClick={() => handleTriviaAnswer(i)}>
-                        {opt}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center space-y-6 py-4">
-                  <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${triviaFeedback.correct ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {triviaFeedback.correct ? <CheckCircle2 size={32}/> : <AlertCircle size={32}/>}
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black uppercase tracking-tight">{triviaFeedback.correct ? 'Excellent!' : 'Incorrect!'}</h3>
-                    <p className="text-sm text-muted-foreground">{triviaFeedback.text}</p>
-                  </div>
-                  <Button className="w-full" onClick={triviaFeedback.reset ? () => setActiveGame('spin') : getNextQuestion}>
-                    {triviaFeedback.reset ? 'GO BACK' : 'CONTINUE'}
-                  </Button>
-                </div>
-              )}
-           </Card>
-        </div>
-      )}
-
-      {activeGame === 'trivia_limit' && (
-        <Card className="p-8 text-center space-y-6 animate-in zoom-in-95">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto text-muted-foreground">
-            <Lock size={40} />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-black tracking-tight uppercase">Daily Limit</h2>
-            <p className="text-sm text-muted-foreground">You've used all 5 free daily trivia attempts. Unlock more to finish your quest!</p>
-          </div>
-          <div className="space-y-2">
-            <Button size="lg" className="w-full" onClick={async () => {
-              if ((userProfile?.loyaltyPoints ?? 0) >= 10) {
-                await updatePoints(-10, "Trivia Unlock");
-                if(gameProfileRef) {
-                    await updateDoc(gameProfileRef, { triviaCount: 0 });
-                }
-                startTrivia();
-              }
-            }}>
-              UNLOCK (10 PTS)
-            </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setActiveGame('spin')}>Try Another Game</Button>
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dices, Sparkles, Trophy, Gift, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function GameZonePage() {
-    return <GameZonePageContent />
+  return (
+    <div className="max-w-4xl mx-auto space-y-12 py-8 md:py-12 animate-in fade-in duration-1000">
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#d97706]/10 border border-[#d97706]/20 text-[#d97706] text-xs font-black uppercase tracking-widest animate-pulse">
+          <Sparkles className="h-3 w-3 fill-current" /> Under Construction
+        </div>
+        <h1 className="text-5xl md:text-7xl font-headline font-black tracking-tighter text-[#2c1810] uppercase">
+          Game <span className="text-[#d97706]">Zone</span>
+        </h1>
+        <p className="text-[#6b584b] text-base md:text-xl max-w-2xl mx-auto font-medium leading-relaxed px-4">
+          We're brewing something special. Daily rewards, interactive quests, and exclusive prizes are coming soon to Steamsbury.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6 px-4">
+        {[
+          { icon: Dices, title: "Spin to Win", desc: "Test your luck daily for a chance to win instant points and free drinks." },
+          { icon: Trophy, title: "Trivia Quests", desc: "How well do you know your coffee? Complete challenges to earn rewards." },
+          { icon: Gift, title: "Grand Prizes", desc: "Limited edition merchandise and exclusive member-only surprises." }
+        ].map((item, i) => (
+          <Card key={i} className="border-none shadow-xl bg-white/50 backdrop-blur-sm rounded-[2rem] overflow-hidden group hover:-translate-y-2 transition-all duration-500">
+            <CardHeader className="pb-2">
+              <div className="w-12 h-12 rounded-2xl bg-[#d97706]/10 flex items-center justify-center text-[#d97706] mb-4 group-hover:scale-110 transition-transform">
+                <item.icon className="h-6 w-6" />
+              </div>
+              <CardTitle className="font-headline text-xl uppercase tracking-tight">{item.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-[#6b584b] leading-relaxed italic">"{item.desc}"</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="px-4">
+        <Card className="rounded-[3rem] border-2 border-dashed border-[#d97706]/30 bg-[#d97706]/5 p-8 md:p-16 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#d97706]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="relative z-10 space-y-6">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto shadow-xl">
+                    <Clock className="h-10 w-10 text-[#d97706] animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                    <h3 className="text-3xl font-headline font-bold text-[#2c1810]">Stay Tuned!</h3>
+                    <p className="text-[#6b584b] max-w-md mx-auto leading-relaxed">
+                        We are currently fine-tuning the game mechanics to ensure the most rewarding experience for our loyal club members.
+                    </p>
+                </div>
+                <div className="pt-4">
+                    <Badge className="bg-[#2c1810] text-white px-6 py-2 rounded-full font-black tracking-widest uppercase text-[10px]">
+                        Launching Q3 2024
+                    </Badge>
+                </div>
+            </div>
+        </Card>
+      </div>
+    </div>
+  );
 }
