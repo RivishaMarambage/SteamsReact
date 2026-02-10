@@ -81,7 +81,7 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a110a]" />
           <div className="relative container mx-auto px-4 md:px-6 flex flex-col items-center text-center text-white space-y-6 md:space-y-8 max-w-5xl">
-            <div className="inline-block px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-bold tracking-widest mb-2 animate-fade-in uppercase">
+            <div className="inline-block px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-black tracking-[0.2em] mb-2 animate-fade-in uppercase">
               Est. 2023 • Premium Roastery
             </div>
             <h1 className="text-4xl xs:text-5xl font-headline font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
@@ -90,36 +90,36 @@ export default function LandingPage() {
             </h1>
 
             <div className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
-              <span className="block mb-4 font-bold text-white text-xl sm:text-2xl uppercase tracking-tighter text-center">
+              <span className="block mb-4 font-black text-white text-xl sm:text-2xl uppercase tracking-tighter text-center">
                 Your Coffee Journey Starts Here ☕
               </span>
 
               <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6">
-                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-sm font-black whitespace-nowrap">☕ 1st order — 10% OFF</span>
-                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-sm font-black whitespace-nowrap">☕ 2nd order — 5% OFF</span>
-                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-sm font-black whitespace-nowrap">☕ 3rd order — 15% OFF</span>
+                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-black whitespace-nowrap tracking-wider uppercase">☕ 1st order — 10% OFF</span>
+                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-black whitespace-nowrap tracking-wider uppercase">☕ 2nd order — 5% OFF</span>
+                <span className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-black whitespace-nowrap tracking-wider uppercase">☕ 3rd order — 15% OFF</span>
               </div>
 
-              <p className="text-white/70 text-sm sm:text-base">
+              <p className="text-white/70 text-sm sm:text-base font-medium">
                 From first sip to last drop, we brew joy in the heart of the city using only the finest beans.
                 Join the club, sip happy, and unlock member-only perks.
               </p>
             </div>
 
             <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4 w-full">
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#d97706] hover:bg-[#b45309] text-white border-none font-black text-lg shadow-[0_20px_50px_rgba(217,119,6,0.3)] transition-all hover:scale-105 active:scale-95 flex-1 max-w-[240px] uppercase tracking-tighter">
                 <Link href="/menu" className="flex items-center justify-center gap-2">
-                  <span className="font-black">View Menu</span>
+                  <span>View Menu</span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-lg border-none shadow-[0_20px_50px_rgba(245,158,11,0.2)] transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px] uppercase tracking-tighter">
                 <Link href="/offers" className="flex items-center justify-center gap-2">
-                  <span className="font-black">View Offers</span>
+                  <span>View Offers</span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 bg-white text-black hover:bg-white/90 font-black text-lg border-none shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px]">
+              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-10 bg-white text-black hover:bg-white/90 font-black text-lg border-none shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-105 active:scale-95 flex-1 max-w-[240px] uppercase tracking-tighter">
                 <Link href={user ? "/dashboard" : "/login/customer"} className="flex items-center justify-center gap-2">
-                  <span className="font-black">{user ? "Dashboard" : "Sign In"}</span>
+                  <span>{user ? "Dashboard" : "Sign In"}</span>
                 </Link>
               </Button>
             </div>
@@ -143,10 +143,10 @@ export default function LandingPage() {
               <h2 className="text-3xl xs:text-4xl md:text-6xl lg:text-7xl font-headline font-black mb-4 xs:mb-6 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent uppercase tracking-tighter leading-none px-4">
                 Why Join The Club?
               </h2>
-              <p className="text-white/60 text-base xs:text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4">Three futuristic reasons to make every single sip count.</p>
+              <p className="text-white/60 text-base xs:text-lg md:text-2xl max-w-3xl mx-auto font-medium px-4 leading-relaxed">Three futuristic reasons to make every single sip count.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 xs:mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12 xs:mb-16 max-w-7xl mx-auto">
               {[
                 { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire and unlock instant value.", color: "text-amber-400", glow: "bg-amber-500/20", borderColor: "border-amber-500/30" },
                 { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, artisanal food, or limited merchandise.", color: "text-rose-400", glow: "bg-rose-500/20", borderColor: "border-rose-500/30" },
@@ -155,7 +155,7 @@ export default function LandingPage() {
                 <div
                   key={idx}
                   className={cn(
-                    "glass-card p-6 xs:p-8 sm:p-10 rounded-[2.5rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
+                    "glass-card p-8 xs:p-10 rounded-[2.5rem] group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
                     "hover:-translate-y-4 hover:shadow-[0_20px_80px_rgba(217,119,6,0.15)]",
                     isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                   )}
@@ -168,15 +168,15 @@ export default function LandingPage() {
                   )} />
 
                   <div className={cn(
-                    "w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-[1.25rem] xs:rounded-[1.5rem] bg-white/5 flex items-center justify-center mb-6 xs:mb-8 relative z-10 transition-all duration-500",
+                    "w-16 h-16 xs:w-20 xs:h-20 rounded-[1.5rem] bg-white/5 flex items-center justify-center mb-8 relative z-10 transition-all duration-500",
                     "border group-hover:border-white/30 group-hover:scale-110",
                     item.borderColor,
                     item.color
                   )}>
-                    <item.icon className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />
+                    <item.icon className="w-8 h-8 xs:w-10 xs:h-10 transition-transform duration-500 group-hover:scale-110" />
                   </div>
 
-                  <h3 className="text-xl sm:text-2xl font-black font-headline mb-3 xs:mb-4 relative z-10 transition-colors duration-300 group-hover:text-white uppercase tracking-tight">
+                  <h3 className="text-2xl sm:text-3xl font-black font-headline mb-4 relative z-10 transition-colors duration-300 group-hover:text-white uppercase tracking-tight">
                     {item.title}
                   </h3>
                   <p className="text-white/50 leading-relaxed relative z-10 text-sm sm:text-base transition-colors duration-300 group-hover:text-white/80 font-medium">
@@ -190,10 +190,10 @@ export default function LandingPage() {
               "text-center transition-all duration-700 delay-500",
               isClubSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             )}>
-              <Button asChild size="lg" className="rounded-full h-14 sm:h-16 px-8 xs:px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-base xs:text-lg font-black transition-all duration-300 hover:scale-110 active:scale-95">
+              <Button asChild size="lg" className="rounded-full h-16 sm:h-20 px-12 bg-[#d97706] hover:bg-[#b45309] text-white border-none shadow-[0_0_50px_rgba(217,119,6,0.3)] text-lg font-black transition-all duration-300 hover:scale-110 active:scale-95 uppercase tracking-widest">
                 <Link href="/rewards" className="flex items-center gap-3">
-                  <span className="font-black uppercase tracking-tight">Explore Benefits</span>
-                  <Sparkles className="w-5 h-5 xs:w-6 xs:h-6 animate-pulse" />
+                  <span>Explore Benefits</span>
+                  <Sparkles className="w-6 h-6 animate-pulse" />
                 </Link>
               </Button>
             </div>
@@ -221,11 +221,11 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-6 text-[10px] sm:text-sm uppercase tracking-widest font-black px-4">
-                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl backdrop-blur-md border border-white/10 whitespace-nowrap">
+                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-[1.5rem] backdrop-blur-md border border-white/10 whitespace-nowrap">
                   <Coffee className="h-5 w-5 sm:h-7" />
                   <span>Bases</span>
                 </div>
-                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-2xl backdrop-blur-md border border-white/10 whitespace-nowrap">
+                <div className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-black/20 rounded-[1.5rem] backdrop-blur-md border border-white/10 whitespace-nowrap">
                   <SlidersHorizontal className="h-5 w-5 sm:h-7" />
                   <span>Add-ons</span>
                 </div>
