@@ -30,7 +30,8 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isStaffOrAdmin();
       allow create: if isOwner(userId);
       
-      // Prevent users from escalating their own role or giving themselves points
+      // SECURITY V-02: Prevent users from escalating their own role or giving themselves points
+      // We use diff() to ensure protected fields are not modified by the user
       allow update: if isOwner(userId) 
         ? (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyPoints', 'lifetimePoints', 'loyaltyLevelId']))
         : isStaffOrAdmin();
@@ -76,7 +77,7 @@ service cloud.firestore {
     
     match /orders/{orderId} {
         allow read, list: if isStaffOrAdmin();
-        // Validation: Users can only create their own orders and only with 'Placed' status
+        // SECURITY V-03: Users can only create their own orders and only with 'Placed' status
         allow create: if isSignedIn() 
           && request.resource.data.customerId == request.auth.uid
           && request.resource.data.status == 'Placed';
@@ -86,6 +87,7 @@ service cloud.firestore {
 
     match /users/{userId}/orders/{orderId} {
       allow read, list: if isOwner(userId) || isStaffOrAdmin();
+      // SECURITY V-03: Enforce ownership and initial status
       allow create: if isOwner(userId) && request.resource.data.status == 'Placed';
       allow update: if isStaffOrAdmin(); // Only staff can update status
       allow delete: if false;
@@ -104,7 +106,7 @@ service cloud.firestore {
     }
     
     match /mobile_numbers/{mobileNumber} {
-      // Prevent public scraping of phone numbers
+      // SECURITY V-04: Prevent public scraping of phone numbers
       allow read: if isSignedIn(); 
       allow create: if request.resource.data.userId == request.auth.uid;
     }
