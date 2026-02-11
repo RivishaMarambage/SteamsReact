@@ -266,17 +266,19 @@ export default function DailyOfferTable() {
             />
           </div>
           
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full md:w-48 h-10 rounded-full bg-muted/50 border-none px-6">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories?.map(cat => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-full md:w-48">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="rounded-full bg-muted/50 border-none px-6 h-10">
+                <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories?.map(cat => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+                </SelectContent>
+            </Select>
+          </div>
 
           {(searchTerm !== '' || categoryFilter !== 'all') && (
             <Button variant="ghost" size="icon" onClick={() => { setSearchTerm(''); setCategoryFilter('all'); }} className="rounded-full">
