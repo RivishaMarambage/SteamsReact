@@ -10,14 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight, CheckSquare, Square, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { addDays, format, parseISO } from 'date-fns';
+import { addDays, format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
@@ -75,6 +76,15 @@ export default function DailyOfferTable() {
 
   const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading || areCategoriesLoading;
 
+  const calendarRange = useMemo((): DateRange => {
+    const start = formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined;
+    const end = formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined;
+    return {
+      from: start && isValid(start) ? start : undefined,
+      to: end && isValid(end) ? end : undefined,
+    };
+  }, [formData.offerStartDate, formData.offerEndDate]);
+
   const filteredOffers = useMemo(() => {
     if (!offers || !menuItems) return [];
     
@@ -103,15 +113,12 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+    setFormData(prev => ({ ...prev, [name]: value }));
+  }, []);
 
-  const handleDateRangeChange = (range: DateRange | undefined) => {
+  const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
     if (range?.from) {
       setFormData(prev => ({
         ...prev,
@@ -119,28 +126,19 @@ export default function DailyOfferTable() {
         offerEndDate: range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from!, 'yyyy-MM-dd'),
       }));
     }
-  };
+  }, []);
 
-  const handleToggleItem = (itemId: string) => {
+  const handleToggleItem = useCallback((itemId: string) => {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
-      if (current.includes(itemId)) {
-        return { ...prev, menuItemIds: current.filter(id => id !== itemId) };
-      }
-      return { ...prev, menuItemIds: [...current, itemId] };
+      const updated = current.includes(itemId) 
+        ? current.filter(id => id !== itemId) 
+        : [...current, itemId];
+      return { ...prev, menuItemIds: updated };
     });
-  };
+  }, []);
 
-  const handleSelectAll = () => {
-    if (!menuItems) return;
-    setFormData(prev => ({ ...prev, menuItemIds: menuItems.map(m => m.id) }));
-  };
-
-  const handleDeselectAll = () => {
-    setFormData(prev => ({ ...prev, menuItemIds: [] }));
-  };
-
-  const handleToggleCategory = (categoryName: string) => {
+  const handleToggleCategory = useCallback((categoryName: string) => {
     const itemsInCategory = groupedMenuItems[categoryName];
     if (!itemsInCategory) return;
     
@@ -161,7 +159,16 @@ export default function DailyOfferTable() {
         };
       }
     });
-  };
+  }, [groupedMenuItems]);
+
+  const handleSelectAll = useCallback(() => {
+    if (!menuItems) return;
+    setFormData(prev => ({ ...prev, menuItemIds: menuItems.map(m => m.id) }));
+  }, [menuItems]);
+
+  const handleDeselectAll = useCallback(() => {
+    setFormData(prev => ({ ...prev, menuItemIds: [] }));
+  }, []);
 
   const handleEdit = (offer: DailyOffer) => {
     const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
@@ -243,11 +250,6 @@ export default function DailyOfferTable() {
         </Card>
     )
   }
-
-  const calendarRange: DateRange = {
-    from: formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined,
-    to: formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined,
-  };
 
   return (
     <Card className="shadow-lg">
@@ -409,7 +411,7 @@ export default function DailyOfferTable() {
             </div>
             
             <ScrollArea className="flex-1 min-h-0">
-              <div className="p-8 space-y-12">
+              <div className="p-8 space-y-12 pb-24">
                 <div className="grid gap-8">
                   <div className="grid gap-3">
                     <Label htmlFor="title" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Title</Label>
@@ -464,52 +466,62 @@ export default function DailyOfferTable() {
                     </div>
                   </div>
 
-                  <div className="space-y-10">
-                    {Object.entries(groupedMenuItems).map(([categoryName, items]) => (
-                      <div key={categoryName} className="space-y-4">
-                        <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-3 z-10 border-b border-muted">
-                          <h4 className="font-black text-xs uppercase tracking-[0.25em] text-primary">{categoryName}</h4>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full hover:bg-primary/5 text-muted-foreground hover:text-primary"
-                            onClick={() => handleToggleCategory(categoryName)}
-                          >
-                            Toggle Section
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {items.map(item => {
-                            const isChecked = (formData.menuItemIds || []).includes(item.id);
-                            return (
-                              <div 
-                                key={item.id} 
-                                className={cn(
-                                  "flex items-center space-x-4 p-4 rounded-[1.25rem] border-2 transition-all cursor-pointer group",
-                                  isChecked ? "bg-primary/5 border-primary shadow-sm" : "border-muted/50 hover:border-primary/20"
-                                )}
-                                onClick={() => handleToggleItem(item.id)}
-                              >
-                                <Checkbox 
-                                  id={`item-${item.id}`} 
-                                  checked={isChecked}
-                                  onCheckedChange={() => handleToggleItem(item.id)}
-                                  className="h-6 w-6 border-2"
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <Label htmlFor={`item-${item.id}`} className="text-sm font-black truncate cursor-pointer uppercase block leading-tight">
-                                    {item.name}
-                                    </Label>
-                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Base LKR {item.price.toFixed(0)}</span>
-                                </div>
+                  <Accordion type="multiple" defaultValue={Object.keys(groupedMenuItems)} className="space-y-4">
+                    {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
+                      const selectedCount = items.filter(i => (formData.menuItemIds || []).includes(i.id)).length;
+                      return (
+                        <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
+                          <AccordionTrigger className="px-6 h-16 hover:no-underline bg-muted/5">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-3">
+                                <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
+                                {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full hover:bg-primary/5 text-muted-foreground hover:text-primary"
+                                onClick={(e) => { e.stopPropagation(); handleToggleCategory(categoryName); }}
+                              >
+                                {selectedCount === items.length ? 'Deselect Section' : 'Select Section'}
+                              </Button>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {items.map(item => {
+                                const isChecked = (formData.menuItemIds || []).includes(item.id);
+                                return (
+                                  <div 
+                                    key={item.id} 
+                                    className={cn(
+                                      "flex items-center space-x-4 p-4 rounded-[1.25rem] border-2 transition-all cursor-pointer group",
+                                      isChecked ? "bg-primary/5 border-primary shadow-sm" : "border-muted/50 hover:border-primary/20"
+                                    )}
+                                    onClick={() => handleToggleItem(item.id)}
+                                  >
+                                    <Checkbox 
+                                      id={`item-${item.id}`} 
+                                      checked={isChecked}
+                                      onCheckedChange={() => {}} // Controlled by parent div click
+                                      className="h-6 w-6 border-2 pointer-events-none"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-black truncate uppercase block leading-tight">
+                                        {item.name}
+                                        </p>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Base LKR {item.price.toFixed(0)}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 </div>
 
                 <Separator />
@@ -568,7 +580,7 @@ export default function DailyOfferTable() {
               </div>
             </ScrollArea>
 
-            <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4 shrink-0">
+            <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4 shrink-0 mt-auto">
               <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} className="flex-1 h-16 rounded-full font-black uppercase tracking-widest text-muted-foreground hover:text-foreground">Discard Changes</Button>
               <Button type="submit" className="flex-1 h-16 rounded-full font-black uppercase tracking-widest shadow-2xl hover:scale-[1.02] transition-transform">
                 {selectedOffer ? 'Update Campaign' : 'Launch Promotion'}
