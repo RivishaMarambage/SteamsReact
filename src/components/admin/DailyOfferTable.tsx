@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight, CheckSquare, Square, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -471,23 +471,23 @@ export default function DailyOfferTable() {
                       const selectedCount = items.filter(i => (formData.menuItemIds || []).includes(i.id)).length;
                       return (
                         <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
-                          <AccordionTrigger className="px-6 h-16 hover:no-underline bg-muted/5">
-                            <div className="flex items-center justify-between w-full pr-4">
-                              <div className="flex items-center gap-3">
-                                <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
-                                {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
-                              </div>
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full hover:bg-primary/5 text-muted-foreground hover:text-primary"
-                                onClick={(e) => { e.stopPropagation(); handleToggleCategory(categoryName); }}
-                              >
+                          <div className="flex items-center bg-muted/5 pr-4">
+                            <AccordionTrigger className="px-6 h-16 hover:no-underline flex-1">
+                                <div className="flex items-center gap-3">
+                                    <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
+                                    {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
+                                </div>
+                            </AccordionTrigger>
+                            <span 
+                                role="button"
+                                tabIndex={0}
+                                className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer select-none"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleCategory(categoryName); }}
+                                onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleCategory(categoryName); } }}
+                            >
                                 {selectedCount === items.length ? 'Deselect Section' : 'Select Section'}
-                              </Button>
-                            </div>
-                          </AccordionTrigger>
+                            </span>
+                          </div>
                           <AccordionContent className="p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {items.map(item => {
