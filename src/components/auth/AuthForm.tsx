@@ -101,6 +101,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  useEffect(() => {
+    // Redirect Admin and Staff away from signup pages as they are managed internally
+    if (role !== 'customer' && authType === 'signup') {
+      router.replace(`/login/${role}`);
+    }
+  }, [role, authType, router]);
+
   const getSchema = () => {
     if (authType === 'login') {
       return loginSchema;
@@ -559,262 +566,313 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     <p className="text-muted-foreground">{description}</p>
                 </div>
                 
-                <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
-                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
-                        <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
-                    </TabsList>
+                {role === 'customer' ? (
+                    <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
+                        <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
+                            <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
+                            <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
+                        </TabsList>
 
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-                        {authType === 'signup' && role === 'customer' && (
-                           <>
-                             <FormField
-                                control={form.control}
-                                name="fullName"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input placeholder="John Doe" className="pl-10" {...field} />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="mobileNumber"
-                                render={() => (
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                            {authType === 'signup' && (
+                            <>
+                                <FormField
+                                    control={form.control}
+                                    name="fullName"
+                                    render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Mobile Number</FormLabel>
-                                        <div className="flex gap-2">
-                                            <FormField
-                                                control={form.control}
-                                                name="countryCode"
-                                                render={({ field }) => (
-                                                    <FormItem className="w-1/3">
-                                                        <FormControl>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                <SelectTrigger><SelectValue placeholder="+94" /></SelectTrigger>
-                                                                <SelectContent><SelectItem value="+94">+94 (LK)</SelectItem></SelectContent>
-                                                            </Select>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="mobileNumber"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex-1">
-                                                        <FormControl>
-                                                             <div className="relative">
-                                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                                <Input placeholder="77 123 4567" className="pl-10" {...field} />
-                                                            </div>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                        <FormMessage>{form.formState.errors.mobileNumber?.message}</FormMessage>
+                                        <FormLabel>Full Name</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input placeholder="John Doe" className="pl-10" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
                                     </FormItem>
-                                )}
-                            />
-                             <FormField
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="mobileNumber"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>Mobile Number</FormLabel>
+                                            <div className="flex gap-2">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="countryCode"
+                                                    render={({ field }) => (
+                                                        <FormItem className="w-1/3">
+                                                            <FormControl>
+                                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                    <SelectTrigger><SelectValue placeholder="+94" /></SelectTrigger>
+                                                                    <SelectContent><SelectItem value="+94">+94 (LK)</SelectItem></SelectContent>
+                                                                </Select>
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="mobileNumber"
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex-1">
+                                                            <FormControl>
+                                                                <div className="relative">
+                                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                                    <Input placeholder="77 123 4567" className="pl-10" {...field} />
+                                                                </div>
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                            <FormMessage>{form.formState.errors.mobileNumber?.message}</FormMessage>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="dateOfBirth"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Date of Birth</FormLabel>
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value ? (
+                                                format(field.value, "PPP")
+                                                ) : (
+                                                <span>Pick a date</span>
+                                                )}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                            mode="single"
+                                            captionLayout="dropdown-buttons"
+                                            fromYear={new Date().getFullYear() - 100}
+                                            toYear={new Date().getFullYear()}
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                                date > new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                            />
+                                        </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="referralCode"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel>Referral Code</FormLabel>
+                                            <span className="text-xs text-muted-foreground">Optional</span>
+                                        </div>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input placeholder="Enter code from a friend" className="pl-10 uppercase font-mono" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </>
+                            )}
+
+                            <FormField
                                 control={form.control}
-                                name="dateOfBirth"
+                                name="email"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Date of Birth</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                            "w-full pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                            )}
-                                        >
-                                            {field.value ? (
-                                            format(field.value, "PPP")
-                                            ) : (
-                                            <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                        mode="single"
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={new Date().getFullYear() - 100}
-                                        toYear={new Date().getFullYear()}
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("1900-01-01")
-                                        }
-                                        initialFocus
-                                        />
-                                    </PopoverContent>
-                                    </Popover>
+                                    <FormLabel>Email Address</FormLabel>
+                                    <FormControl>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input type="email" placeholder="name@example.com" className="pl-10" {...field} />
+                                    </div>
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
-                                name="referralCode"
+                                name="password"
                                 render={({ field }) => (
                                 <FormItem>
                                     <div className="flex justify-between items-center">
-                                        <FormLabel>Referral Code</FormLabel>
-                                        <span className="text-xs text-muted-foreground">Optional</span>
+                                        <FormLabel>Password</FormLabel>
+                                        {authType === 'login' && (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Reset Password</DialogTitle>
+                                                        <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="grid gap-2">
+                                                    <Label htmlFor="reset-email">Email</Label>
+                                                    <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                                        <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        )}
                                     </div>
                                     <FormControl>
-                                        <div className="relative">
-                                            <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input placeholder="Enter code from a friend" className="pl-10 uppercase font-mono" {...field} />
-                                        </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Create a password" {...field} />
+                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </Button>
+                                    </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
-                           </>
-                        )}
-
-                        {authType === 'signup' && role !== 'customer' && (
-                            <FormField
-                                control={form.control}
-                                name="fullName"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <Input placeholder="Alex Doe" {...field} />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        )}
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input type="email" placeholder="name@example.com" className="pl-10" {...field} />
-                                </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                            <FormItem>
-                                <div className="flex justify-between items-center">
-                                    <FormLabel>Password</FormLabel>
-                                    {authType === 'login' && (
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Reset Password</DialogTitle>
-                                                    <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
-                                                </DialogHeader>
-                                                <div className="grid gap-2">
-                                                <Label htmlFor="reset-email">Email</Label>
-                                                <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                            {authType === 'signup' && (
+                                <>
+                                    <FormField
+                                    control={form.control}
+                                    name="confirmPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Confirm Password</FormLabel>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                    <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
+                                                    <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
+                                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                    </Button>
                                                 </div>
-                                                <DialogFooter>
-                                                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                                                    <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
-                                                </DialogFooter>
-                                            </DialogContent>
-                                        </Dialog>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
-                                </div>
-                                <FormControl>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Create a password" {...field} />
-                                    <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </Button>
-                                </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="agreeToTerms"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>
+                                                I agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>
+                                                </FormLabel>
+                                                <FormMessage />
+                                            </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
                             )}
-                        />
-                        {authType === 'signup' && (
-                            <FormField
-                            control={form.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Confirm Password</FormLabel>
-                                    <FormControl>
+                            <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (authType === 'login' ? 'Sign In' : 'Create Account')}
+                            </Button>
+                            </form>
+                        </Form>
+                    </Tabs>
+                ) : (
+                    <div className="w-full space-y-6">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email Address</FormLabel>
+                                        <FormControl>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="email" placeholder="admin@example.com" className="pl-10" {...field} />
+                                        </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel>Password</FormLabel>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Reset Password</DialogTitle>
+                                                        <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="grid gap-2">
+                                                    <Label htmlFor="reset-email">Email</Label>
+                                                    <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                                        <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <FormControl>
                                         <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
-                                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Enter your password" {...field} />
+                                            <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </Button>
                                         </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                        )}
-                        {authType === 'signup' && role === 'customer' && (
-                             <FormField
-                                control={form.control}
-                                name="agreeToTerms"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel>
-                                        I agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>
-                                        </FormLabel>
+                                        </FormControl>
                                         <FormMessage />
-                                    </div>
                                     </FormItem>
-                                )}
-                            />
-                        )}
-                        <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (authType === 'login' ? 'Sign In' : 'Create Account')}
-                        </Button>
-                        </form>
-                    </Form>
-                </Tabs>
+                                    )}
+                                />
+                                <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
+                                </Button>
+                            </form>
+                        </Form>
+                    </div>
+                )}
 
                 <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
