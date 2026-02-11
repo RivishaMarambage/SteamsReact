@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -79,7 +79,7 @@ export default function DailyOfferTable() {
     if (!offers || !menuItems) return [];
     
     return offers.filter(offer => {
-      const itemsInOffer = menuItems.filter(m => offer.menuItemIds?.includes(m.id));
+      const itemsInOffer = menuItems.filter(m => (offer.menuItemIds || []).includes(m.id));
       const itemNames = itemsInOffer.map(i => i.name.toLowerCase()).join(' ');
       
       const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -145,20 +145,22 @@ export default function DailyOfferTable() {
     if (!itemsInCategory) return;
     
     const itemIds = itemsInCategory.map(i => i.id);
-    const currentlySelected = formData.menuItemIds || [];
-    const allSelected = itemIds.every(id => currentlySelected.includes(id));
-
-    if (allSelected) {
-      setFormData(prev => ({
-        ...prev,
-        menuItemIds: (prev.menuItemIds || []).filter(id => !itemIds.includes(id))
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        menuItemIds: Array.from(new Set([...(prev.menuItemIds || []), ...itemIds]))
-      }));
-    }
+    setFormData(prev => {
+      const currentlySelected = prev.menuItemIds || [];
+      const allSelected = itemIds.every(id => currentlySelected.includes(id));
+      
+      if (allSelected) {
+        return {
+          ...prev,
+          menuItemIds: currentlySelected.filter(id => !itemIds.includes(id))
+        };
+      } else {
+        return {
+          ...prev,
+          menuItemIds: Array.from(new Set([...currentlySelected, ...itemIds]))
+        };
+      }
+    });
   };
 
   const handleEdit = (offer: DailyOffer) => {
@@ -307,7 +309,7 @@ export default function DailyOfferTable() {
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="rounded-md bg-primary/5 text-primary border-primary/10">
-                                <Package className="h-3 w-3 mr-1" /> {offer.menuItemIds?.length || 0} Items
+                                <Package className="h-3 w-3 mr-1" /> {(offer.menuItemIds || []).length} Items
                             </Badge>
                         </div>
                     </TableCell>
@@ -356,7 +358,7 @@ export default function DailyOfferTable() {
                             <CardTitle className="text-xl font-headline">{offer.title}</CardTitle>
                             <Badge variant="secondary" className="rounded-full">{offer.orderType || 'Both'}</Badge>
                         </div>
-                        <CardDescription className="font-bold text-[10px] uppercase tracking-widest">{offer.menuItemIds?.length || 0} Items Selected</CardDescription>
+                        <CardDescription className="font-bold text-[10px] uppercase tracking-widest">{(offer.menuItemIds || []).length} Items Selected</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-4">
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -397,16 +399,16 @@ export default function DailyOfferTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem]">
-          <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
-            <div className="p-8 border-b bg-muted/10">
+        <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem]">
+          <form onSubmit={handleFormSubmit} className="flex flex-col h-full overflow-hidden">
+            <div className="p-8 border-b bg-muted/10 shrink-0">
               <DialogHeader>
                 <DialogTitle className="font-headline text-3xl uppercase tracking-tighter text-primary">{selectedOffer ? 'Edit Promotion' : 'New Promotion'}</DialogTitle>
                 <DialogDescription className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Configure your multi-item daily rewards.</DialogDescription>
               </DialogHeader>
             </div>
             
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="p-8 space-y-12">
                 <div className="grid gap-8">
                   <div className="grid gap-3">
@@ -566,7 +568,7 @@ export default function DailyOfferTable() {
               </div>
             </ScrollArea>
 
-            <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4">
+            <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4 shrink-0">
               <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} className="flex-1 h-16 rounded-full font-black uppercase tracking-widest text-muted-foreground hover:text-foreground">Discard Changes</Button>
               <Button type="submit" className="flex-1 h-16 rounded-full font-black uppercase tracking-widest shadow-2xl hover:scale-[1.02] transition-transform">
                 {selectedOffer ? 'Update Campaign' : 'Launch Promotion'}
