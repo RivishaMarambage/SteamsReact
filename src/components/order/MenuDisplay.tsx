@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw, Coffee, Pizza } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc, orderBy } from 'firebase/firestore';
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import Link from 'next/link';
 
 interface MenuDisplayProps {
   menuItems: MenuItem[];
@@ -31,9 +32,9 @@ interface MenuDisplayProps {
 }
 
 const WELCOME_OFFERS = [
-    { order: 0, discount: 10 }, // 1st order (orderCount is 0)
-    { order: 1, discount: 5 },  // 2nd order (orderCount is 1)
-    { order: 2, discount: 15 }, // 3rd order (orderCount is 2)
+    { order: 0, discount: 10, label: "1st Order (10% OFF)" },
+    { order: 1, discount: 5, label: "2nd Order (5% OFF)" },
+    { order: 2, discount: 15, label: "3rd Order (15% OFF)" },
 ];
 
 const MAIN_GROUPS: Category['type'][] = ['Beverages', 'Food'];
@@ -506,6 +507,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         cartTotal,
         orderType,
         tableNumber,
+        welcomeOfferApplied: !!applicableWelcomeOffer,
     };
 
     localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
@@ -772,10 +774,26 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         <span>Subtotal</span>
                         <span>LKR {subtotal.toFixed(2)}</span>
                     </div>
-                    {(birthdayDiscountAmount > 0 || welcomeDiscountAmount > 0) && (
+                    {birthdayDiscountAmount > 0 && (
                     <div className="flex justify-between text-destructive font-black uppercase text-[10px] tracking-widest">
-                        <span>Item Discounts</span>
-                        <span>- LKR {(birthdayDiscountAmount + welcomeDiscountAmount).toFixed(2)}</span>
+                        <span>Birthday Discount</span>
+                        <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
+                    </div>
+                    )}
+                    {applicableWelcomeOffer && (
+                    <div className="flex justify-between text-blue-600 font-black uppercase text-[10px] tracking-widest">
+                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 fill-current"/> {applicableWelcomeOffer.label} Reward</span>
+                        <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
+                    </div>
+                    )}
+                    {!isEmailVerified && potentialWelcomeOffer && (
+                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-start gap-3 mt-2 mb-4 animate-in slide-in-from-bottom-2">
+                        <MailWarning className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-amber-700 leading-none">Verify to Save {potentialWelcomeOffer.discount}%</p>
+                            <p className="text-[9px] text-amber-600 font-medium leading-tight">Your {potentialWelcomeOffer.label} discount is pending email verification.</p>
+                            <Link href="/dashboard/profile" className="text-[9px] font-bold underline text-amber-700 block mt-1">Verify Now</Link>
+                        </div>
                     </div>
                     )}
                     {serviceCharge > 0 && (

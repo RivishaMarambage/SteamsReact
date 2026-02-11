@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
 import GoldDustCursor from '@/components/effects/GoldDustCursor';
-import Club from '../../assets/club.webp';
+import Club from '../../assets/club1.webp';
 
 export default function RewardsPage() {
     useEffect(() => {
@@ -60,7 +60,7 @@ export default function RewardsPage() {
                         width={640}
                         height={480}
                         priority
-                        className="mx-auto  w-[40rem] object-contain"
+                        className="mx-auto  w-[80rem] object-contain"
                     />
 
                     {/* <h1 className="text-5xl md:text-8xl font-bold mb-4 tracking-tight uppercase font-headline">

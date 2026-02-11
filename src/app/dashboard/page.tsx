@@ -7,12 +7,19 @@ import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User as UserIcon, Sparkles } from "lucide-react";
+import { ShoppingCart, User as UserIcon, Sparkles, MailWarning, Percent, CheckCircle2 } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
 import DailyOffersPreview from "@/components/dashboard/DailyOffersPreview";
 import type { UserProfile } from "@/lib/types";
+import { useMemo } from "react";
+
+const WELCOME_OFFERS = [
+    { order: 0, discount: 10, label: "First Order Reward" },
+    { order: 1, discount: 5, label: "Second Order Reward" },
+    { order: 2, discount: 15, label: "Third Order Reward" },
+];
 
 export default function DashboardPage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -21,6 +28,11 @@ export default function DashboardPage() {
   const { data: user, isLoading: isProfileLoading } = useDoc<UserProfile>(userRef);
 
   const isLoading = isUserLoading || isProfileLoading;
+
+  const currentWelcomeOffer = useMemo(() => {
+    if (!user || (user.orderCount ?? 0) >= 3) return null;
+    return WELCOME_OFFERS.find(o => o.order === (user.orderCount ?? 0));
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -52,14 +64,49 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 md:space-y-10 animate-in fade-in duration-700">
-      <div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-headline tracking-tight text-[#2c1810]">
-          Welcome back, <span className="text-[#d97706]">{user.name?.split(' ')[0]}</span>! 👋
-        </h1>
-        <p className="text-[#6b584b] text-base sm:text-lg mt-2 font-medium">Your daily brew and rewards are waiting.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-headline tracking-tight text-[#2c1810]">
+            Welcome back, <span className="text-[#d97706]">{user.name?.split(' ')[0]}</span>! 👋
+            </h1>
+            <p className="text-[#6b584b] text-base sm:text-lg mt-2 font-medium">Your daily brew and rewards are waiting.</p>
+        </div>
+        
+        {currentWelcomeOffer && (
+            <Card className="bg-blue-600 text-white border-0 shadow-lg px-6 py-4 rounded-3xl animate-in slide-in-from-right-4 duration-1000">
+                <div className="flex items-center gap-4">
+                    <div className="bg-white/20 p-2 rounded-2xl">
+                        <Percent className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">{currentWelcomeOffer.label}</p>
+                        <p className="text-xl font-headline font-black">{currentWelcomeOffer.discount}% OFF YOUR NEXT CUP</p>
+                    </div>
+                </div>
+            </Card>
+        )}
       </div>
 
       <div className="grid gap-6 md:gap-8">
+        {!user.emailVerified && currentWelcomeOffer && (
+            <Card className="border-2 border-dashed border-amber-200 bg-amber-50 rounded-[2.5rem] overflow-hidden">
+                <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-4 text-center sm:text-left">
+                        <div className="bg-amber-100 p-4 rounded-full">
+                            <MailWarning className="w-8 h-8 text-amber-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black font-headline text-amber-800 uppercase">Unlock Your {currentWelcomeOffer.discount}% Discount</h3>
+                            <p className="text-amber-700/80 text-sm font-medium">Verify your email to activate your welcome rewards!</p>
+                        </div>
+                    </div>
+                    <Button asChild size="lg" className="rounded-full bg-amber-600 hover:bg-amber-700 text-white border-none shadow-md whitespace-nowrap">
+                        <Link href="/dashboard/profile">Verify Now <ArrowRight className="ml-2 w-4 h-4"/></Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )}
+
         <div className="grid grid-cols-1 gap-6">
             <BirthdayReward user={user} />
             <DailyOffersPreview userProfile={user} />

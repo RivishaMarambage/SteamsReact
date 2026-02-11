@@ -6,7 +6,7 @@ import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Percent } from "lucide-react";
+import { Percent, MailWarning, CheckCircle2, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
@@ -14,11 +14,12 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
+import Link from "next/link";
 
 const WELCOME_OFFERS = [
-    { order: 0, discount: 10 }, // 1st order (orderCount is 0)
-    { order: 1, discount: 5 },  // 2nd order (orderCount is 1)
-    { order: 2, discount: 15 }, // 3rd order (orderCount is 2)
+    { order: 0, discount: 10, label: "First Order" },
+    { order: 1, discount: 5, label: "Second Order" },
+    { order: 2, discount: 15, label: "Third Order" },
 ];
 
 function OffersPageContent() {
@@ -56,7 +57,7 @@ function OffersPageContent() {
     }, [dailyOffers, todayString]);
 
     const welcomeOffer = useMemo(() => {
-        if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || !userProfile.emailVerified) {
+        if (!userProfile || (userProfile.orderCount ?? 0) >= 3) {
             return null;
         }
         return WELCOME_OFFERS.find(offer => offer.order === (userProfile.orderCount ?? 0)) || null;
@@ -114,14 +115,39 @@ function OffersPageContent() {
             {/* Welcome & Birthday Offers */}
             <div className="grid md:grid-cols-2 gap-8">
                 {welcomeOffer && (
-                    <Card className="bg-blue-500/10 border-blue-500/20 shadow-lg">
+                    <Card className="bg-blue-500/10 border-blue-500/20 shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Percent className="w-24 h-24 rotate-12" />
+                        </div>
                         <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2 text-blue-600"><Percent /> Welcome Offer!</CardTitle>
-                            <CardDescription>A special discount for one of your first three orders.</CardDescription>
+                            <CardTitle className="font-headline flex items-center gap-2 text-blue-600">
+                                <Sparkles className="w-5 h-5 fill-current" /> {welcomeOffer.label} Reward
+                            </CardTitle>
+                            <CardDescription>Exclusive offer for your first few visits.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                             <p className="text-2xl font-bold">{welcomeOffer.discount}% off your next order</p>
-                             <p className="text-sm text-muted-foreground">This discount will be automatically applied at checkout.</p>
+                        <CardContent className="space-y-4">
+                             <div>
+                                <p className="text-4xl font-black font-headline text-blue-700">{welcomeOffer.discount}% OFF</p>
+                                <p className="text-sm font-medium text-blue-600/80 uppercase tracking-widest mt-1">Automatically applied to your cart</p>
+                             </div>
+                             
+                             {userProfile.emailVerified ? (
+                                 <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-xl border border-green-100 text-sm font-bold animate-in zoom-in-95">
+                                    <CheckCircle2 className="w-4 h-4" /> Email Verified • Offer Active
+                                 </div>
+                             ) : (
+                                 <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-3">
+                                    <div className="flex items-center gap-2 text-amber-700 text-sm font-bold">
+                                        <MailWarning className="w-4 h-4" /> Verification Required
+                                    </div>
+                                    <p className="text-xs text-amber-600 leading-relaxed">
+                                        Please verify your email address in your profile to unlock this {welcomeOffer.discount}% discount.
+                                    </p>
+                                    <Button asChild variant="outline" size="sm" className="w-full rounded-full border-amber-300 text-amber-700 hover:bg-amber-100">
+                                        <Link href="/dashboard/profile">Go to Profile <ArrowRight className="ml-2 w-3 h-3" /></Link>
+                                    </Button>
+                                 </div>
+                             )}
                         </CardContent>
                     </Card>
                 )}
