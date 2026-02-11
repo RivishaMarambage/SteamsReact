@@ -28,7 +28,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
-  const tierDiscounts = levels.reduce((acc, level) => {
+  const tierDiscounts = (levels || []).reduce((acc, level) => {
     acc[level.id] = 0;
     return acc;
   }, {} as Record<string, number>);
@@ -146,7 +146,7 @@ export default function DailyOfferTable() {
   }, []);
 
   const handleEdit = (offer: DailyOffer) => {
-    const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
+    const tierDiscounts = (loyaltyLevels || []).reduce((acc, level) => {
       acc[level.id] = offer.tierDiscounts?.[level.id] || 0;
       return acc;
     }, {} as Record<string, number>);
