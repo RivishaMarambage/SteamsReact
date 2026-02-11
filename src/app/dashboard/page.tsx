@@ -7,7 +7,7 @@ import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User as UserIcon, Sparkles, MailWarning, Percent, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, User as UserIcon, Sparkles, MailWarning, Percent, CheckCircle2, ArrowRight } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           <UserIcon className="size-12 text-muted-foreground opacity-50" />
         </div>
         <h2 className="text-2xl font-bold">Session Expired</h2>
-        <p className="text-muted-foreground max-w-sm mb-6">Please log in again to access your dashboard and rewards.</p>
+        <p className="text-muted-foreground max-sm mb-6">Please log in again to access your dashboard and rewards.</p>
         <Button asChild><Link href="/login/customer">Log In</Link></Button>
       </div>
     );
