@@ -10,6 +10,14 @@ import Link from 'next/link';
 import { writeBatch, doc, collection, serverTimestamp, increment } from 'firebase/firestore';
 import { format } from 'date-fns';
 
+/**
+ * SECURITY NOTE: 
+ * This page processes order finalization on the client-side for prototype purposes.
+ * For a PRODUCTION application, this logic MUST be moved to a server-side 
+ * Firebase Cloud Function triggered by a payment gateway webhook. 
+ * Client-side point awarding is vulnerable to manipulation.
+ */
+
 function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

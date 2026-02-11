@@ -11,21 +11,30 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isStaffOrAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
-             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'admin'];
+             && getUserData().role in ['staff', 'admin'];
     }
 
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
-             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             && getUserData().role == 'admin';
     }
 
     match /users/{userId} {
       allow list: if isAdmin();
       allow read: if isOwner(userId) || isStaffOrAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isStaffOrAdmin();
+      
+      // Prevent users from escalating their own role or giving themselves points
+      allow update: if isOwner(userId) 
+        ? (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyPoints', 'lifetimePoints', 'loyaltyLevelId']))
+        : isStaffOrAdmin();
+        
       allow delete: if isAdmin();
     }
     
@@ -35,7 +44,9 @@ service cloud.firestore {
 
     match /daily_game_winners/{date} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn(); // Writes are protected by transaction logic in code
+      // Grand prize winners are set via client logic in this prototype, 
+      // but restricted by transaction logic in the app.
+      allow write: if isSignedIn(); 
     }
 
     match /menu_items/{menuItemId} {
@@ -64,19 +75,25 @@ service cloud.firestore {
     }
     
     match /orders/{orderId} {
-        allow read, write, list: if isStaffOrAdmin();
-        allow create: if isSignedIn();
+        allow read, list: if isStaffOrAdmin();
+        // Validation: Users can only create their own orders and only with 'Placed' status
+        allow create: if isSignedIn() 
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.status == 'Placed';
+        allow update: if isStaffOrAdmin();
+        allow delete: if isAdmin();
     }
 
     match /users/{userId}/orders/{orderId} {
       allow read, list: if isOwner(userId) || isStaffOrAdmin();
-      allow create: if isOwner(userId) || isStaffOrAdmin();
-      allow update: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId) && request.resource.data.status == 'Placed';
+      allow update: if isStaffOrAdmin(); // Only staff can update status
       allow delete: if false;
     }
 
     match /users/{userId}/point_transactions/{transactionId} {
       allow read, list: if isOwner(userId) || isAdmin();
+      // Restricted creation - typically should be server-side
       allow create: if isOwner(userId) || isStaffOrAdmin();
       allow update, delete: if false;
     }
@@ -87,7 +104,8 @@ service cloud.firestore {
     }
     
     match /mobile_numbers/{mobileNumber} {
-      allow read: if true;
+      // Prevent public scraping of phone numbers
+      allow read: if isSignedIn(); 
       allow create: if request.resource.data.userId == request.auth.uid;
     }
   }

@@ -35,7 +35,6 @@ import LoginImg from '../../assets/login.webp';
 const REFERRAL_BONUS = 50;
 const BASE_SIGNUP_POINTS = 50;
 
-// Base schema with all possible fields as optional
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
@@ -49,10 +48,8 @@ const formSchema = z.object({
   referralCode: z.string().optional(),
 });
 
-// Schema for just login
 const loginSchema = formSchema.pick({ email: true, password: true });
 
-// Schema for admin/staff signup
 const genericSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true })
   .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
@@ -63,7 +60,6 @@ const genericSignupSchema = formSchema.pick({ email: true, password: true, confi
     path: ["confirmPassword"],
   });
 
-// Schema for customer signup
 const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true, referralCode: true })
   .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
@@ -290,6 +286,27 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
     if (authType === 'signup') {
         try {
+            // SECURITY V-02: Prevent role escalation
+            const usersRef = collection(firestore, "users");
+            const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
+            const adminSnapshot = await getDocs(adminQuery);
+            
+            // Only allow the first signup to be an admin for setup purposes
+            let finalRole: 'customer' | 'staff' | 'admin' = role;
+            if (role !== 'customer' && !adminSnapshot.empty) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Restricted Action',
+                    description: 'Admin and Staff accounts must be created by an existing administrator.'
+                });
+                setIsProcessing(false);
+                return;
+            }
+
+            if (role === 'admin' && adminSnapshot.empty) {
+                await seedDatabase();
+            }
+
             const signInMethods = await fetchSignInMethodsForEmail(auth, data.email);
             if (signInMethods.length > 0) {
                 form.setError('email', { type: 'manual', message: 'This email address is already in use.' });
@@ -301,7 +318,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             let referrerProfile: UserProfile | null = null;
             if (data.referralCode) {
-                const usersRef = collection(firestore, 'users');
                 const q = query(usersRef, where('referralCode', '==', data.referralCode.toUpperCase()), limit(1));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
@@ -313,13 +329,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 }
             }
 
-            if (role === 'admin') {
-                const usersRef = collection(firestore, "users");
-                const q = query(usersRef, where("role", "==", "admin"), limit(1));
-                const adminSnapshot = await getDocs(q);
-                if (adminSnapshot.empty) await seedDatabase();
-            }
-
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
             await sendEmailVerification(user);
@@ -327,14 +336,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             const batch = writeBatch(firestore);
             const userDocRef = doc(firestore, "users", user.uid);
             
-            // Only award base points to the new user. Referral bonus goes ONLY to the sender.
             const initialPoints = BASE_SIGNUP_POINTS;
 
             const userProfile: UserProfile = {
               id: user.uid,
               email: data.email,
               name: data.fullName!,
-              role,
+              role: finalRole,
               mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
@@ -350,7 +358,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             if (referrerProfile) {
                 const referrerRef = doc(firestore, 'users', referrerProfile.id);
-                // Award points ONLY to the referrer
                 batch.update(referrerRef, {
                     loyaltyPoints: increment(REFERRAL_BONUS),
                     lifetimePoints: increment(REFERRAL_BONUS)
@@ -379,7 +386,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 ? `Welcome! Your referral has been noted and your friend has received bonus points. Please check your inbox to verify your email.`
                 : "Welcome! We've sent you a verification email. Please check your inbox.",
             });
-            router.replace(`/login/${role}`);
+            router.replace(`/login/${finalRole}`);
 
         } catch (error: any) {
             setIsProcessing(false);
@@ -445,11 +452,21 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     setIsProcessing(true);
 
     try {
-        if (role === 'admin') {
-            const usersRef = collection(firestore, "users");
-            const q = query(usersRef, where("role", "==", "admin"), limit(1));
-            const adminSnapshot = await getDocs(q);
-            if (adminSnapshot.empty) await seedDatabase();
+        // SECURITY V-02 check for Google Sign-In as well
+        const usersRef = collection(firestore, "users");
+        const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
+        const adminSnapshot = await getDocs(adminQuery);
+
+        if (role === 'admin' && adminSnapshot.empty) {
+            await seedDatabase();
+        } else if (role !== 'customer' && !adminSnapshot.empty) {
+             toast({
+                variant: 'destructive',
+                title: 'Restricted Action',
+                description: 'Admin and Staff accounts must be created by an existing administrator.'
+            });
+            setIsProcessing(false);
+            return;
         }
 
         const result = await signInWithPopup(auth, provider);
@@ -506,7 +523,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden bg-card">
-        {/* Left Panel */}
         <div className="relative p-8 text-white hidden md:flex flex-col justify-between">
             <div className="absolute inset-0">
                 <Image
@@ -536,7 +552,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             </div>
         </div>
 
-        {/* Right Panel */}
         <div className="p-8">
             <div className="flex flex-col h-full justify-center">
                  <div className="mb-6">
