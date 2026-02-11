@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, CheckCircle2, Circle, Package, ChevronRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -27,14 +27,13 @@ import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 
-const today = new Date();
-
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
     acc[level.id] = 0;
     return acc;
   }, {} as Record<string, number>);
 
+  const today = new Date();
   return {
     title: '',
     menuItemIds: [],
@@ -70,12 +69,8 @@ export default function DailyOfferTable() {
     return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard');
   }, [loyaltyLevelsRaw]);
 
-  const [formData, setFormData] = useState(getInitialFormData(loyaltyLevels));
-  
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: today,
-    to: addDays(today, 7),
-  });
+  const [formData, setFormData] = useState<Omit<DailyOffer, 'id'>>(() => getInitialFormData([]));
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { toast } = useToast();
 
   const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading || areCategoriesLoading;
@@ -108,15 +103,10 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
+  // Unified Form Initialization Effect
   useEffect(() => {
-    if (loyaltyLevels.length > 0 && !selectedOffer && isFormOpen) {
-      setFormData(getInitialFormData(loyaltyLevels));
-    }
-  }, [loyaltyLevels, selectedOffer, isFormOpen]);
-
-  useEffect(() => {
-    if (isFormOpen) {
-      if (selectedOffer && loyaltyLevels.length > 0) {
+    if (isFormOpen && loyaltyLevels.length > 0) {
+      if (selectedOffer) {
         const fromDate = selectedOffer.offerStartDate ? parseISO(selectedOffer.offerStartDate) : new Date();
         const toDate = selectedOffer.offerEndDate ? parseISO(selectedOffer.offerEndDate) : addDays(new Date(), 7);
         
@@ -126,26 +116,37 @@ export default function DailyOfferTable() {
         }, {} as Record<string, number>);
 
         setFormData({
-          title: selectedOffer.title,
+          title: selectedOffer.title || '',
           menuItemIds: selectedOffer.menuItemIds || [],
-          offerStartDate: selectedOffer.offerStartDate,
-          offerEndDate: selectedOffer.offerEndDate,
-          discountType: selectedOffer.discountType,
+          offerStartDate: selectedOffer.offerStartDate || format(fromDate, 'yyyy-MM-dd'),
+          offerEndDate: selectedOffer.offerEndDate || format(toDate, 'yyyy-MM-dd'),
+          discountType: selectedOffer.discountType || 'fixed',
           orderType: selectedOffer.orderType || 'Both',
           tierDiscounts,
         });
         setDateRange({ from: fromDate, to: toDate });
+      } else {
+        setFormData(getInitialFormData(loyaltyLevels));
+        const today = new Date();
+        setDateRange({ from: today, to: addDays(today, 7) });
       }
     }
   }, [isFormOpen, selectedOffer, loyaltyLevels]);
 
+  // Date Sync Effect (One-way)
   useEffect(() => {
     if (dateRange?.from && dateRange?.to) {
-        setFormData(prev => ({
-            ...prev,
-            offerStartDate: format(dateRange.from!, 'yyyy-MM-dd'),
-            offerEndDate: format(dateRange.to!, 'yyyy-MM-dd'),
-        }));
+        const start = format(dateRange.from, 'yyyy-MM-dd');
+        const end = format(dateRange.to, 'yyyy-MM-dd');
+        
+        setFormData(prev => {
+            if (prev.offerStartDate === start && prev.offerEndDate === end) return prev;
+            return {
+                ...prev,
+                offerStartDate: start,
+                offerEndDate: end,
+            };
+        });
     }
   }, [dateRange]);
 
@@ -187,12 +188,12 @@ export default function DailyOfferTable() {
     if (allSelected) {
       setFormData(prev => ({
         ...prev,
-        menuItemIds: currentlySelected.filter(id => !itemIds.includes(id))
+        menuItemIds: (prev.menuItemIds || []).filter(id => !itemIds.includes(id))
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        menuItemIds: Array.from(new Set([...currentlySelected, ...itemIds]))
+        menuItemIds: Array.from(new Set([...(prev.menuItemIds || []), ...itemIds]))
       }));
     }
   };
@@ -230,16 +231,19 @@ export default function DailyOfferTable() {
         return;
     }
 
-    if (selectedOffer) {
-      await setDoc(doc(firestore, "daily_offers", selectedOffer.id), formData, { merge: true });
-      toast({ title: "Offer Updated", description: `The offer "${formData.title}" has been updated.`});
-    } else {
-      await addDoc(collection(firestore, "daily_offers"), formData);
-      toast({ title: "Offer Added", description: `The offer "${formData.title}" has been created.`});
+    try {
+        if (selectedOffer) {
+          await setDoc(doc(firestore, "daily_offers", selectedOffer.id), formData, { merge: true });
+          toast({ title: "Offer Updated", description: `The offer "${formData.title}" has been updated.`});
+        } else {
+          await addDoc(collection(firestore, "daily_offers"), formData);
+          toast({ title: "Offer Added", description: `The offer "${formData.title}" has been created.`});
+        }
+        setFormOpen(false);
+        setSelectedOffer(null);
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error Saving", description: error.message });
     }
-
-    setFormOpen(false);
-    setSelectedOffer(null);
   };
   
   if (isLoading) {
@@ -444,7 +448,7 @@ export default function DailyOfferTable() {
                     </div>
                     <div className="grid gap-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Type Support</Label>
-                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...p, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
+                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...prev, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
                           {['Both', 'Dine-in', 'Takeaway'].map((type) => (
                               <div key={type} className="flex-1">
                                   <RadioGroupItem value={type} id={`form-type-${type}`} className="sr-only" />
@@ -492,7 +496,7 @@ export default function DailyOfferTable() {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {items.map(item => {
-                            const isChecked = formData.menuItemIds?.includes(item.id);
+                            const isChecked = (formData.menuItemIds || []).includes(item.id);
                             return (
                               <div 
                                 key={item.id} 
@@ -531,7 +535,7 @@ export default function DailyOfferTable() {
                           <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Tier-Based Discounts</h3>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customize savings for each loyalty level</p>
                         </div>
-                        <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))} className="flex gap-4 bg-white/50 p-1.5 rounded-full shadow-inner border border-white">
+                        <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...prev, discountType: v as any }))} className="flex gap-4 bg-white/50 p-1.5 rounded-full shadow-inner border border-white">
                             <div className="flex items-center">
                                 <RadioGroupItem value="fixed" id="form-discount-fixed" className="sr-only" />
                                 <Label htmlFor="form-discount-fixed" className={cn(
