@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -113,7 +112,7 @@ function PublicMenuDisplayContent() {
                                 </div>
                                 <div className="mt-8 pt-6 border-t border-muted/50 flex items-center justify-between">
                                     <div className="font-black text-2xl text-primary tracking-tighter">
-                                        LKR {item.price.toFixed(0)}
+                                        LKR {item.price.toFixed(2)}
                                     </div>
                                     <Badge variant="secondary" className="bg-muted/50 text-[#6b584b] text-[10px] font-black uppercase tracking-widest px-3 py-1">
                                         per portion

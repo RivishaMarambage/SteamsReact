@@ -241,7 +241,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             errors[group.addonCategoryId] = `Please select at least ${group.minSelection} option(s).`;
         }
         
-        if (group.maxSelection > 0 && selectedInGroup > group.maxSelection) {
+        if (group.maxSelection > 0 && selectedCount >= group.maxSelection) {
             errors[group.addonCategoryId] = `You can select up to ${group.maxSelection} option(s).`;
         }
     }
@@ -685,8 +685,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             </CardContent>
                             <CardFooter className="p-6 flex justify-between items-center border-t border-muted/50 bg-muted/5">
                                 <div className="flex flex-col">
-                                    {isOfferApplied && <span className="text-xs text-muted-foreground line-through opacity-60 font-bold">LKR {originalPrice.toFixed(0)}</span>}
-                                    <span className="font-black text-2xl text-primary tracking-tighter">LKR {displayPrice.toFixed(0)}</span>
+                                    {isOfferApplied && <span className="text-xs text-muted-foreground line-through opacity-60 font-bold">LKR {originalPrice.toFixed(2)}</span>}
+                                    <span className="font-black text-2xl text-primary tracking-tighter">LKR {displayPrice.toFixed(2)}</span>
                                 </div>
                                 <Button size="lg" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="rounded-full px-6 bg-[#2c1810] hover:bg-primary transition-colors">
                                     {item.isOutOfStock ? "Sold Out" : <><Plus className="mr-2 h-4 w-4" /> Add</>}
@@ -750,7 +750,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                 {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
                             </p>
                             )}
-                            <p className="text-sm font-black text-primary mt-1">LKR {item.totalPrice.toFixed(0)}</p>
+                            <p className="text-sm font-black text-primary mt-1">LKR {item.totalPrice.toFixed(2)}</p>
                         </div>
                         <div className="flex items-center gap-2 bg-muted p-1 rounded-full shrink-0">
                             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-background" onClick={() => updateQuantity(item.id, -1)}>
@@ -810,7 +810,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     )}
                     <div className="flex justify-between text-3xl font-black text-primary uppercase tracking-tighter pt-4 border-t border-muted/50">
                         <span>Total</span>
-                        <span>LKR {cartTotal.toFixed(0)}</span>
+                        <span>LKR {cartTotal.toFixed(2)}</span>
                     </div>
                 </div>
                  <Button size="lg" className="w-full h-16 rounded-full text-lg font-black uppercase tracking-widest shadow-xl group" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
@@ -877,7 +877,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                                 <Label htmlFor={`addon-check-${addon.id}`} className={cn("text-base font-bold truncate text-[#2c1810]", isDisabled && "cursor-not-allowed")}>
                                                     {addon.name}
                                                 </Label>
-                                                <span className="text-xs font-black text-primary ml-2 shrink-0">+ LKR {addon.price.toFixed(0)}</span>
+                                                <span className="text-xs font-black text-primary ml-2 shrink-0">+ LKR {addon.price.toFixed(2)}</span>
                                             </div>
                                         </div>
                                     )

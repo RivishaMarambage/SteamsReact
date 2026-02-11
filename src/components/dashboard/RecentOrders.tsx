@@ -191,7 +191,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
                         </Badge>
                     </TableCell>
                     <TableCell>
-                        <span className="font-bold">LKR {order.totalAmount.toFixed(0)}</span>
+                        <span className="font-bold">LKR {order.totalAmount.toFixed(2)}</span>
                     </TableCell>
                     <TableCell className="text-right">
                         <Button 
