@@ -39,9 +39,10 @@
       "properties": {
         "lastPlayedDate": { "type": "string", "description": "The last date (YYYY-MM-DD) the user played a game, used for resetting daily limits." },
         "triviaCount": { "type": "number", "description": "Number of trivia questions answered today." },
-        "spinCount": { "type": "number", "description": "Number of times the user has played the spin game today." }
+        "spinCount": { "type": "number", "description": "Number of times the user has played the spin game today." },
+        "cupCount": { "type": "number", "description": "Number of times the user has played the cup game today." }
       },
-      "required": ["lastPlayedDate", "triviaCount", "spinCount"]
+      "required": ["lastPlayedDate", "triviaCount", "spinCount", "cupCount"]
     },
     "DailyGameWinners": {
       "title": "Daily Game Winners",
@@ -49,7 +50,7 @@
       "description": "A document storing the UID of the daily grand prize winner for each game. The document ID is the date (YYYY-MM-DD).",
       "properties": {
         "spinWinner": { "type": ["string", "null"], "description": "UID of the user who won the Spin to Win grand prize." },
-        "scratchWinner": { "type": ["string", "null"], "description": "UID of the user who won the Scratch Card grand prize." },
+        "luckyWinner": { "type": ["string", "null"], "description": "UID of the user who won the Lucky Cup grand prize." },
         "triviaWinner": { "type": ["string", "null"], "description": "UID of the user who won the Trivia Quest grand prize." }
       }
     },
@@ -229,7 +230,7 @@
         },
         "orderType": {
             "type": "string",
-            "enum": ["Dine-in", "Takeaway"],
+            "enum": ["Dine-in", "Takeaway", "Both"],
             "description": "The type of order the offer applies to."
         },
         "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },

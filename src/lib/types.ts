@@ -125,7 +125,7 @@ export type DailyOffer = {
   title: string;
   tierDiscounts: Record<string, number>; // Map of loyaltyLevelId to discount value
   discountType: 'fixed' | 'percentage'; // LKR amount or %
-  orderType: 'Dine-in' | 'Takeaway';
+  orderType: 'Dine-in' | 'Takeaway' | 'Both';
 }
 
 export type CartItemAddon = {

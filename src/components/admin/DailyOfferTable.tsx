@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -88,7 +89,7 @@ export default function DailyOfferTable() {
           offerStartDate: selectedOffer.offerStartDate,
           offerEndDate: selectedOffer.offerEndDate,
           discountType: selectedOffer.discountType,
-          orderType: selectedOffer.orderType,
+          orderType: selectedOffer.orderType || 'Takeaway',
           tierDiscounts,
         });
         setDateRange({ from: fromDate, to: toDate });
@@ -136,7 +137,7 @@ export default function DailyOfferTable() {
     setFormData(prev => ({ ...prev, discountType: value }));
   };
 
-  const handleOrderTypeChange = (value: Order['orderType']) => {
+  const handleOrderTypeChange = (value: DailyOffer['orderType']) => {
     setFormData(prev => ({ ...prev, orderType: value }));
   };
 
@@ -239,7 +240,7 @@ export default function DailyOfferTable() {
                     <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
                     <TableCell className="font-medium">{offer.title}</TableCell>
                     <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
-                    <TableCell><Badge variant="secondary">{offer.orderType}</Badge></TableCell>
+                    <TableCell><Badge variant="secondary">{offer.orderType || 'Takeaway'}</Badge></TableCell>
                     <TableCell>
                         <div className="flex flex-col gap-1">
                         {loyaltyLevels?.map(level => {
@@ -287,7 +288,7 @@ export default function DailyOfferTable() {
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                         <p><span className="font-semibold">Dates: </span><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></p>
-                        <p><span className="font-semibold">Order Type: </span><Badge variant="secondary">{offer.orderType}</Badge></p>
+                        <p><span className="font-semibold">Order Type: </span><Badge variant="secondary">{offer.orderType || 'Takeaway'}</Badge></p>
                         <div>
                             <p className="font-semibold">Discounts:</p>
                              <div className="flex flex-col gap-1 pl-2">
@@ -362,6 +363,7 @@ export default function DailyOfferTable() {
                         <PopoverTrigger asChild>
                             <Button
                               id="date"
+                              type="button"
                               variant={"outline"}
                               className={cn(
                                 "w-full justify-start text-left font-normal",
@@ -406,6 +408,10 @@ export default function DailyOfferTable() {
                      <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Takeaway" id="takeway" />
                         <Label htmlFor="takeway">Takeaway</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Both" id="both" />
+                        <Label htmlFor="both">Both</Label>
                     </div>
                   </RadioGroup>
                 </div>

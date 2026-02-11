@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -352,13 +353,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         if (!offer) return;
 
         if (!orderType) {
-            setOrderType(offer.orderType);
-            if (offer.orderType === 'Takeaway') {
+            const defaultType = offer.orderType === 'Both' ? 'Takeaway' : offer.orderType;
+            setOrderType(defaultType);
+            if (defaultType === 'Takeaway') {
                 setOrderTypeDialogOpen(false);
             } else {
                 setDialogStep('table');
             }
-        } else if (offer.orderType !== orderType) {
+        } else if (offer.orderType !== 'Both' && offer.orderType !== orderType) {
             setTimeout(() => {
                 toast({
                     variant: "destructive",
@@ -597,7 +599,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         const offer = dailyOffers.find(o => {
                             if (!o.offerStartDate || !o.offerEndDate) return false;
                             if (o.menuItemId !== item.id) return false;
-                            if (o.orderType !== orderType) return false;
+                            if (o.orderType !== 'Both' && o.orderType !== orderType) return false;
                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),

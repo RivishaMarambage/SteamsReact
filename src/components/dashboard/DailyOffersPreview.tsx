@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
@@ -129,7 +130,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
                                         <span className="text-sm font-black text-primary tracking-tighter">LKR {offer.displayPrice.toFixed(2)}</span>
                                     </div>
                                     <p className="text-[10px] font-bold text-[#6b584b] uppercase tracking-widest mt-1 opacity-70">
-                                        {offer.orderType} only
+                                        {offer.orderType === 'Both' ? 'Dine-in & Takeaway' : `${offer.orderType} only`}
                                     </p>
                                 </div>
                            </div>
