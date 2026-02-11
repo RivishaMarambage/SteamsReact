@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -7,7 +6,7 @@ import { collection, query, where } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Tag } from "lucide-react";
+import { Tag, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 import { useMemo } from "react";
@@ -81,13 +80,13 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
 
     if (isLoading) {
         return (
-            <Card className="shadow-lg">
+            <Card className="shadow-lg border-0 bg-muted/20">
                 <CardHeader>
                     <Skeleton className="h-8 w-1/2" />
                     <Skeleton className="h-4 w-1/3 mt-2" />
                 </CardHeader>
                 <CardContent>
-                     <Skeleton className="h-10 w-full" />
+                     <Skeleton className="h-10 w-full rounded-xl" />
                 </CardContent>
             </Card>
         )
@@ -98,26 +97,45 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
     }
 
     return (
-        <Card className="shadow-lg border-primary/20 bg-primary/5">
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2 text-primary"><Tag/> Today's Special Offers For You</CardTitle>
-                <CardDescription>Exclusive deals based on your loyalty tier!</CardDescription>
+        <Card className="shadow-xl border-0 bg-gradient-to-br from-primary/10 via-background to-primary/5 rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="pb-4">
+                <div className="flex items-center gap-2 mb-1">
+                    <div className="bg-primary/20 p-1.5 rounded-lg text-primary">
+                        <Sparkles className="h-4 w-4 fill-current" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Member Exclusives</span>
+                </div>
+                <CardTitle className="font-headline text-2xl sm:text-3xl text-[#2c1810]">Today's Special Offers</CardTitle>
+                <CardDescription className="font-medium text-[#6b584b]">Handpicked deals for your loyalty tier.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {activeAndApplicableOffers.map(offer => {
                     return (
-                        <div key={offer.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-background rounded-lg">
-                           <div>
-                                <h4 className="font-semibold">{offer.title} - {offer.menuItem.name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Your price today: 
-                                    <span className="text-sm font-normal text-muted-foreground line-through mx-2">LKR {offer.originalPrice.toFixed(2)}</span>
-                                    <span className="font-bold text-primary">LKR {offer.displayPrice.toFixed(2)}</span>
-                                </p>
-                                <p className="text-xs text-muted-foreground capitalize">Valid for {offer.orderType} orders.</p>
+                        <div key={offer.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 bg-white rounded-3xl border border-primary/10 shadow-sm hover:shadow-md transition-all group">
+                           <div className="flex items-center gap-4">
+                                <div className="h-14 w-14 rounded-2xl bg-muted overflow-hidden relative shadow-inner">
+                                    <Image 
+                                        src={offer.menuItem.imageUrl || `https://picsum.photos/seed/${offer.menuItem.id}/100/100`}
+                                        alt={offer.menuItem.name}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-[#2c1810] group-hover:text-primary transition-colors">{offer.title}</h4>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-xs font-bold text-muted-foreground line-through opacity-60">LKR {offer.originalPrice.toFixed(2)}</span>
+                                        <span className="text-sm font-black text-primary tracking-tighter">LKR {offer.displayPrice.toFixed(2)}</span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-[#6b584b] uppercase tracking-widest mt-1 opacity-70">
+                                        {offer.orderType} only
+                                    </p>
+                                </div>
                            </div>
-                           <Button asChild>
-                                <Link href={`/dashboard/order?addOffer=${offer.id}`}>Order Now</Link>
+                           <Button asChild className="rounded-full px-8 h-12 bg-[#2c1810] hover:bg-primary transition-all shadow-lg hover:shadow-primary/20">
+                                <Link href={`/dashboard/order?addOffer=${offer.id}`} className="flex items-center gap-2">
+                                    Claim Reward <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
                            </Button>
                         </div>
                     )

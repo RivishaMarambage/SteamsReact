@@ -47,6 +47,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const [appliedPoints, setAppliedPoints] = useState(0);
   const [activeTab, setActiveTab] = useState<string | undefined>();
   const [selectedMainGroup, setSelectedMainGroup] = useState<Category['type']>(MAIN_GROUPS[0]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -84,12 +85,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
   const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
-  // robust client-side sorting for items
   const sortedMenuItems = useMemo(() => {
     return [...menuItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [menuItems]);
 
-  // robust client-side sorting and filtering for categories
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
     return categories
@@ -97,7 +96,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [categories, selectedMainGroup]);
 
-  // Reset active tab when main group changes
   useEffect(() => {
     if (filteredCategories.length > 0) {
       setActiveTab(filteredCategories[0].id);
@@ -110,7 +108,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     if (type === 'Dine-in') {
       setOrderType('Dine-in');
       setDialogStep('table');
-    } else { // Takeaway
+    } else {
       setOrderType('Takeaway');
       setOrderTypeDialogOpen(false);
     }
@@ -133,7 +131,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     checkVerification();
   }, [authUser]);
 
-  // Reorder handling logic
   useEffect(() => {
     if (processedReorderRef.current || menuItems.length === 0) return;
 
@@ -166,12 +163,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 toast({
                     title: "Reorder items added",
                     description: `${newCartItems.length} items added to your cart.${itemsSkipped > 0 ? ` ${itemsSkipped} item(s) skipped as they are currently unavailable.` : ''}`,
-                });
-            } else if (itemsSkipped > 0) {
-                toast({
-                    variant: "destructive",
-                    title: "Reorder unavailable",
-                    description: "The items in your previous order are currently out of stock.",
                 });
             }
         } catch (e) {
@@ -240,10 +231,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         } else if (selectedInGroup < group.minSelection) {
             errors[group.addonCategoryId] = `Please select at least ${group.minSelection} option(s).`;
         }
-        
-        if (group.maxSelection > 0 && selectedCount >= group.maxSelection) {
-            errors[group.addonCategoryId] = `You can select up to ${group.maxSelection} option(s).`;
-        }
     }
     
     setValidationErrors(errors);
@@ -287,6 +274,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     setCustomizationOpen(false);
     setCustomizingItem(null);
     setSelectedAddons([]);
+    setIsCartOpen(true);
   };
 
   const addToCart = useCallback((item: MenuItem, displayPrice: number, appliedDailyOfferId?: string) => {
@@ -323,6 +311,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
           description: `${item.name} is now in your cart.`,
         });
       }, 0);
+      setIsCartOpen(true);
       return;
     }
     
@@ -355,6 +344,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     description: `Your free ${freebieItem.name} has been added to your cart.`,
                 });
             }, 0);
+            setIsCartOpen(true);
              const params = new URLSearchParams(window.location.search);
             params.delete('claimFreebie');
             router.replace(`${pathname}?${params.toString()}`);
@@ -368,12 +358,20 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         const offer = dailyOffers.find(o => o.id === offerToClaim);
         if (!offer) return;
 
-        if (offer.orderType !== orderType) {
+        // Auto-set order type if claiming offer directly from dashboard
+        if (!orderType) {
+            setOrderType(offer.orderType);
+            if (offer.orderType === 'Takeaway') {
+                setOrderTypeDialogOpen(false);
+            } else {
+                setDialogStep('table');
+            }
+        } else if (offer.orderType !== orderType) {
             setTimeout(() => {
                 toast({
                     variant: "destructive",
                     title: "Offer Not Applicable",
-                    description: `This offer is only valid for ${offer.orderType} orders. You have selected a ${orderType} order.`,
+                    description: `This offer is only valid for ${offer.orderType} orders.`,
                 });
             }, 0);
             const params = new URLSearchParams(window.location.search);
@@ -391,7 +389,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         if (userTierDiscount > 0) {
             if (offer.discountType === 'percentage') {
                 displayPrice = menuItem.price - (menuItem.price * userTierDiscount / 100);
-            } else { // fixed
+            } else {
                 displayPrice = menuItem.price - userTierDiscount;
             }
         }
@@ -413,11 +411,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       const newQuantity = existingItem.quantity + amount;
 
       if (newQuantity <= 0) {
-        // Remove item from cart if quantity is zero or less
         return prevCart.filter(item => item.id !== cartItemId);
       }
       
-      // Update quantity
       return prevCart.map(item =>
         item.id === cartItemId
           ? { ...item, quantity: newQuantity }
@@ -428,7 +424,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
   const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
   
-  // Calculate birthday discount amount from subtotal
   const calculateBirthdayDiscount = () => {
     if (!userProfile?.birthdayDiscountValue || userProfile.birthdayDiscountValue <= 0) return 0;
     if (userProfile.birthdayDiscountType === 'percentage') return subtotal * (userProfile.birthdayDiscountValue / 100);
@@ -436,19 +431,14 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   }
   const birthdayDiscountAmount = calculateBirthdayDiscount();
 
-  // Calculate welcome discount amount from subtotal
   const calculateWelcomeDiscount = () => {
     if (!applicableWelcomeOffer) return 0;
     return subtotal * (applicableWelcomeOffer.discount / 100);
   };
   const welcomeDiscountAmount = calculateWelcomeDiscount();
 
-  // Discounted subtotal before service charge
   const discountedSubtotal = Math.max(0, subtotal - birthdayDiscountAmount - welcomeDiscountAmount);
-  
-  // Calculate service charge based on the discounted subtotal
   const serviceCharge = orderType === 'Dine-in' ? discountedSubtotal * 0.10 : 0;
-  
   const totalBeforePoints = discountedSubtotal + serviceCharge;
 
   const handleRedeemPoints = () => {
@@ -511,7 +501,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     };
 
     localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
-    
     router.push('/dashboard/checkout');
   };
 
@@ -582,7 +571,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 </Card>
             </div>
 
-            {/* Main Selection: Food or Beverages */}
             <div className="flex justify-center mb-8">
                 <div className="bg-muted p-1 rounded-full flex gap-1">
                     {MAIN_GROUPS.map((group) => (
@@ -648,7 +636,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             if (typeof userTierDiscount === 'number' && userTierDiscount > 0) {
                                 if (offer.discountType === 'percentage') {
                                     displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
-                                } else { // fixed
+                                } else {
                                     displayPrice = originalPrice - userTierDiscount;
                                 }
                                 isOfferApplied = true;
@@ -702,9 +690,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         </>
       )}
 
-      <Sheet>
+      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
-          <Button className="fixed bottom-6 right-6 rounded-full w-20 h-20 shadow-[0_15px_40px_rgba(217,119,6,0.4)] z-50 transition-transform active:scale-95 group">
+          <Button onClick={() => setIsCartOpen(true)} className="fixed bottom-6 right-6 rounded-full w-20 h-20 shadow-[0_15px_40px_rgba(217,119,6,0.4)] z-50 transition-transform active:scale-95 group">
             <ShoppingCart className="h-8 w-8 group-hover:rotate-12 transition-transform" />
             {cartItemCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-white text-primary rounded-full h-8 w-8 flex items-center justify-center text-sm font-black ring-4 ring-primary shadow-lg">
