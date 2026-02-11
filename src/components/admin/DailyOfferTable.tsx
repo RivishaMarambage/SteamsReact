@@ -20,7 +20,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { addDays, format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Calendar } from '../ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -43,7 +42,7 @@ const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
     offerStartDate: format(today, 'yyyy-MM-dd'),
     offerEndDate: format(addDays(today, 7), 'yyyy-MM-dd'),
     tierDiscounts,
-    discountType: 'fixed',
+    discountType: 'percentage',
     orderType: 'Both',
   };
 };
@@ -199,7 +198,7 @@ export default function DailyOfferTable() {
   const handleDelete = (offer: DailyOffer) => {
     setSelectedOffer(offer);
     setAlertOpen(true);
-  }
+  };
   
   const confirmDelete = async () => {
     if(!selectedOffer || !firestore) return;
@@ -208,7 +207,7 @@ export default function DailyOfferTable() {
     toast({ title: "Offer Deleted", description: `The offer "${selectedOffer.title}" has been removed.`});
     setAlertOpen(false);
     setSelectedOffer(null);
-  }
+  };
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -249,7 +248,7 @@ export default function DailyOfferTable() {
                 </div>
             </CardContent>
         </Card>
-    )
+    );
   }
 
   return (
@@ -426,7 +425,7 @@ export default function DailyOfferTable() {
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Validity</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-mono h-14 rounded-2xl px-6 border-2")}>
+                              <Button variant={"outline"} type="button" className={cn("w-full justify-start text-left font-mono h-14 rounded-2xl px-6 border-2")}>
                                 <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
                                 {formData.offerStartDate} to {formData.offerEndDate}
                               </Button>
@@ -438,19 +437,22 @@ export default function DailyOfferTable() {
                     </div>
                     <div className="grid gap-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Type Support</Label>
-                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...p, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
+                      <div className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
                           {['Both', 'Dine-in', 'Takeaway'].map((type) => (
                               <div key={type} className="flex-1">
-                                  <RadioGroupItem value={type} id={`form-type-${type}`} className="sr-only" />
-                                  <Label htmlFor={`form-type-${type}`} className={cn(
-                                      "flex items-center justify-center h-full rounded-xl text-[10px] font-black uppercase cursor-pointer transition-all",
-                                      formData.orderType === type ? "bg-white shadow-lg text-primary scale-95" : "text-muted-foreground hover:text-foreground"
-                                  )}>
+                                  <span 
+                                      role="button"
+                                      onClick={() => setFormData(p => ({ ...p, orderType: type as any }))}
+                                      className={cn(
+                                          "flex items-center justify-center h-full rounded-xl text-[10px] font-black uppercase cursor-pointer transition-all select-none",
+                                          formData.orderType === type ? "bg-white shadow-lg text-primary scale-95" : "text-muted-foreground hover:text-foreground"
+                                      )}
+                                  >
                                       {type}
-                                  </Label>
+                                  </span>
                               </div>
                           ))}
-                      </RadioGroup>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -469,7 +471,7 @@ export default function DailyOfferTable() {
                     </div>
                   </div>
 
-                  <Accordion type="multiple" defaultValue={Object.keys(groupedMenuItems)} className="space-y-4">
+                  <Accordion type="multiple" defaultValue={[]} className="space-y-4">
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
                       const selectedCount = items.filter(i => (formData.menuItemIds || []).includes(i.id)).length;
                       return (
@@ -507,7 +509,7 @@ export default function DailyOfferTable() {
                                     <Checkbox 
                                       id={`item-${item.id}`} 
                                       checked={isChecked}
-                                      onCheckedChange={() => {}} // Controlled by parent div click
+                                      onCheckedChange={() => {}} 
                                       className="h-6 w-6 border-2 pointer-events-none"
                                     />
                                     <div className="flex-1 min-w-0">
