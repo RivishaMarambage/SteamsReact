@@ -531,7 +531,7 @@ export default function DailyOfferTable() {
 
                 <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                        <div className="space-y-1 text-center sm:text-left">
+                        <div className="space-y-1">
                           <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Tier-Based Discounts</h3>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customize savings for each loyalty level</p>
                         </div>
