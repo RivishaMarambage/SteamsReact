@@ -10,18 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Search, FilterX, ChevronRight, Check, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Tag, Search, FilterX, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { addDays, format, parseISO } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
-import { Calendar } from '../ui/calendar';
-import { DateRange } from 'react-day-picker';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -107,16 +104,6 @@ export default function DailyOfferTable() {
     setFormData(prev => ({ ...prev, [name]: value }));
   }, []);
 
-  const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
-    if (range?.from) {
-      setFormData(prev => ({
-        ...prev,
-        offerStartDate: format(range.from!, 'yyyy-MM-dd'),
-        offerEndDate: range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from!, 'yyyy-MM-dd'),
-      }));
-    }
-  }, []);
-
   const handleToggleItem = useCallback((itemId: string) => {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
@@ -170,7 +157,7 @@ export default function DailyOfferTable() {
       menuItemIds: offer.menuItemIds || [],
       offerStartDate: offer.offerStartDate || format(new Date(), 'yyyy-MM-dd'),
       offerEndDate: offer.offerEndDate || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-      discountType: (offer.discountType as string) === 'percent' ? 'percentage' : (offer.discountType || 'fixed'),
+      discountType: (offer.discountType as string) === 'percent' ? 'percentage' : (offer.discountType || 'percentage'),
       orderType: offer.orderType || 'Both',
       tierDiscounts,
     });
@@ -221,11 +208,6 @@ export default function DailyOfferTable() {
     }
   };
   
-  const calendarRange = useMemo((): DateRange => ({
-    from: formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined,
-    to: formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined,
-  }), [formData.offerStartDate, formData.offerEndDate]);
-
   if (isLoading) {
     return (
         <Card className="shadow-lg">
@@ -289,7 +271,7 @@ export default function DailyOfferTable() {
                         <div className="flex flex-col gap-1">
                         {loyaltyLevels.map(level => {
                             const discount = offer.tierDiscounts?.[level.id];
-                            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+                            const isPercentage = (offer.discountType as string) === 'percentage';
                             if (discount > 0) {
                                 return (
                                     <div key={level.id} className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
@@ -352,18 +334,23 @@ export default function DailyOfferTable() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="grid gap-3">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Validity</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                              <Button variant={"outline"} type="button" className={cn("w-full justify-start text-left font-mono h-14 rounded-2xl px-6 border-2")}>
-                                <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                                {formData.offerStartDate} to {formData.offerEndDate}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar initialFocus mode="range" defaultMonth={calendarRange.from} selected={calendarRange} onSelect={handleDateRangeChange} numberOfMonths={2} />
-                          </PopoverContent>
-                        </Popover>
+                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Validity Period</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="date" 
+                          name="offerStartDate" 
+                          value={formData.offerStartDate} 
+                          onChange={handleFormChange} 
+                          className="h-14 rounded-2xl px-4 border-2 font-mono"
+                        />
+                        <Input 
+                          type="date" 
+                          name="offerEndDate" 
+                          value={formData.offerEndDate} 
+                          onChange={handleFormChange} 
+                          className="h-14 rounded-2xl px-4 border-2 font-mono"
+                        />
+                      </div>
                     </div>
                     <div className="grid gap-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Type</Label>
@@ -406,7 +393,7 @@ export default function DailyOfferTable() {
                       
                       return (
                         <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
-                          <div className="flex items-center bg-muted/5 pr-4">
+                          <div className="flex items-center bg-muted/5 pr-4 group/header">
                             <AccordionTrigger className="px-6 h-16 hover:no-underline flex-1">
                                 <div className="flex items-center gap-3">
                                     <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
@@ -416,7 +403,11 @@ export default function DailyOfferTable() {
                             <span 
                                 role="button"
                                 className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer select-none"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleCategory(categoryName); }}
+                                onClick={(e) => { 
+                                  e.preventDefault(); 
+                                  e.stopPropagation(); 
+                                  handleToggleCategory(categoryName); 
+                                }}
                             >
                                 {allSelectedInCat ? 'Deselect Section' : 'Select Section'}
                             </span>
@@ -493,7 +484,7 @@ export default function DailyOfferTable() {
             <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4 shrink-0">
               <Button type="button" variant="ghost" onClick={() => setFormOpen(false)} className="flex-1 h-16 rounded-full font-black uppercase tracking-widest text-muted-foreground">Discard</Button>
               <Button type="submit" className="flex-1 h-16 rounded-full font-black uppercase tracking-widest shadow-2xl">
-                {selectedOffer ? 'Update' : 'Launch'}
+                {selectedOffer ? 'Update Promotion' : 'Launch Promotion'}
               </Button>
             </div>
           </form>
