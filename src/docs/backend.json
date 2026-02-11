@@ -32,196 +32,22 @@
       },
       "required": ["id", "email", "name", "role"]
     },
-    "GameProfile": {
-      "title": "User Game Profile",
-      "type": "object",
-      "description": "Stores a user's daily game-related stats.",
-      "properties": {
-        "lastPlayedDate": { "type": "string", "description": "The last date (YYYY-MM-DD) the user played a game, used for resetting daily limits." },
-        "triviaCount": { "type": "number", "description": "Number of trivia questions answered today." },
-        "spinCount": { "type": "number", "description": "Number of times the user has played the spin game today." },
-        "cupCount": { "type": "number", "description": "Number of times the user has played the cup game today." }
-      },
-      "required": ["lastPlayedDate", "triviaCount", "spinCount", "cupCount"]
-    },
-    "DailyGameWinners": {
-      "title": "Daily Game Winners",
-      "type": "object",
-      "description": "A document storing the UID of the daily grand prize winner for each game. The document ID is the date (YYYY-MM-DD).",
-      "properties": {
-        "spinWinner": { "type": ["string", "null"], "description": "UID of the user who won the Spin to Win grand prize." },
-        "luckyWinner": { "type": ["string", "null"], "description": "UID of the user who won the Lucky Cup grand prize." },
-        "triviaWinner": { "type": ["string", "null"], "description": "UID of the user who won the Trivia Quest grand prize." }
-      }
-    },
-    "MenuItemAddonGroup": {
-      "title": "Menu Item Add-on Group",
-      "type": "object",
-      "description": "Defines rules for an add-on category on a specific menu item.",
-      "properties": {
-        "addonCategoryId": { "type": "string", "description": "ID of the AddonCategory." },
-        "isRequired": { "type": "boolean", "description": "Whether a selection from this group is mandatory." },
-        "minSelection": { "type": "number", "description": "The minimum number of addons a user must select." },
-        "maxSelection": { "type": "number", "description": "The maximum number of addons a user can select." }
-      },
-      "required": ["addonCategoryId", "isRequired", "minSelection", "maxSelection"]
-    },
-    "MenuItem": {
-      "title": "Menu Item",
-      "type": "object",
-      "description": "A single item available on the cafe's menu.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the menu item." },
-        "name": { "type": "string", "description": "Name of the menu item." },
-        "description": { "type": "string", "description": "A brief description of the item." },
-        "price": { "type": "number", "description": "Price of the item." },
-        "categoryId": { "type": "string", "description": "The ID of the category this item belongs to." },
-        "imageUrl": { "type": "string", "description": "URL of an image for the menu item." },
-        "isOutOfStock": { "type": "boolean", "description": "Whether the item is currently out of stock." },
-        "addonGroups": {
-          "type": "array",
-          "items": { "$ref": "#/entities/MenuItemAddonGroup" },
-          "description": "Configuration for applicable addon groups and their rules."
-        }
-      },
-      "required": ["id", "name", "price", "categoryId"]
-    },
-    "AddonCategory": {
-        "title": "Add-on Category",
-        "type": "object",
-        "description": "A category for organizing add-ons (e.g., 'Milk Options', 'Syrups').",
-        "properties": {
-            "id": { "type": "string", "description": "Unique ID for the addon category." },
-            "name": { "type": "string", "description": "Name of the category." },
-            "description": { "type": "string", "description": "A brief description of the category." }
-        },
-        "required": ["id", "name"]
-    },
-    "Addon": {
-      "title": "Addon",
-      "type": "object",
-      "description": "A customization option for a menu item, like 'Extra Shot' or 'Almond Milk'.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the addon." },
-        "name": { "type": "string", "description": "Name of the addon (e.g., 'Extra Shot')." },
-        "price": { "type": "number", "description": "Additional price for this addon." },
-        "addonCategoryId": { "type": "string", "description": "The ID of the addon category this addon belongs to." }
-      },
-      "required": ["id", "name", "price", "addonCategoryId"]
-    },
-    "Category": {
-      "title": "Category",
-      "type": "object",
-      "description": "A category for organizing menu items.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the category." },
-        "name": { "type": "string", "description": "Name of the category (e.g., 'Coffee Classics')." },
-        "type": { "type": "string", "enum": ["Food", "Beverages"], "description": "The main group this category belongs to." }
-      },
-      "required": ["id", "name", "type"]
-    },
-    "LoyaltyLevel": {
-      "title": "Loyalty Level",
-      "type": "object",
-      "description": "Defines a tier in the loyalty program.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the loyalty level (e.g., 'gold')." },
-        "name": { "type": "string", "description": "Display name of the level (e.g., 'Gold')." },
-        "minimumPoints": { "type": "number", "description": "Points required to reach this level." }
-      },
-      "required": ["id", "name", "minimumPoints"]
-    },
-     "OrderItem": {
-      "title": "Order Item",
-      "type": "object",
-      "description": "Represents a single item within an order, including customizations.",
-      "properties": {
-        "menuItemId": { "type": "string" },
-        "menuItemName": { "type": "string" },
-        "quantity": { "type": "number" },
-        "basePrice": { "type": "number" },
-        "totalPrice": { "type": "number" },
-        "addons": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "addonId": { "type": "string" },
-              "addonName": { "type": "string" },
-              "addonPrice": { "type": "number" }
-            }
-          }
-        },
-        "appliedDailyOfferId": {
-          "type": "string",
-          "description": "The ID of the daily offer applied to this item, if any."
-        }
-      },
-      "required": ["menuItemId", "menuItemName", "quantity", "basePrice", "totalPrice"]
-    },
-    "Order": {
-      "title": "Order",
-      "type": "object",
-      "description": "Represents a customer's order for pickup.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the order." },
-        "customerId": { "type": "string", "description": "The UID of the user who placed the order." },
-        "orderDate": { "type": "string", "format": "date-time", "description": "Timestamp of when the order was placed." },
-        "totalAmount": { "type": "number", "description": "Total cost of the order." },
-        "status": { "type": "string", "enum": ["Placed", "Processing", "Ready for Pickup", "Completed", "Rejected"], "description": "Current status of the order." },
-        "paymentStatus": { "type": "string", "enum": ["Paid", "Unpaid"], "description": "The payment status of the order." },
-        "transactionId": { "type": "string", "description": "The transaction ID from the payment gateway." },
-        "orderItems": {
-          "type": "array",
-          "items": { "$ref": "#/entities/OrderItem" },
-          "description": "List of items included in the order."
-        },
-        "orderType": {
-            "type": "string",
-            "enum": ["Dine-in", "Takeaway"],
-            "description": "The type of order."
-        },
-        "tableNumber": {
-            "type": "string",
-            "description": "The table number for dine-in orders."
-        },
-        "pointsRedeemed": {
-          "type": "number",
-          "description": "The number of loyalty points redeemed for this order."
-        },
-        "discountApplied": {
-          "type": "number",
-          "description": "The monetary discount applied to this order from redeemed points."
-        },
-        "serviceCharge": {
-            "type": "number",
-            "description": "The service charge applied to the order (e.g., for dine-in)."
-        },
-        "pointsToEarn": {
-          "type": "number",
-          "description": "The number of loyalty points to be awarded when the order is completed."
-        },
-        "welcomeOfferApplied": {
-          "type": "boolean",
-          "description": "Whether a welcome offer discount was applied to this order."
-        }
-      },
-      "required": ["id", "customerId", "orderDate", "totalAmount", "status", "orderItems", "orderType"]
-    },
     "DailyOffer": {
       "title": "Daily Offer",
       "type": "object",
-      "description": "Represents a special daily offer for a menu item.",
+      "description": "Represents a special daily offer for one or more menu items.",
       "properties": {
         "id": { "type": "string", "description": "Unique ID for the offer." },
         "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
-        "menuItemId": { "type": "string", "description": "The ID of the menu item on offer." },
+        "menuItemIds": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of menu item IDs this offer applies to."
+        },
         "tierDiscounts": {
           "type": "object",
           "description": "A map of loyalty tier IDs to their specific discount value.",
-          "additionalProperties": {
-            "type": "number"
-          }
+          "additionalProperties": { "type": "number" }
         },
         "discountType": {
             "type": "string",
@@ -230,35 +56,13 @@
         },
         "orderType": {
             "type": "string",
-            "enum": ["Dine-in", "Takeaway"],
+            "enum": ["Dine-in", "Takeaway", "Both"],
             "description": "The type of order the offer applies to."
         },
         "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
         "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
       },
-      "required": ["id", "title", "menuItemId", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
-    },
-    "PointTransaction": {
-      "title": "Point Transaction",
-      "type": "object",
-      "description": "A record of points being earned or redeemed.",
-      "properties": {
-        "id": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
-        "type": { "type": "string", "enum": ["earn", "redeem"] }
-      },
-      "required": ["id", "date", "description", "amount", "type"]
-    },
-    "MobileNumberLookup": {
-      "title": "Mobile Number Lookup",
-      "type": "object",
-      "description": "A public document used to enforce uniqueness of mobile numbers.",
-      "properties": {
-        "userId": { "type": "string", "description": "The UID of the user associated with this mobile number." }
-      },
-      "required": ["userId"]
+      "required": ["id", "title", "menuItemIds", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
     }
   },
   "auth": {
@@ -269,53 +73,13 @@
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores user profile data. Secured by user ID."
     },
-    "/users/{userId}/data/game_profile": {
-      "schema": { "$ref": "#/entities/GameProfile" },
-      "description": "Stores a user's private game profile data. Subcollection for extensibility."
-    },
-    "/daily_game_winners/{date}": {
-      "schema": { "$ref": "#/entities/DailyGameWinners" },
-      "description": "Publicly readable list of daily game winners. Writable only via transaction."
-    },
     "/menu_items/{menuItemId}": {
       "schema": { "$ref": "#/entities/MenuItem" },
       "description": "Publicly readable list of all menu items."
     },
-     "/addons/{addonId}": {
-      "schema": { "$ref": "#/entities/Addon" },
-      "description": "Publicly readable list of all addons."
-    },
-    "/addon_categories/{addonCategoryId}": {
-      "schema": { "$ref": "#/entities/AddonCategory" },
-      "description": "Publicly readable list of all addon categories."
-    },
-    "/categories/{categoryId}": {
-      "schema": { "$ref": "#/entities/Category" },
-      "description": "Publicly readable list of all menu categories."
-    },
-    "/loyalty_levels/{loyaltyLevelId}": {
-      "schema": { "$ref": "#/entities/LoyaltyLevel" },
-      "description": "Publicly readable list of all loyalty levels."
-    },
-    "/orders/{orderId}": {
-      "schema": { "$ref": "#/entities/Order" },
-      "description": "Root collection for all orders. Used by staff and admins for management."
-    },
-    "/users/{userId}/orders/{orderId}": {
-      "schema": { "$ref": "#/entities/Order" },
-      "description": "A customer's private copy of their order history. Path-based ownership."
-    },
     "/daily_offers/{offerId}": {
       "schema": { "$ref": "#/entities/DailyOffer" },
       "description": "Publicly readable list of daily offers. Writable only by admins."
-    },
-    "/users/{userId}/point_transactions/{transactionId}": {
-      "schema": { "$ref": "#/entities/PointTransaction" },
-      "description": "A user's history of point earnings and redemptions."
-    },
-    "/mobile_numbers/{mobileNumber}": {
-      "schema": { "$ref": "#/entities/MobileNumberLookup" },
-      "description": "Publicly readable collection for mobile number uniqueness checks. Writeable only by the user creating their profile."
     }
   }
 }

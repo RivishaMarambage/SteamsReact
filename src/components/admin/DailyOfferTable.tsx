@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, CheckCircle2, Circle, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -24,6 +24,9 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Calendar } from '../ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
 
 const today = new Date();
 
@@ -35,7 +38,7 @@ const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
 
   return {
     title: '',
-    menuItemId: '',
+    menuItemIds: [],
     offerStartDate: format(today, 'yyyy-MM-dd'),
     offerEndDate: format(addDays(today, 7), 'yyyy-MM-dd'),
     tierDiscounts,
@@ -63,14 +66,12 @@ export default function DailyOfferTable() {
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
   
-  // Filter out "Standard" tier
   const loyaltyLevels = useMemo(() => {
     if (!loyaltyLevelsRaw) return [];
     return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard');
   }, [loyaltyLevelsRaw]);
 
   const [formData, setFormData] = useState(getInitialFormData(loyaltyLevels));
-  const [formCategoryFilter, setFormCategoryFilter] = useState('all');
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: today,
@@ -84,20 +85,28 @@ export default function DailyOfferTable() {
     if (!offers || !menuItems) return [];
     
     return offers.filter(offer => {
-      const item = menuItems.find(m => m.id === offer.menuItemId);
+      const itemsInOffer = menuItems.filter(m => offer.menuItemIds?.includes(m.id));
+      const itemNames = itemsInOffer.map(i => i.name.toLowerCase()).join(' ');
+      
       const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           item?.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || item?.categoryId === categoryFilter;
+                           itemNames.includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = categoryFilter === 'all' || itemsInOffer.some(i => i.categoryId === categoryFilter);
       
       return matchesSearch && matchesCategory;
     }).sort((a, b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || ''));
   }, [offers, menuItems, searchTerm, categoryFilter]);
 
-  const formMenuItems = useMemo(() => {
-    if (!menuItems) return [];
-    if (formCategoryFilter === 'all') return menuItems;
-    return menuItems.filter(item => item.categoryId === formCategoryFilter);
-  }, [menuItems, formCategoryFilter]);
+  const groupedMenuItems = useMemo(() => {
+    if (!menuItems || !categories) return {};
+    return categories.reduce((acc, cat) => {
+      const items = menuItems.filter(item => item.categoryId === cat.id);
+      if (items.length > 0) {
+        acc[cat.name] = items;
+      }
+      return acc;
+    }, {} as Record<string, MenuItem[]>);
+  }, [menuItems, categories]);
 
   useEffect(() => {
     if (loyaltyLevels.length > 0 && !selectedOffer) {
@@ -116,12 +125,9 @@ export default function DailyOfferTable() {
           return acc;
         }, {} as Record<string, number>);
 
-        const item = menuItems?.find(m => m.id === selectedOffer.menuItemId);
-        setFormCategoryFilter(item?.categoryId || 'all');
-
         setFormData({
           title: selectedOffer.title,
-          menuItemId: selectedOffer.menuItemId,
+          menuItemIds: selectedOffer.menuItemIds || [],
           offerStartDate: selectedOffer.offerStartDate,
           offerEndDate: selectedOffer.offerEndDate,
           discountType: selectedOffer.discountType,
@@ -131,7 +137,6 @@ export default function DailyOfferTable() {
         setDateRange({ from: fromDate, to: toDate });
       } else if (loyaltyLevels.length > 0) {
         setFormData(getInitialFormData(loyaltyLevels));
-        setFormCategoryFilter('all');
         setDateRange({ from: today, to: addDays(today, 7) });
       }
     }
@@ -147,24 +152,45 @@ export default function DailyOfferTable() {
     }
   }, [dateRange]);
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-     setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleToggleItem = (itemId: string) => {
+    setFormData(prev => {
+      const current = prev.menuItemIds || [];
+      if (current.includes(itemId)) {
+        return { ...prev, menuItemIds: current.filter(id => id !== itemId) };
+      }
+      return { ...prev, menuItemIds: [...current, itemId] };
+    });
   };
 
-  const handleTierDiscountChange = (tierId: string, value: string) => {
-    const numericValue = value === '' ? 0 : parseFloat(value);
-    setFormData(prev => ({
-      ...prev,
-      tierDiscounts: {
-        ...prev.tierDiscounts,
-        [tierId]: numericValue,
-      }
-    }))
-  }
+  const handleSelectAll = () => {
+    if (!menuItems) return;
+    setFormData(prev => ({ ...prev, menuItemIds: menuItems.map(m => m.id) }));
+  };
+
+  const handleDeselectAll = () => {
+    setFormData(prev => ({ ...prev, menuItemIds: [] }));
+  };
+
+  const handleToggleCategory = (categoryName: string) => {
+    const itemsInCategory = groupedMenuItems[categoryName];
+    if (!itemsInCategory) return;
+    
+    const itemIds = itemsInCategory.map(i => i.id);
+    const currentlySelected = formData.menuItemIds || [];
+    const allSelected = itemIds.every(id => currentlySelected.includes(id));
+
+    if (allSelected) {
+      setFormData(prev => ({
+        ...prev,
+        menuItemIds: currentlySelected.filter(id => !itemIds.includes(id))
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        menuItemIds: Array.from(new Set([...currentlySelected, ...itemIds]))
+      }));
+    }
+  };
 
   const handleEdit = (offer: DailyOffer) => {
     setSelectedOffer(offer);
@@ -194,8 +220,8 @@ export default function DailyOfferTable() {
     e.preventDefault();
     if (!firestore) return;
 
-    if (!formData.title || !formData.menuItemId || !formData.offerStartDate || !formData.offerEndDate) {
-        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all fields." });
+    if (!formData.title || !formData.menuItemIds?.length || !formData.offerStartDate || !formData.offerEndDate) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all fields and select at least one item." });
         return;
     }
 
@@ -228,9 +254,6 @@ export default function DailyOfferTable() {
         </Card>
     )
   }
-
-  const getMenuItemName = (menuItemId: string) => menuItems?.find(m => m.id === menuItemId)?.name || 'N/A';
-  const getCategoryName = (categoryId: string) => categories?.find(c => c.id === categoryId)?.name || 'N/A';
 
   return (
     <Card className="shadow-lg">
@@ -278,7 +301,7 @@ export default function DailyOfferTable() {
                 <TableRow>
                 <TableHead>Date Range</TableHead>
                 <TableHead>Offer Title</TableHead>
-                <TableHead>Menu Item</TableHead>
+                <TableHead>Target Items</TableHead>
                 <TableHead>Order Type</TableHead>
                 <TableHead>Discounts</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -289,7 +312,11 @@ export default function DailyOfferTable() {
                     <TableRow key={offer.id}>
                     <TableCell><Badge variant="outline">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
                     <TableCell className="font-bold">{offer.title}</TableCell>
-                    <TableCell>{getMenuItemName(offer.menuItemId)}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="secondary"><Package className="h-3 w-3 mr-1" /> {offer.menuItemIds?.length || 0} Items</Badge>
+                        </div>
+                    </TableCell>
                     <TableCell><Badge variant="secondary">{offer.orderType || 'Both'}</Badge></TableCell>
                     <TableCell>
                         <div className="flex flex-col gap-1">
@@ -335,7 +362,7 @@ export default function DailyOfferTable() {
                             <CardTitle className="text-lg">{offer.title}</CardTitle>
                             <Badge variant="secondary">{offer.orderType || 'Both'}</Badge>
                         </div>
-                        <CardDescription>{getMenuItemName(offer.menuItemId)}</CardDescription>
+                        <CardDescription>{offer.menuItemIds?.length || 0} Items Selected</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -376,120 +403,168 @@ export default function DailyOfferTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-[2rem]">
-          <form onSubmit={handleFormSubmit}>
-            <DialogHeader>
-              <DialogTitle className="font-headline">{selectedOffer ? 'Edit Offer' : 'Add New Offer'}</DialogTitle>
-              <DialogDescription>Configure details and tier discounts for this promotion.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Offer Title</Label>
-                <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required placeholder="e.g., Muffin Monday" />
-              </div>
-
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="grid gap-2">
-                    <Label>Menu Category Filter</Label>
-                    <Select value={formCategoryFilter} onValueChange={setFormCategoryFilter}>
-                        <SelectTrigger className="rounded-xl h-10">
-                            <SelectValue placeholder="All Categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {categories?.map(cat => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                 </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="menuItemId">Menu Item</Label>
-                    <select
-                      id="menuItemId"
-                      name="menuItemId"
-                      value={formData.menuItemId || ''}
-                      onChange={handleFormChange}
-                      required
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    >
-                      <option value="" disabled>Select an item</option>
-                      {formMenuItems.map(item => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2rem]">
+          <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
+            <div className="p-8 border-b bg-muted/10">
+              <DialogHeader>
+                <DialogTitle className="font-headline">{selectedOffer ? 'Edit Offer' : 'Add New Offer'}</DialogTitle>
+                <DialogDescription>Apply discounts to multiple menu items across various tiers.</DialogDescription>
+              </DialogHeader>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              <div className="p-8 space-y-10">
+                <div className="grid gap-6">
                   <div className="grid gap-2">
-                    <Label>Date Range</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10", !dateRange && "text-muted-foreground")}>
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}</> : format(dateRange.from, "LLL dd")) : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
-                        </PopoverContent>
-                      </Popover>
+                    <Label htmlFor="title">Offer Title</Label>
+                    <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required placeholder="e.g., Muffin Monday" className="h-12 rounded-xl" />
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Order Type</Label>
-                    <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...p, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-lg">
-                        {['Both', 'Dine-in', 'Takeaway'].map((type) => (
-                            <div key={type} className="flex-1">
-                                <RadioGroupItem value={type} id={`form-type-${type}`} className="sr-only" />
-                                <Label htmlFor={`form-type-${type}`} className={cn(
-                                    "flex items-center justify-center h-8 rounded-md text-[10px] font-bold uppercase cursor-pointer transition-all",
-                                    formData.orderType === type ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
-                                )}>
-                                    {type}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid gap-2">
+                      <Label>Date Range</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-12 rounded-xl", !dateRange && "text-muted-foreground")}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}</> : format(dateRange.from, "LLL dd")) : <span>Pick a date</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                          </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Order Type</Label>
+                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...p, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-xl h-12">
+                          {['Both', 'Dine-in', 'Takeaway'].map((type) => (
+                              <div key={type} className="flex-1">
+                                  <RadioGroupItem value={type} id={`form-type-${type}`} className="sr-only" />
+                                  <Label htmlFor={`form-type-${type}`} className={cn(
+                                      "flex items-center justify-center h-full rounded-lg text-[10px] font-black uppercase cursor-pointer transition-all",
+                                      formData.orderType === type ? "bg-white shadow-md text-primary" : "text-muted-foreground hover:text-foreground"
+                                  )}>
+                                      {type}
+                                  </Label>
+                              </div>
+                          ))}
+                      </RadioGroup>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-6">
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-base font-headline uppercase tracking-tight">Select Menu Items</Label>
+                      <p className="text-xs text-muted-foreground">Select multiple items to apply this offer.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase" onClick={handleSelectAll}>Select All</Button>
+                      <Button type="button" variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-destructive" onClick={handleDeselectAll}>Clear</Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    {Object.entries(groupedMenuItems).map(([categoryName, items]) => (
+                      <div key={categoryName} className="space-y-4">
+                        <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                          <h4 className="font-black text-xs uppercase tracking-[0.2em] text-primary">{categoryName}</h4>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[9px] font-black uppercase px-2 hover:bg-primary/10"
+                            onClick={() => handleToggleCategory(categoryName)}
+                          >
+                            Toggle Category
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {items.map(item => {
+                            const isChecked = formData.menuItemIds?.includes(item.id);
+                            return (
+                              <div 
+                                key={item.id} 
+                                className={cn(
+                                  "flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer",
+                                  isChecked ? "bg-primary/5 border-primary shadow-inner" : "border-muted hover:border-primary/30"
+                                )}
+                                onClick={() => handleToggleItem(item.id)}
+                              >
+                                <Checkbox 
+                                  id={`item-${item.id}`} 
+                                  checked={isChecked}
+                                  onCheckedChange={() => handleToggleItem(item.id)}
+                                  className="h-5 w-5"
+                                />
+                                <Label htmlFor={`item-${item.id}`} className="flex-1 text-sm font-bold truncate cursor-pointer">
+                                  {item.name}
                                 </Label>
-                            </div>
-                        ))}
-                    </RadioGroup>
+                                <span className="text-[10px] font-black text-muted-foreground">LKR {item.price.toFixed(0)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-               </div>
+                </div>
 
-                <div className="p-4 border-2 rounded-2xl space-y-6">
+                <Separator />
+
+                <div className="p-6 border-2 border-primary/10 bg-primary/5 rounded-[2rem] space-y-8">
                     <div className="flex items-center justify-between">
-                        <Label className="text-base font-headline uppercase tracking-tight">Tier Discounts</Label>
+                        <div className="space-y-1">
+                          <Label className="text-base font-headline uppercase tracking-tight">Tier Discounts</Label>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Set specific savings per level</p>
+                        </div>
                         <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))} className="flex gap-4">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="fixed" id="form-discount-fixed" />
-                                <Label htmlFor="form-discount-fixed" className='flex items-center gap-1 text-xs font-bold'>LKR</Label>
+                                <Label htmlFor="form-discount-fixed" className='flex items-center gap-1 text-xs font-black'>LKR</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="percentage" id="form-discount-percent" />
-                                <Label htmlFor="form-discount-percent" className='flex items-center gap-1 text-xs font-bold'><Percent className="h-3 w-3"/> %</Label>
+                                <Label htmlFor="form-discount-percent" className='flex items-center gap-1 text-xs font-black'><Percent className="h-3 w-3"/> %</Label>
                             </div>
                         </RadioGroup>
                     </div>
-                    <div className='grid grid-cols-2 gap-4'>
+                    <div className='grid grid-cols-2 gap-6'>
                         {loyaltyLevels.map(level => (
                         <div className="grid gap-2" key={level.id}>
-                            <Label htmlFor={`tier-${level.id}`} className='capitalize text-xs font-bold text-muted-foreground'>{level.name}</Label>
+                            <Label htmlFor={`tier-${level.id}`} className='capitalize text-[10px] font-black text-muted-foreground uppercase tracking-widest'>{level.name}</Label>
                             <Input
                             id={`tier-${level.id}`}
                             type="number"
                             step="0.01"
-                            className="h-10 rounded-xl"
+                            className="h-12 rounded-xl bg-white border-primary/20 focus:ring-primary font-bold"
                             placeholder={formData.discountType === 'fixed' ? 'LKR' : '%'}
                             value={formData.tierDiscounts[level.id] || 0}
-                            onChange={(e) => handleTierDiscountChange(level.id, e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                              setFormData(prev => ({
+                                ...prev,
+                                tierDiscounts: { ...prev.tierDiscounts, [level.id]: val }
+                              }))
+                            }}
                             />
                         </div>
                         ))}
                     </div>
                 </div>
+              </div>
+            </ScrollArea>
+
+            <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)} className="flex-1 h-14 rounded-full font-black uppercase tracking-widest">Cancel</Button>
+              <Button type="submit" className="flex-1 h-14 rounded-full font-black uppercase tracking-widest shadow-xl">
+                {selectedOffer ? 'Update Promotion' : 'Launch Promotion'}
+              </Button>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)} className="rounded-full px-6">Cancel</Button>
-              <Button type="submit" className="rounded-full px-8">Save Promotion</Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -498,7 +573,7 @@ export default function DailyOfferTable() {
         <AlertDialogContent className="rounded-[2rem]">
             <AlertDialogHeader>
             <AlertDialogTitle className="font-headline">Delete Promotion?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently remove this offer. Customers will no longer see these discounts.</AlertDialogDescription>
+            <AlertDialogDescription>This will permanently remove this offer from all associated menu items. This action cannot be undone.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full px-6">Keep it</AlertDialogCancel>

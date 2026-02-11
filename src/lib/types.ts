@@ -119,7 +119,7 @@ export type Order = {
 
 export type DailyOffer = {
   id: string;
-  menuItemId: string;
+  menuItemIds: string[]; // Updated to support multiple items
   offerStartDate: string; // Stored as YYYY-MM-DD string
   offerEndDate: string; // Stored as YYYY-MM-DD string
   title: string;
