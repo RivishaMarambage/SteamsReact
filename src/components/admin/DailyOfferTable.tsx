@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -70,7 +71,6 @@ export default function DailyOfferTable() {
   }, [loyaltyLevelsRaw]);
 
   const [formData, setFormData] = useState<Omit<DailyOffer, 'id'>>(() => getInitialFormData([]));
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { toast } = useToast();
 
   const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading || areCategoriesLoading;
@@ -103,59 +103,22 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
-  // Unified Form Initialization Effect
-  useEffect(() => {
-    if (isFormOpen && loyaltyLevels.length > 0) {
-      if (selectedOffer) {
-        const fromDate = selectedOffer.offerStartDate ? parseISO(selectedOffer.offerStartDate) : new Date();
-        const toDate = selectedOffer.offerEndDate ? parseISO(selectedOffer.offerEndDate) : addDays(new Date(), 7);
-        
-        const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
-          acc[level.id] = selectedOffer.tierDiscounts?.[level.id] || 0;
-          return acc;
-        }, {} as Record<string, number>);
-
-        setFormData({
-          title: selectedOffer.title || '',
-          menuItemIds: selectedOffer.menuItemIds || [],
-          offerStartDate: selectedOffer.offerStartDate || format(fromDate, 'yyyy-MM-dd'),
-          offerEndDate: selectedOffer.offerEndDate || format(toDate, 'yyyy-MM-dd'),
-          discountType: selectedOffer.discountType || 'fixed',
-          orderType: selectedOffer.orderType || 'Both',
-          tierDiscounts,
-        });
-        setDateRange({ from: fromDate, to: toDate });
-      } else {
-        setFormData(getInitialFormData(loyaltyLevels));
-        const today = new Date();
-        setDateRange({ from: today, to: addDays(today, 7) });
-      }
-    }
-  }, [isFormOpen, selectedOffer, loyaltyLevels]);
-
-  // Date Sync Effect (One-way)
-  useEffect(() => {
-    if (dateRange?.from && dateRange?.to) {
-        const start = format(dateRange.from, 'yyyy-MM-dd');
-        const end = format(dateRange.to, 'yyyy-MM-dd');
-        
-        setFormData(prev => {
-            if (prev.offerStartDate === start && prev.offerEndDate === end) return prev;
-            return {
-                ...prev,
-                offerStartDate: start,
-                offerEndDate: end,
-            };
-        });
-    }
-  }, [dateRange]);
-
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range?.from) {
+      setFormData(prev => ({
+        ...prev,
+        offerStartDate: format(range.from!, 'yyyy-MM-dd'),
+        offerEndDate: range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from!, 'yyyy-MM-dd'),
+      }));
+    }
   };
 
   const handleToggleItem = (itemId: string) => {
@@ -199,11 +162,26 @@ export default function DailyOfferTable() {
   };
 
   const handleEdit = (offer: DailyOffer) => {
+    const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
+      acc[level.id] = offer.tierDiscounts?.[level.id] || 0;
+      return acc;
+    }, {} as Record<string, number>);
+
+    setFormData({
+      title: offer.title || '',
+      menuItemIds: offer.menuItemIds || [],
+      offerStartDate: offer.offerStartDate || format(new Date(), 'yyyy-MM-dd'),
+      offerEndDate: offer.offerEndDate || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
+      discountType: offer.discountType || 'fixed',
+      orderType: offer.orderType || 'Both',
+      tierDiscounts,
+    });
     setSelectedOffer(offer);
     setFormOpen(true);
   };
 
   const handleAddNew = () => {
+    setFormData(getInitialFormData(loyaltyLevels));
     setSelectedOffer(null);
     setFormOpen(true);
   };
@@ -263,6 +241,11 @@ export default function DailyOfferTable() {
         </Card>
     )
   }
+
+  const calendarRange: DateRange = {
+    from: formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined,
+    to: formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined,
+  };
 
   return (
     <Card className="shadow-lg">
@@ -436,19 +419,19 @@ export default function DailyOfferTable() {
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Validity</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-mono h-14 rounded-2xl px-6 border-2", !dateRange && "text-muted-foreground")}>
+                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-mono h-14 rounded-2xl px-6 border-2")}>
                                 <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                                {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "yyyy-MM-dd")} to {format(dateRange.to, "yyyy-MM-dd")}</> : format(dateRange.from, "yyyy-MM-dd")) : <span>Pick dates</span>}
+                                {formData.offerStartDate} to {formData.offerEndDate}
                               </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                            <Calendar initialFocus mode="range" defaultMonth={calendarRange.from} selected={calendarRange} onSelect={handleDateRangeChange} numberOfMonths={2} />
                           </PopoverContent>
                         </Popover>
                     </div>
                     <div className="grid gap-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Type Support</Label>
-                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...prev, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
+                      <RadioGroup value={formData.orderType} onValueChange={(v) => setFormData(p => ({ ...p, orderType: v as any }))} className="flex gap-2 bg-muted/50 p-1 rounded-2xl h-14">
                           {['Both', 'Dine-in', 'Takeaway'].map((type) => (
                               <div key={type} className="flex-1">
                                   <RadioGroupItem value={type} id={`form-type-${type}`} className="sr-only" />
@@ -535,7 +518,7 @@ export default function DailyOfferTable() {
                           <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Tier-Based Discounts</h3>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customize savings for each loyalty level</p>
                         </div>
-                        <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...prev, discountType: v as any }))} className="flex gap-4 bg-white/50 p-1.5 rounded-full shadow-inner border border-white">
+                        <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))} className="flex gap-4 bg-white/50 p-1.5 rounded-full shadow-inner border border-white">
                             <div className="flex items-center">
                                 <RadioGroupItem value="fixed" id="form-discount-fixed" className="sr-only" />
                                 <Label htmlFor="form-discount-fixed" className={cn(
