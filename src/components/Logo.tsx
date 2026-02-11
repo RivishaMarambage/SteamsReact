@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,7 @@ export function Logo({ className, link = "/" }: { className?: string; link?: str
         width={160}
         height={40}
         priority
-        style={{ width: 'auto', height: '40px' }}
+        className="h-10 w-auto object-contain"
       />
     </Link>
   );
