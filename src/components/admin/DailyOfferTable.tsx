@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Search, FilterX, ChevronRight, Check } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Search, FilterX, ChevronRight, Check, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
