@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -221,6 +221,11 @@ export default function DailyOfferTable() {
     }
   };
   
+  const calendarRange = useMemo((): DateRange => ({
+    from: formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined,
+    to: formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined,
+  }), [formData.offerStartDate, formData.offerEndDate]);
+
   if (isLoading) {
     return (
         <Card className="shadow-lg">
@@ -233,11 +238,6 @@ export default function DailyOfferTable() {
     );
   }
 
-  const calendarRange: DateRange = {
-    from: formData.offerStartDate ? parseISO(formData.offerStartDate) : undefined,
-    to: formData.offerEndDate ? parseISO(formData.offerEndDate) : undefined,
-  };
-
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -247,6 +247,7 @@ export default function DailyOfferTable() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search offers..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 rounded-full" />
           </div>
+          
           <select 
             value={categoryFilter} 
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -257,6 +258,7 @@ export default function DailyOfferTable() {
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
+
           {(searchTerm !== '' || categoryFilter !== 'all') && (
             <Button variant="ghost" size="icon" onClick={() => { setSearchTerm(''); setCategoryFilter('all'); }} className="rounded-full"><FilterX className="h-4 w-4" /></Button>
           )}
@@ -316,7 +318,7 @@ export default function DailyOfferTable() {
         </div>
         <div className="grid grid-cols-1 gap-4 md:hidden">
             {filteredOffers.map(offer => (
-                <Card key={offer.id} className="rounded-3xl border-2 overflow-hidden shadow-sm p-4 space-y-4">
+                <Card key={offer.id} className="rounded-3xl border-2 p-4 space-y-4 shadow-sm">
                     <div className="flex justify-between items-start">
                         <h3 className="font-headline font-bold text-xl">{offer.title}</h3>
                         <Badge variant="secondary">{offer.orderType}</Badge>
@@ -333,7 +335,7 @@ export default function DailyOfferTable() {
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
-          <form onSubmit={handleFormSubmit} className="flex flex-col h-full overflow-hidden">
+          <form onSubmit={handleFormSubmit} className="flex flex-col h-full">
             <div className="p-8 border-b bg-muted/10 shrink-0">
               <DialogHeader>
                 <DialogTitle className="font-headline text-3xl uppercase tracking-tighter text-primary">{selectedOffer ? 'Edit Promotion' : 'New Promotion'}</DialogTitle>
@@ -341,8 +343,7 @@ export default function DailyOfferTable() {
               </DialogHeader>
             </div>
             
-            <div className="flex-1 overflow-y-auto min-h-0 bg-background">
-              <div className="p-8 space-y-12 pb-24">
+            <div className="flex-1 overflow-y-auto bg-background p-8 space-y-12">
                 <div className="grid gap-8">
                   <div className="grid gap-3">
                     <Label htmlFor="title" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Title</Label>
@@ -401,6 +402,7 @@ export default function DailyOfferTable() {
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
                       const selectedInCat = items.filter(i => (formData.menuItemIds || []).includes(i.id));
                       const selectedCount = selectedInCat.length;
+                      const allSelectedInCat = selectedCount === items.length;
                       
                       return (
                         <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
@@ -411,13 +413,13 @@ export default function DailyOfferTable() {
                                     {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
                                 </div>
                             </AccordionTrigger>
-                            <div 
+                            <span 
                                 role="button"
                                 className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer select-none"
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleCategory(categoryName); }}
                             >
-                                {selectedCount === items.length ? 'Deselect Section' : 'Select Section'}
-                            </div>
+                                {allSelectedInCat ? 'Deselect Section' : 'Select Section'}
+                            </span>
                           </div>
                           <AccordionContent className="p-6 border-t">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -432,10 +434,10 @@ export default function DailyOfferTable() {
                                     )}
                                     onClick={() => handleToggleItem(item.id)}
                                   >
-                                    <Checkbox id={`item-${item.id}`} checked={isChecked} className="h-6 w-6 pointer-events-none" />
-                                    <div className="flex-1 min-w-0 pointer-events-none">
+                                    <Checkbox checked={isChecked} className="h-6 w-6 pointer-events-none" />
+                                    <div className="flex-1 min-w-0">
                                         <p className="text-sm font-black truncate uppercase">{item.name}</p>
-                                        <span className="text-[10px] font-black text-muted-foreground uppercase">Base LKR {item.price.toFixed(0)}</span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase">LKR {item.price.toFixed(0)}</span>
                                     </div>
                                   </div>
                                 );
@@ -450,7 +452,7 @@ export default function DailyOfferTable() {
 
                 <Separator />
 
-                <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10">
+                <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10 pb-24">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                         <h3 className="text-2xl font-headline font-black uppercase tracking-tighter">Tier Discounts</h3>
                         <Tabs value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))}>
@@ -478,7 +480,7 @@ export default function DailyOfferTable() {
                                       }))
                                     }}
                                 />
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black opacity-50">
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black opacity-50 uppercase text-[10px]">
                                     {formData.discountType === 'fixed' ? 'LKR' : '%'}
                                 </div>
                             </div>
@@ -486,7 +488,6 @@ export default function DailyOfferTable() {
                         ))}
                     </div>
                 </div>
-              </div>
             </div>
 
             <div className="p-8 border-t bg-muted/10 flex flex-col sm:flex-row gap-4 shrink-0">
