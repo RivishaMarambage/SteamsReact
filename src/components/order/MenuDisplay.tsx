@@ -5,23 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, CartItemAddon, OrderItem, AddonCategory, MenuItemAddonGroup, PointTransaction } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Ticket, Gift, Tag, Utensils, ShoppingBag, Percent, Sparkles, X, MailWarning, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, CheckCircle2 } from 'lucide-react';
+import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, LoyaltyLevel, Addon, AddonCategory } from '@/lib/types';
+import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Tag, Utensils, ShoppingBag, Sparkles, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, MailWarning } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, writeBatch, query, where, getDoc, orderBy } from 'firebase/firestore';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+import { collection, doc, updateDoc, query, where, orderBy } from 'firebase/firestore';
 import { Separator } from '../ui/separator';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isWithinInterval, parseISO } from 'date-fns';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Label } from '../ui/label';
 import Link from 'next/link';
 
 interface MenuDisplayProps {
@@ -65,7 +63,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const [isOrderTypeDialogOpen, setOrderTypeDialogOpen] = useState(true);
   const [dialogStep, setDialogStep] = useState<'type' | 'table'>('type');
 
-
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -74,16 +71,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+  const { data: categories } = useCollection<Category>(categoriesQuery);
   
   const addonsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addons') : null, [firestore]);
-  const { data: allAddons, isLoading: areAddonsLoading } = useCollection<Addon>(addonsQuery);
+  const { data: allAddons } = useCollection<Addon>(addonsQuery);
 
   const addonCategoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addon_categories') : null, [firestore]);
-  const { data: addonCategories, isLoading: areAddonCategoriesLoading } = useCollection<AddonCategory>(addonCategoriesQuery);
+  const { data: addonCategories } = useCollection<AddonCategory>(addonCategoriesQuery);
 
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
-  const { data: loyaltyLevels, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+  const { data: loyaltyLevels } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
 
   const sortedMenuItems = useMemo(() => {
     return [...menuItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -114,12 +111,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     }
   };
 
-
   const handleTableSelect = (table: string) => {
       setTableNumber(table);
       setOrderTypeDialogOpen(false);
   };
-
 
   useEffect(() => {
     const checkVerification = async () => {
@@ -162,7 +157,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 setCart(prev => [...prev, ...newCartItems]);
                 toast({
                     title: "Reorder items added",
-                    description: `${newCartItems.length} items added to your cart.${itemsSkipped > 0 ? ` ${itemsSkipped} item(s) skipped as they are currently unavailable.` : ''}`,
+                    description: `${newCartItems.length} items added to your cart.`,
                 });
             }
         } catch (e) {
@@ -191,7 +186,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     if (!isEmailVerified) return null;
     return potentialWelcomeOffer;
   }, [isEmailVerified, potentialWelcomeOffer]);
-
 
   const getCategoryName = (categoryId: string, source: 'menu' | 'addon') => {
     if (source === 'menu') {
@@ -241,7 +235,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     validateAddonSelection();
   }, [selectedAddons, customizingItem]);
 
-
   const confirmAddToCart = () => {
     if(!customizingItem || !validateAddonSelection()) {
         toast({
@@ -268,7 +261,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     setCart(prev => [...prev, newCartItem]);
     toast({
         title: "Added to order",
-        description: `${customizingItem.menuItem.name} with customizations is now in your cart.`,
+        description: `${customizingItem.menuItem.name} customized and added.`,
     });
 
     setCustomizationOpen(false);
@@ -358,7 +351,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         const offer = dailyOffers.find(o => o.id === offerToClaim);
         if (!offer) return;
 
-        // Auto-set order type if claiming offer directly from dashboard
         if (!orderType) {
             setOrderType(offer.orderType);
             if (offer.orderType === 'Takeaway') {
@@ -446,7 +438,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     const redeemAmount = Number(pointsToRedeemInput);
     
     if (!userProfile || !canRedeemPoints) {
-      toast({ variant: 'destructive', title: "Redemption Not Allowed", description: "You must be in the Bronze tier or higher to redeem points." });
+      toast({ variant: 'destructive', title: "Redemption Not Allowed", description: "Bronze tier required to redeem points." });
       return;
     }
     if (availablePoints <= 0) {
@@ -454,36 +446,28 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       return;
     }
     if (isNaN(redeemAmount) || redeemAmount <= 0) {
-      toast({ variant: 'destructive', title: "Invalid Amount", description: "Please enter a positive number of points." });
+      toast({ variant: 'destructive', title: "Invalid Amount" });
       return;
     }
     if (redeemAmount > availablePoints) {
-      toast({ variant: 'destructive', title: "Not enough points", description: `You only have ${availablePoints} points available.` });
+      toast({ variant: 'destructive', title: "Not enough points" });
       return;
     }
     if (redeemAmount > totalBeforePoints) {
-        toast({ variant: 'destructive', title: "Cannot redeem more than total", description: `Your order total is LKR ${totalBeforePoints.toFixed(2)}.` });
+        toast({ variant: 'destructive', title: "Cannot redeem more than total" });
         return;
     }
 
     setAppliedPoints(redeemAmount);
-    toast({ title: "Points Applied", description: `${redeemAmount} points will be used for a LKR ${redeemAmount.toFixed(2)} discount.` });
+    toast({ title: "Points Applied" });
   };
   
   const loyaltyDiscount = Math.min(totalBeforePoints, appliedPoints);
-  const totalDiscount = loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount;
   const cartTotal = totalBeforePoints - loyaltyDiscount;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleProceedToCheckout = async () => {
-    if (cart.length === 0) {
-        toast({
-            variant: "destructive",
-            title: "Your cart is empty",
-            description: "Please add items to your cart before proceeding.",
-        });
-        return;
-    }
+    if (cart.length === 0) return;
 
     const checkoutData = {
         cart,
@@ -493,7 +477,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         loyaltyDiscount,
         birthdayDiscountAmount,
         welcomeDiscountAmount,
-        totalDiscount,
+        totalDiscount: loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount,
         cartTotal,
         orderType,
         tableNumber,
@@ -504,7 +488,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     router.push('/dashboard/checkout');
   };
 
-
   return (
     <div className="w-full">
       <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
@@ -513,7 +496,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
              <>
                 <DialogHeader>
                     <DialogTitle className="text-center">How will you be joining us?</DialogTitle>
-                    <DialogDescription className="text-center">Please select whether you want to dine-in or take your order away.</DialogDescription>
+                    <DialogDescription className="text-center">Select whether you want to dine-in or take your order away.</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
@@ -531,7 +514,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                <>
                 <DialogHeader>
                     <DialogTitle className="text-center">Select Table Number</DialogTitle>
-                    <DialogDescription className="text-center">Choose the table where you are currently seated.</DialogDescription>
+                    <DialogDescription className="text-center">Choose the table where you are seated.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <div className="grid grid-cols-5 gap-2">
@@ -591,8 +574,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="mb-8 overflow-x-auto pb-2 scrollbar-none">
-                    <TabsList className="h-auto p-1 bg-muted/50 rounded-xl border border-muted flex justify-start sm:justify-center">
+                <div className="mb-8 overflow-x-auto pb-4 scrollbar-hide">
+                    <TabsList className="h-auto p-1 bg-muted/50 rounded-xl border border-muted flex justify-start w-max mx-auto">
                         {filteredCategories.map(category => (
                         <TabsTrigger 
                             key={category.id} 
@@ -606,7 +589,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 </div>
                 {filteredCategories.map(subCategory => (
                 <TabsContent key={subCategory.id} value={subCategory.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="flex overflow-x-auto gap-6 pb-8 snap-x scrollbar-hide">
                     {sortedMenuItems.filter(item => item.categoryId === subCategory.id).map(item => {
                         const today = new Date();
                         const todayString = format(today, 'yyyy-MM-dd');
@@ -615,12 +598,10 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                             if (!o.offerStartDate || !o.offerEndDate) return false;
                             if (o.menuItemId !== item.id) return false;
                             if (o.orderType !== orderType) return false;
-                            
                             const isOfferActive = isWithinInterval(today, {
                                 start: parseISO(o.offerStartDate),
                                 end: parseISO(o.offerEndDate),
                             });
-                        
                             return isOfferActive;
                         });
 
@@ -647,7 +628,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         displayPrice = Math.max(0, displayPrice);
 
                         return (
-                        <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg border-0 bg-white group hover:shadow-2xl transition-all duration-500 rounded-[2rem]", item.isOutOfStock && "opacity-60 grayscale")}>
+                        <Card key={item.id} className={cn("flex flex-col shrink-0 w-[280px] sm:w-[320px] snap-start overflow-hidden shadow-lg border-0 bg-white group hover:shadow-2xl transition-all duration-500 rounded-[2rem]", item.isOutOfStock && "opacity-60 grayscale")}>
                             <div className="relative w-full h-52 overflow-hidden">
                                 <Image
                                     src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
@@ -677,7 +658,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     <span className="font-black text-2xl text-primary tracking-tighter">LKR {displayPrice.toFixed(2)}</span>
                                 </div>
                                 <Button size="lg" onClick={() => addToCart(item, displayPrice, appliedOfferId)} disabled={item.isOutOfStock} className="rounded-full px-6 bg-[#2c1810] hover:bg-primary transition-colors">
-                                    {item.isOutOfStock ? "Sold Out" : <><Plus className="mr-2 h-4 w-4" /> Add</>}
+                                    {item.isOutOfStock ? "Sold Out" : <Plus className="h-4 w-4" />}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -704,7 +685,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 overflow-hidden border-l-0 shadow-2xl">
           <SheetHeader className="p-8 border-b bg-muted/10">
             <SheetTitle className="font-headline text-3xl uppercase tracking-tighter text-[#2c1810]">Your Order</SheetTitle>
-            <SheetDescription className="font-medium text-[#6b584b]">Review your items before placing order.</SheetDescription>
+            <SheetDescription className="font-medium text-[#6b584b]">Review your items before checkout.</SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-1">
             <div className="p-8 space-y-8">
@@ -713,7 +694,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     <div className="bg-muted p-8 rounded-full">
                         <ShoppingBag className="w-12 h-12 opacity-20" />
                     </div>
-                    <p className="font-bold uppercase tracking-widest text-xs">Your cart is feeling lonely</p>
+                    <p className="font-bold uppercase tracking-widest text-xs">Cart is empty</p>
                     </div>
                 ) : (
                 <div className="space-y-6">
@@ -764,22 +745,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     </div>
                     {birthdayDiscountAmount > 0 && (
                     <div className="flex justify-between text-destructive font-black uppercase text-[10px] tracking-widest">
-                        <span>Birthday Discount</span>
+                        <span>Birthday Reward</span>
                         <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
                     </div>
                     )}
                     {applicableWelcomeOffer && (
                     <div className="flex justify-between text-blue-600 font-black uppercase text-[10px] tracking-widest">
-                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 fill-current"/> {applicableWelcomeOffer.label} Reward</span>
+                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 fill-current"/> {applicableWelcomeOffer.label}</span>
                         <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
                     </div>
                     )}
                     {!isEmailVerified && potentialWelcomeOffer && (
-                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-start gap-3 mt-2 mb-4 animate-in slide-in-from-bottom-2">
+                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-start gap-3 mt-2 mb-4">
                         <MailWarning className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase text-amber-700 leading-none">Verify to Save {potentialWelcomeOffer.discount}%</p>
-                            <p className="text-[9px] text-amber-600 font-medium leading-tight">Your {potentialWelcomeOffer.label} discount is pending email verification.</p>
+                            <p className="text-[9px] text-amber-600 font-medium leading-tight">Discount pending verification.</p>
                             <Link href="/dashboard/profile" className="text-[9px] font-bold underline text-amber-700 block mt-1">Verify Now</Link>
                         </div>
                     </div>
@@ -792,7 +773,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     )}
                     {loyaltyDiscount > 0 && (
                     <div className="flex justify-between text-destructive font-black uppercase text-[10px] tracking-widest">
-                        <span>Points Redemption</span>
+                        <span>Points Used</span>
                         <span>- LKR {loyaltyDiscount.toFixed(2)}</span>
                     </div>
                     )}
@@ -803,7 +784,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                 </div>
                  <Button size="lg" className="w-full h-16 rounded-full text-lg font-black uppercase tracking-widest shadow-xl group" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
                     {isProcessing ? (
-                        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparing...</>
+                        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
                     ) : (
                         <>Checkout <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
                     )}
@@ -816,9 +797,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 shadow-2xl rounded-[3rem]">
           <div className="p-8 border-b bg-muted/10">
             <DialogTitle className="font-headline text-2xl uppercase tracking-tighter text-[#2c1810]">Customize {customizingItem?.menuItem.name}</DialogTitle>
-            <DialogDescription className="font-medium text-[#6b584b]">
-                Make it just right.
-            </DialogDescription>
           </div>
           <ScrollArea className="max-h-[60vh]">
             <div className="p-8 space-y-10">

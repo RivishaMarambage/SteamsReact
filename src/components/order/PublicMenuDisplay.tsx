@@ -4,7 +4,7 @@ import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query } from "firebase/firestore";
 import type { MenuItem, Category } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Badge } from "../ui/badge";
@@ -18,8 +18,6 @@ function PublicMenuDisplayContent() {
   
   const menuItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // We fetch without server-side orderBy to prevent Firestore from filtering out 
-    // items that haven't been manually ordered yet (missing displayOrder field).
     return query(collection(firestore, "menu_items"));
   }, [firestore]);
   
@@ -28,13 +26,11 @@ function PublicMenuDisplayContent() {
   const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
   const { data: categoriesRaw, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
 
-  // Apply robust client-side sorting to match the Admin tool's logic
   const sortedMenuItems = useMemo(() => {
     if (!menuRaw) return [];
     return [...menuRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [menuRaw]);
 
-  // Robust client-side sorting for categories
   const sortedCategories = useMemo(() => {
     if (!categoriesRaw) return [];
     return [...categoriesRaw].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -48,11 +44,10 @@ function PublicMenuDisplayContent() {
         <div className="flex justify-center mb-6">
             <Skeleton className="h-14 w-64 rounded-full" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
-            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
-            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
-            <Skeleton className="h-80 w-full rounded-[2.5rem]" />
+        <div className="flex gap-6 overflow-hidden">
+            <Skeleton className="h-80 w-80 shrink-0 rounded-[2.5rem]" />
+            <Skeleton className="h-80 w-80 shrink-0 rounded-[2.5rem]" />
+            <Skeleton className="h-80 w-80 shrink-0 rounded-[2.5rem]" />
         </div>
       </div>
     )
@@ -86,9 +81,9 @@ function PublicMenuDisplayContent() {
                         <h2 className="text-4xl md:text-5xl font-headline font-black uppercase tracking-tight text-[#2c1810] italic">{subCategory.name}</h2>
                         <div className="h-[2px] flex-1 bg-gradient-to-r from-primary/20 to-transparent" />
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+                      <div className="flex overflow-x-auto gap-10 pb-12 snap-x scrollbar-hide">
                         {subItems.map(item => (
-                            <Card key={item.id} className={cn("flex flex-col overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 group rounded-[3rem] bg-white", item.isOutOfStock && "opacity-60 grayscale")}>
+                            <Card key={item.id} className={cn("flex flex-col shrink-0 w-[280px] sm:w-[320px] snap-start overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 group rounded-[3rem] bg-white", item.isOutOfStock && "opacity-60 grayscale")}>
                                <div className="relative w-full h-60 overflow-hidden">
                                   <Image
                                       src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
@@ -115,7 +110,7 @@ function PublicMenuDisplayContent() {
                                         LKR {item.price.toFixed(2)}
                                     </div>
                                     <Badge variant="secondary" className="bg-muted/50 text-[#6b584b] text-[10px] font-black uppercase tracking-widest px-3 py-1">
-                                        per portion
+                                        portion
                                     </Badge>
                                 </div>
                               </CardContent>
