@@ -171,7 +171,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         const offer = dailyOffers.find(o => o.id === offerToClaim);
         if (!offer) return;
 
-        // Determine which item to add if multiple exist in the offer
         const targetItemId = searchParams.get('itemId');
         const menuItemId = targetItemId || (offer.menuItemIds?.length > 0 ? offer.menuItemIds[0] : null);
         
@@ -193,7 +192,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
         let displayPrice = menuItem.price;
         if (userTierDiscount > 0) {
-            if (offer.discountType === 'percentage') {
+            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+            if (isPercentage) {
                 displayPrice = menuItem.price - (menuItem.price * userTierDiscount / 100);
             } else {
                 displayPrice = menuItem.price - userTierDiscount;
@@ -210,8 +210,103 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     }
   }, [offerToClaim, menuItems, dailyOffers, userProfile, isProfileLoading, addToCart, router, pathname, orderType, searchParams]);
 
-  // ... rest of the component logic remains same but uses menuItemIds.includes(item.id)
-  
+  useEffect(() => {
+    const reorderString = localStorage.getItem('reorder_items');
+    if (reorderString && !processedReorderRef.current && menuItems.length > 0 && !isProfileLoading) {
+        processedReorderRef.current = true;
+        try {
+            const items = JSON.parse(reorderString);
+            const newCartItems: CartItem[] = items.map((item: any) => {
+                const menuItem = menuItems.find(m => m.id === item.menuItemId);
+                if (!menuItem) return null;
+                return {
+                    id: `${menuItem.id}-${Date.now()}-${Math.random()}`,
+                    menuItem,
+                    quantity: item.quantity,
+                    addons: item.addons,
+                    totalPrice: item.totalPrice,
+                    appliedDailyOfferId: item.appliedDailyOfferId
+                };
+            }).filter((i: any) => i !== null);
+            
+            if (newCartItems.length > 0) {
+                setCart(prev => [...prev, ...newCartItems]);
+                setIsCartOpen(true);
+            }
+            localStorage.removeItem('reorder_items');
+        } catch (e) {
+            console.error("Failed to process reorder", e);
+        }
+    }
+  }, [menuItems, isProfileLoading]);
+
+  const updateQuantity = (cartId: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === cartId) {
+        const newQty = Math.max(0, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
+  };
+
+  const handleAddonToggle = (addon: Addon) => {
+    setSelectedAddons(prev => {
+      if (prev.find(a => a.id === addon.id)) {
+        return prev.filter(a => a.id !== addon.id);
+      }
+      return [...prev, addon];
+    });
+  };
+
+  const confirmCustomization = () => {
+    if (!customizingItem) return;
+    const { menuItem, displayPrice, appliedDailyOfferId } = customizingItem;
+    
+    const errors: Record<string, string> = {};
+    menuItem.addonGroups?.forEach(group => {
+      const selectedInGroup = selectedAddons.filter(a => a.addonCategoryId === group.addonCategoryId);
+      if (group.isRequired && selectedInGroup.length < group.minSelection) {
+        errors[group.addonCategoryId] = `Please select at least ${group.minSelection} option(s).`;
+      }
+      if (selectedInGroup.length > group.maxSelection) {
+        errors[group.addonCategoryId] = `Please select no more than ${group.maxSelection} option(s).`;
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    const addonPrice = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+    const cartId = `${menuItem.id}-${Date.now()}`;
+    const newCartItem: CartItem = {
+      id: cartId,
+      menuItem,
+      addons: selectedAddons.map(a => ({ id: a.id, name: a.name, price: a.price })),
+      quantity: 1,
+      totalPrice: displayPrice + addonPrice,
+      appliedDailyOfferId: appliedDailyOfferId,
+    };
+
+    setCart(prev => [...prev, newCartItem]);
+    setCustomizationOpen(false);
+    setCustomizingItem(null);
+    setSelectedAddons([]);
+    setIsCartOpen(true);
+  };
+
+  const applicableWelcomeOffer = useMemo(() => {
+    if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || !isEmailVerified) return null;
+    return WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0));
+  }, [userProfile, isEmailVerified]);
+
+  const potentialWelcomeOffer = useMemo(() => {
+    if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || isEmailVerified) return null;
+    return WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0));
+  }, [userProfile, isEmailVerified]);
+
   const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
   const welcomeDiscountAmount = applicableWelcomeOffer ? subtotal * (applicableWelcomeOffer.discount / 100) : 0;
   const birthdayDiscountAmount = userProfile?.birthdayDiscountValue ? (userProfile.birthdayDiscountType === 'percentage' ? subtotal * (userProfile.birthdayDiscountValue / 100) : userProfile.birthdayDiscountValue) : 0;
@@ -225,6 +320,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
   const handleProceedToCheckout = async () => {
     if (cart.length === 0) return;
+    setIsProcessing(true);
     localStorage.setItem('checkoutData', JSON.stringify({
         cart, subtotal, serviceCharge, appliedPoints, loyaltyDiscount, 
         birthdayDiscountAmount, welcomeDiscountAmount, 
@@ -236,7 +332,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
 
   return (
     <div className="w-full">
-      {/* Selection Dialogs and Order Mode Display (already implemented) */}
       <Dialog open={isOrderTypeDialogOpen} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md" hideCloseButton>
            {dialogStep === 'type' && (
@@ -352,7 +447,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
                             const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
                             if (userTierDiscount > 0) {
-                                displayPrice = offer.discountType === 'percentage' ? item.price - (item.price * userTierDiscount / 100) : item.price - userTierDiscount;
+                                const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+                                displayPrice = isPercentage ? item.price - (item.price * userTierDiscount / 100) : item.price - userTierDiscount;
                                 isOfferApplied = true;
                             }
                         }
@@ -401,7 +497,62 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </Tabs>
         </>
       )}
-      {/* Cart Sheet and Customization Dialog (already implemented) */}
+
+      <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-[3rem]">
+          <div className="relative h-48 w-full">
+            {customizingItem?.menuItem.imageUrl && (
+              <Image src={customizingItem.menuItem.imageUrl} alt={customizingItem.menuItem.name} fill className="object-cover" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+          </div>
+          <div className="p-8 -mt-12 relative bg-background rounded-t-[3rem]">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-headline font-black text-[#2c1810] uppercase tracking-tighter">{customizingItem?.menuItem.name}</DialogTitle>
+              <DialogDescription className="text-sm font-medium text-[#6b584b]">Customize your perfect cup exactly how you like it.</DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[40vh] mt-6 pr-4">
+              <div className="space-y-8 pb-4">
+                {customizingItem?.menuItem.addonGroups?.map(group => {
+                  const category = addonCategories?.find(c => c.id === group.addonCategoryId);
+                  const groupAddons = allAddons?.filter(a => a.addonCategoryId === group.addonCategoryId && a.isActive !== false);
+                  return (
+                    <div key={group.addonCategoryId} className="space-y-4">
+                      <div className="flex justify-between items-baseline">
+                        <Label className="text-xs font-black uppercase tracking-widest text-[#2c1810]">{category?.name || 'Options'}</Label>
+                        {group.isRequired && <Badge variant="outline" className="text-[8px] h-4 border-primary text-primary">Required</Badge>}
+                      </div>
+                      <div className="grid gap-3">
+                        {groupAddons?.map(addon => (
+                          <div key={addon.id} className="flex items-center space-x-3 p-4 rounded-2xl border-2 hover:border-primary/30 transition-all cursor-pointer has-[:checked]:bg-primary/5 has-[:checked]:border-primary group">
+                            <Checkbox 
+                              id={`addon-${addon.id}`} 
+                              checked={!!selectedAddons.find(a => a.id === addon.id)} 
+                              onCheckedChange={() => handleAddonToggle(addon)}
+                              className="h-6 w-6 border-2"
+                            />
+                            <Label htmlFor={`addon-${addon.id}`} className="flex-grow cursor-pointer font-bold text-sm">{addon.name}</Label>
+                            <span className="font-black text-xs text-primary">+ LKR {addon.price.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {validationErrors[group.addonCategoryId] && (
+                        <p className="text-[10px] font-bold text-destructive uppercase tracking-widest">{validationErrors[group.addonCategoryId]}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            <DialogFooter className="mt-8">
+              <Button size="lg" className="w-full h-16 rounded-full text-lg font-black uppercase tracking-widest shadow-2xl" onClick={confirmCustomization}>
+                Add to Order <PlusCircle className="ml-2 h-5 w-5" />
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button onClick={() => setIsCartOpen(true)} className="fixed bottom-8 right-8 rounded-full w-20 h-20 shadow-[0_20px_50px_rgba(217,119,6,0.4)] z-50 transition-all active:scale-90 group border-0 bg-primary hover:bg-[#b45309]">

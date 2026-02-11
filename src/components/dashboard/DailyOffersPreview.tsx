@@ -52,6 +52,8 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
             const userTierDiscount = offer.tierDiscounts?.[userLoyaltyId] || 0;
             if (userTierDiscount <= 0) return;
 
+            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+
             // For each item in the multi-item offer
             offer.menuItemIds?.forEach(itemId => {
                 const menuItem = menuItems.find(item => item.id === itemId);
@@ -59,7 +61,7 @@ export default function DailyOffersPreview({ userProfile }: { userProfile: UserP
 
                 const originalPrice = menuItem.price;
                 let displayPrice;
-                if (offer.discountType === 'percentage') {
+                if (isPercentage) {
                     displayPrice = originalPrice - (originalPrice * userTierDiscount / 100);
                 } else { // fixed
                     displayPrice = originalPrice - userTierDiscount;

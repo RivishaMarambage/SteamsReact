@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
@@ -6,7 +7,7 @@ import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Percent, MailWarning, CheckCircle2, ArrowRight } from "lucide-react";
+import { Percent, MailWarning, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
@@ -49,13 +50,6 @@ function OffersPageContent() {
 
     const isLoading = authLoading || profileLoading || offersLoading || menuLoading || levelsLoading;
 
-    const activeOffers = useMemo(() => {
-        if (!dailyOffers) return [];
-        return dailyOffers.filter(offer =>
-            todayString >= offer.offerStartDate && todayString <= offer.offerEndDate
-        );
-    }, [dailyOffers, todayString]);
-
     const welcomeOffer = useMemo(() => {
         if (!userProfile || (userProfile.orderCount ?? 0) >= 3) {
             return null;
@@ -63,8 +57,8 @@ function OffersPageContent() {
         return WELCOME_OFFERS.find(offer => offer.order === (userProfile.orderCount ?? 0)) || null;
     }, [userProfile]);
 
-    const handleOrderClick = (offerId: string) => {
-        router.push(`/dashboard/order?addOffer=${offerId}`);
+    const handleOrderClick = (offerId: string, itemId: string) => {
+        router.push(`/dashboard/order?addOffer=${offerId}&itemId=${itemId}`);
     };
 
     const currentLevel = useMemo(() => {
@@ -73,23 +67,34 @@ function OffersPageContent() {
     }, [loyaltyLevels, userProfile]);
 
     const myActiveOffers = useMemo(() => {
-        if (!activeOffers || !userProfile?.loyaltyLevelId || !menuItems) return [];
+        if (!dailyOffers || !userProfile?.loyaltyLevelId || !menuItems) return [];
     
-        return activeOffers.map(offer => {
-            const tierDiscountValue = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
-            if (tierDiscountValue <= 0) return null;
-            
-            const menuItem = menuItems.find(item => item.id === offer.menuItemId);
-            if (!menuItem) return null;
-    
-            return {
-                ...offer,
-                menuItem,
-                tierDiscountValue,
-            };
-        }).filter((o): o is NonNullable<typeof o> => !!o);
+        const results: any[] = [];
 
-    }, [activeOffers, userProfile, menuItems]);
+        dailyOffers.forEach(offer => {
+            const isOfferActive = todayString >= offer.offerStartDate && todayString <= offer.offerEndDate;
+            if (!isOfferActive) return;
+
+            const tierDiscountValue = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
+            if (tierDiscountValue <= 0) return;
+
+            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+
+            offer.menuItemIds?.forEach(itemId => {
+                const menuItem = menuItems.find(item => item.id === itemId);
+                if (!menuItem) return;
+
+                results.push({
+                    ...offer,
+                    menuItem,
+                    tierDiscountValue,
+                    isPercentage
+                });
+            });
+        });
+
+        return results;
+    }, [dailyOffers, userProfile, menuItems, todayString]);
 
 
     if (isLoading) {
@@ -158,25 +163,26 @@ function OffersPageContent() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Your Daily Offers</CardTitle>
-                    <CardDescription>
+                    <CardDescription suppressHydrationWarning>
                         Here are the special deals available today for your {currentLevel ? <span className="font-bold capitalize">{currentLevel.name}</span> : ''} tier.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {myActiveOffers.length > 0 ? (
                         <div className="grid md:grid-cols-2 gap-6">
-                            {myActiveOffers.map(offer => {
-                                const discountText = offer.discountType === 'percentage'
+                            {myActiveOffers.map((offer, idx) => {
+                                const isPercentage = offer.isPercentage;
+                                const discountText = isPercentage
                                     ? `${offer.tierDiscountValue}% off`
                                     : `LKR ${offer.tierDiscountValue.toFixed(2)} off`;
                                 
                                 const originalPrice = offer.menuItem.price;
-                                const discountedPrice = offer.discountType === 'percentage' 
+                                const discountedPrice = isPercentage 
                                     ? originalPrice - (originalPrice * offer.tierDiscountValue / 100)
                                     : originalPrice - offer.tierDiscountValue;
 
                                 return (
-                                    <Card key={offer.id} className={cn("overflow-hidden", "border-primary")}>
+                                    <Card key={`${offer.id}-${offer.menuItem.id}-${idx}`} className={cn("overflow-hidden", "border-primary")}>
                                         <CardHeader className="flex-col sm:flex-row gap-4 items-start p-4">
                                              <Image
                                                 src={offer.menuItem.imageUrl || `https://picsum.photos/seed/${offer.menuItem.id}/100/100`}
@@ -202,7 +208,7 @@ function OffersPageContent() {
                                                 <span className="text-muted-foreground line-through mr-2">LKR {originalPrice.toFixed(2)}</span>
                                                 <span className="font-bold text-lg">LKR {Math.max(0, discountedPrice).toFixed(2)}</span>
                                             </div>
-                                            <Button size="sm" onClick={() => handleOrderClick(offer.id)} disabled={offer.menuItem.isOutOfStock}>
+                                            <Button size="sm" onClick={() => handleOrderClick(offer.id, offer.menuItem.id)} disabled={offer.menuItem.isOutOfStock}>
                                                 {offer.menuItem.isOutOfStock ? "Unavailable" : "Order Now"}
                                             </Button>
                                         </CardFooter>

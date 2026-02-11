@@ -28,6 +28,7 @@ import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
@@ -181,7 +182,7 @@ export default function DailyOfferTable() {
       menuItemIds: offer.menuItemIds || [],
       offerStartDate: offer.offerStartDate || format(new Date(), 'yyyy-MM-dd'),
       offerEndDate: offer.offerEndDate || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-      discountType: offer.discountType || 'fixed',
+      discountType: (offer.discountType as string) === 'percent' ? 'percentage' : (offer.discountType || 'fixed'),
       orderType: offer.orderType || 'Both',
       tierDiscounts,
     });
@@ -320,11 +321,12 @@ export default function DailyOfferTable() {
                         <div className="flex flex-col gap-1">
                         {loyaltyLevels.map(level => {
                             const discount = offer.tierDiscounts?.[level.id];
+                            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
                             if (discount > 0) {
                             return (
                                 <div key={level.id} className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
                                 <span className="text-primary">{level.name}: </span> 
-                                {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
+                                {isPercentage ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
                                 </div>
                             )
                             }
@@ -370,11 +372,12 @@ export default function DailyOfferTable() {
                         <div className="p-4 bg-primary/5 rounded-2xl space-y-2">
                             {loyaltyLevels.map(level => {
                                 const discount = offer.tierDiscounts?.[level.id];
+                                const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
                                 if (discount > 0) {
                                     return (
                                         <div key={level.id} className="flex justify-between text-[10px] uppercase font-black tracking-widest">
                                             <span className="text-muted-foreground">{level.name}</span>
-                                            <span className="text-primary">{offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount.toFixed(2)}`}</span>
+                                            <span className="text-primary">{isPercentage ? `${discount}%` : `LKR ${discount.toFixed(2)}`}</span>
                                         </div>
                                     )
                                 }
@@ -532,22 +535,16 @@ export default function DailyOfferTable() {
                           <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Tier-Based Discounts</h3>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customize savings for each loyalty level</p>
                         </div>
-                        <RadioGroup value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))} className="flex gap-4 bg-white/50 p-1.5 rounded-full shadow-inner border border-white">
-                            <div className="flex items-center">
-                                <RadioGroupItem value="fixed" id="form-discount-fixed" className="sr-only" />
-                                <Label htmlFor="form-discount-fixed" className={cn(
-                                    "flex items-center justify-center px-6 h-10 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all",
-                                    formData.discountType === 'fixed' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground"
-                                )}>LKR</Label>
-                            </div>
-                            <div className="flex items-center">
-                                <RadioGroupItem value="percentage" id="form-discount-percent" className="sr-only" />
-                                <Label htmlFor="form-discount-percent" className={cn(
-                                    "flex items-center justify-center px-6 h-10 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all",
-                                    formData.discountType === 'percentage' ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground"
-                                )}><Percent className="h-3 w-3 mr-1"/> Percent</Label>
-                            </div>
-                        </RadioGroup>
+                        <Tabs 
+                          value={formData.discountType} 
+                          onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))}
+                          className="w-full sm:w-auto"
+                        >
+                          <TabsList className="grid w-full grid-cols-2 bg-white/50 p-1.5 rounded-full shadow-inner border border-white h-12">
+                            <TabsTrigger value="fixed" className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-full data-[state=active]:bg-primary data-[state=active]:text-white">LKR</TabsTrigger>
+                            <TabsTrigger value="percentage" className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-full data-[state=active]:bg-primary data-[state=active]:text-white"><Percent className="h-3 w-3 mr-1"/> Percent</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
                     </div>
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-8'>
                         {loyaltyLevels.map(level => (

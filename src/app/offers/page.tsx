@@ -1,3 +1,4 @@
+
 'use client';
 
 import PublicHeader from "@/components/layout/PublicHeader";
@@ -44,27 +45,32 @@ function OffersPageContent() {
             return [];
         }
 
-        return dailyOffers.map(offer => {
-            const isOfferActive = isWithinInterval(today, {
-                start: parseISO(offer.offerStartDate),
-                end: parseISO(offer.offerEndDate),
+        const results: any[] = [];
+
+        dailyOffers.forEach(offer => {
+            const isOfferActive = todayString >= offer.offerStartDate && todayString <= offer.offerEndDate;
+            if (!isOfferActive) return;
+
+            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+
+            offer.menuItemIds?.forEach(itemId => {
+                const menuItem = menuItems.find(item => item.id === itemId);
+                if (!menuItem) return;
+
+                results.push({
+                    ...offer,
+                    menuItem,
+                    isPercentage
+                });
             });
+        });
 
-            if (!isOfferActive) return null;
+        return results;
+    }, [dailyOffers, menuItems, todayString]);
 
-            const menuItem = menuItems.find(item => item.id === offer.menuItemId);
-            if (!menuItem) return null;
-
-            return {
-                ...offer,
-                menuItem,
-            };
-        }).filter((o): o is NonNullable<typeof o> => o !== null);
-    }, [dailyOffers, menuItems, today]);
-
-    const handleOrderClick = (offerId: string) => {
+    const handleOrderClick = (offerId: string, itemId: string) => {
         if (authUser) {
-            router.push(`/dashboard/order?addOffer=${offerId}`);
+            router.push(`/dashboard/order?addOffer=${offerId}&itemId=${itemId}`);
         } else {
             router.push('/login/customer');
         }
@@ -148,14 +154,16 @@ function OffersPageContent() {
                         </div>
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {filteredOffers.map((offer) => {
+                            {filteredOffers.map((offer, idx) => {
                                 const highestDiscountValue = Math.max(...Object.values(offer.tierDiscounts));
-                                const discountText = offer.discountType === 'percentage'
+                                const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+                                
+                                const discountText = isPercentage
                                     ? `Up to ${highestDiscountValue}% off`
                                     : `Save up to LKR ${highestDiscountValue.toFixed(2)}`;
 
                                 return (
-                                    <div key={offer.id} className={cn("bg-[#eae7e1] rounded-3xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-white/40", offer.menuItem.isOutOfStock && "opacity-60")}>
+                                    <div key={`${offer.id}-${offer.menuItem.id}-${idx}`} className={cn("bg-[#eae7e1] rounded-3xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-white/40", offer.menuItem.isOutOfStock && "opacity-60")}>
                                         <div className="relative h-64 overflow-hidden">
                                             <Image
                                                 src={offer.menuItem.imageUrl || `https://picsum.photos/seed/${offer.menuItem.id}/600/400`}
@@ -181,7 +189,7 @@ function OffersPageContent() {
                                                 </div>
 
                                                 <button
-                                                    onClick={() => handleOrderClick(offer.id)}
+                                                    onClick={() => handleOrderClick(offer.id, offer.menuItem.id)}
                                                     disabled={offer.menuItem.isOutOfStock}
                                                     className="text-[#d97706] font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
