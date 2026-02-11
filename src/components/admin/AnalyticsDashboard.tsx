@@ -6,12 +6,11 @@ import { Users, ShoppingCart, DollarSign, Coins, TrendingUp, TrendingDown, Packa
 import { Skeleton } from "../ui/skeleton";
 import { collection, query, doc } from "firebase/firestore";
 import type { UserProfile, Order } from "@/lib/types";
-import { useMemo, useState } from "react";
-import { Badge } from "../ui/badge";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
@@ -46,10 +45,14 @@ export default function AnalyticsDashboard() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  const [date, setDate] = useState<DateRange | undefined>();
+
+  useEffect(() => {
+    setDate({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    });
+  }, []);
 
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -75,7 +78,6 @@ export default function AnalyticsDashboard() {
     }, {} as Record<string, string>);
   }, [users]);
 
-  // --- Calculations ---
   const stats = useMemo(() => {
     if (!allOrders) return { totalRevenue: 0, monthlyRedeemables: 0, itemSales: [] };
 
@@ -87,16 +89,13 @@ export default function AnalyticsDashboard() {
     const salesMap: Record<string, { name: string, count: number }> = {};
 
     allOrders.forEach(order => {
-      // Revenue
       totalRevenue += (order.totalAmount || 0);
 
-      // Monthly points
       const orderDate = order.orderDate?.toDate();
       if (orderDate && orderDate >= startOfMonthDate) {
         monthlyRedeemables += (order.pointsRedeemed ?? 0);
       }
 
-      // Item Sales counts
       order.orderItems?.forEach(item => {
         const key = item.menuItemId || item.menuItemName;
         if (!salesMap[key]) {
@@ -117,7 +116,7 @@ export default function AnalyticsDashboard() {
   const totalUsers = users?.length ?? 0;
   const totalOrders = allOrders?.length ?? 0;
 
-  const isLoading = isUserLoading || isProfileLoading || usersLoading || ordersLoading;
+  const isLoading = isUserLoading || isProfileLoading || usersLoading || ordersLoading || !date;
 
   const handleExportCSV = () => {
     if (!allOrders || !date?.from || !date?.to) return;
@@ -172,7 +171,6 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Top Level Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Users" value={totalUsers} icon={Users} isLoading={isLoading} />
         <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} isLoading={isLoading} />
@@ -180,7 +178,6 @@ export default function AnalyticsDashboard() {
         <StatCard title="Monthly Redeemables" value={`LKR ${stats.monthlyRedeemables.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={Coins} isLoading={isLoading} />
       </div>
 
-      {/* Reports & Export */}
       <Card className="shadow-lg border-none bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -239,9 +236,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
       </Card>
 
-      {/* Product Performance Section */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Most Sold */}
         <Card className="shadow-lg border-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-green-50/50 rounded-t-xl">
             <div className="space-y-1">
@@ -282,7 +277,6 @@ export default function AnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        {/* Least Sold */}
         <Card className="shadow-lg border-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2 bg-red-50/50 rounded-t-xl">
             <div className="space-y-1">

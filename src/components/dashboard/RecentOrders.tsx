@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { RotateCcw, ShoppingCart, Clock, Hash } from "lucide-react";
 import AudioNotifier from "../AudioNotifier";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export default function RecentOrders({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -19,6 +20,11 @@ export default function RecentOrders({ userId }: { userId: string }) {
   const { toast } = useToast();
   const [previousOrderStatus, setPreviousOrderStatus] = useState<Record<string, Order['status']>>({});
   const [playStatusChangeSound, setPlayStatusChangeSound] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const recentOrdersQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -97,7 +103,7 @@ export default function RecentOrders({ userId }: { userId: string }) {
     router.push('/dashboard/order');
   };
 
-  if (isLoading) {
+  if (isLoading || !mounted) {
       return (
          <Card className="shadow-lg border-none bg-white">
             <CardHeader>
@@ -165,9 +171,9 @@ export default function RecentOrders({ userId }: { userId: string }) {
                             <Hash className="size-3 text-primary" />
                             {order.id.substring(0, 7).toUpperCase()}
                         </div>
-                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1 font-medium">
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1 font-medium" suppressHydrationWarning>
                             <Clock className="size-3" />
-                            {order.orderDate ? new Date(order.orderDate.toDate()).toLocaleDateString() : 'Pending'}
+                            {order.orderDate ? format(order.orderDate.toDate(), 'MMM dd, yyyy') : 'Pending'}
                         </div>
                     </TableCell>
                     <TableCell>

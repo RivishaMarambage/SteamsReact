@@ -11,11 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CalendarIcon, Info, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Edit3, Loader2, Ticket } from 'lucide-react';
+import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Loader2, Ticket } from 'lucide-react';
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
@@ -25,10 +24,9 @@ import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
 import { FaGoogle } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '../ui/checkbox';
 import LoginImg from '../../assets/login.webp';
 
@@ -100,8 +98,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Redirect Admin and Staff away from signup pages as they are managed internally
     if (role !== 'customer' && authType === 'signup') {
       router.replace(`/login/${role}`);
@@ -293,13 +293,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
     if (authType === 'signup') {
         try {
-            // SECURITY V-02: Prevent role escalation
             const usersRef = collection(firestore, "users");
             const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
             const adminSnapshot = await getDocs(adminQuery);
             
-            // Only allow the first signup to be an admin for setup purposes
-            let finalRole: 'customer' | 'staff' | 'admin' = role;
             if (role !== 'customer' && !adminSnapshot.empty) {
                 toast({
                     variant: 'destructive',
@@ -349,7 +346,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               id: user.uid,
               email: data.email,
               name: data.fullName!,
-              role: finalRole,
+              role: role,
               mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
@@ -393,7 +390,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 ? `Welcome! Your referral has been noted and your friend has received bonus points. Please check your inbox to verify your email.`
                 : "Welcome! We've sent you a verification email. Please check your inbox.",
             });
-            router.replace(`/login/${finalRole}`);
+            router.replace(`/login/${role}`);
 
         } catch (error: any) {
             setIsProcessing(false);
@@ -459,7 +456,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     setIsProcessing(true);
 
     try {
-        // SECURITY V-02 check for Google Sign-In as well
         const usersRef = collection(firestore, "users");
         const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
         const adminSnapshot = await getDocs(adminQuery);
@@ -523,6 +519,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         }
     }
   };
+
+  if (!mounted) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background p-4">
+            <div className="w-full max-w-4xl h-[600px] bg-card animate-pulse rounded-2xl" />
+        </div>
+    );
+  }
 
   const title = authType === 'login' ? 'Welcome Back' : 'Create an Account';
   const description = authType === 'login' ? 'Please enter your details to sign in.' : 'Join us for exclusive rewards.';

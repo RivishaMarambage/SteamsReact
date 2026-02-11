@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import MenuDisplay from "@/components/order/MenuDisplay";
@@ -9,24 +7,28 @@ import { collection, query, where } from "firebase/firestore";
 import { DailyOffer, MenuItem } from "@/lib/types";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 
 
 function OrderPageContent() {
   const firestore = useFirestore();
-  const today = useMemo(() => new Date(), []);
+  const [today, setToday] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setToday(new Date());
+  }, []);
   
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
   const { data: menuItems, isLoading: menuLoading } = useCollection<MenuItem>(menuItemsQuery);
   
-  const dailyOffersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'daily_offers'), where('offerStartDate', '<=', format(today, 'yyyy-MM-dd'))) : null, [firestore, today]);
+  const dailyOffersQuery = useMemoFirebase(() => (firestore && today) ? query(collection(firestore, 'daily_offers'), where('offerStartDate', '<=', format(today, 'yyyy-MM-dd'))) : null, [firestore, today]);
   const { data: dailyOffers, isLoading: offersLoading } = useCollection<DailyOffer>(dailyOffersQuery);
 
   const searchParams = useSearchParams();
   const freebieToClaim = searchParams.get('claimFreebie');
   const offerToClaim = searchParams.get('addOffer');
 
-  const isLoading = menuLoading || offersLoading;
+  const isLoading = menuLoading || offersLoading || !today;
 
   if (isLoading) {
     return (
