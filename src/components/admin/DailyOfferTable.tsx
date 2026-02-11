@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -151,6 +150,14 @@ export default function DailyOfferTable() {
         }));
     }
   }, [dateRange]);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleToggleItem = (itemId: string) => {
     setFormData(prev => {
