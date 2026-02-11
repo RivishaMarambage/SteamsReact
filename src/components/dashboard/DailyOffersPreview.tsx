@@ -1,6 +1,6 @@
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { DailyOffer, MenuItem, UserProfile } from "@/lib/types";
 import { collection, query, where } from "firebase/firestore";
 import { format } from 'date-fns';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Tag, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Skeleton } from "../ui/skeleton";
 import { useMemo } from "react";
 
