@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon, Tag, Percent, Search, FilterX, Package, ChevronRight, X, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -68,7 +68,7 @@ export default function DailyOfferTable() {
   
   const loyaltyLevels = useMemo(() => {
     if (!loyaltyLevelsRaw) return [];
-    return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard');
+    return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard' && l.name.toLowerCase() !== 'none');
   }, [loyaltyLevelsRaw]);
 
   const [formData, setFormData] = useState<Omit<DailyOffer, 'id'>>(() => getInitialFormData([]));
@@ -112,6 +112,12 @@ export default function DailyOfferTable() {
       return acc;
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
+
+  const categoryOptions = useMemo(() => {
+    return categories?.map(cat => (
+        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+    ));
+  }, [categories]);
 
   const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -273,9 +279,7 @@ export default function DailyOfferTable() {
                 </SelectTrigger>
                 <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories?.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
+                {categoryOptions}
                 </SelectContent>
             </Select>
           </div>
@@ -405,7 +409,7 @@ export default function DailyOfferTable() {
       </CardContent>
 
       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem]">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[2.5rem]">
           <form onSubmit={handleFormSubmit} className="flex flex-col h-full overflow-hidden">
             <div className="p-8 border-b bg-muted/10 shrink-0">
               <DialogHeader>
@@ -473,9 +477,11 @@ export default function DailyOfferTable() {
                     </div>
                   </div>
 
-                  <Accordion type="multiple" defaultValue={[]} className="space-y-4">
+                  <Accordion type="multiple" className="space-y-4">
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
-                      const selectedCount = items.filter(i => (formData.menuItemIds || []).includes(i.id)).length;
+                      const selectedInCat = items.filter(i => (formData.menuItemIds || []).includes(i.id));
+                      const selectedCount = selectedInCat.length;
+                      
                       return (
                         <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
                           <div className="flex items-center bg-muted/5 pr-4">
@@ -485,7 +491,7 @@ export default function DailyOfferTable() {
                                     {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
                                 </div>
                             </AccordionTrigger>
-                            <span 
+                            <div 
                                 role="button"
                                 tabIndex={0}
                                 className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer select-none"
@@ -493,9 +499,9 @@ export default function DailyOfferTable() {
                                 onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleCategory(categoryName); } }}
                             >
                                 {selectedCount === items.length ? 'Deselect Section' : 'Select Section'}
-                            </span>
+                            </div>
                           </div>
-                          <AccordionContent className="p-6">
+                          <AccordionContent className="p-6 border-t">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {items.map(item => {
                                 const isChecked = (formData.menuItemIds || []).includes(item.id);
@@ -514,7 +520,7 @@ export default function DailyOfferTable() {
                                       onCheckedChange={() => {}} 
                                       className="h-6 w-6 border-2 pointer-events-none"
                                     />
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-0 pointer-events-none">
                                         <p className="text-sm font-black truncate uppercase block leading-tight">
                                         {item.name}
                                         </p>
