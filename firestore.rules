@@ -3,6 +3,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- HELPER FUNCTIONS ---
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -25,18 +27,22 @@ service cloud.firestore {
              && getUserData().role == 'admin';
     }
 
+    // --- COLLECTION RULES ---
+
     match /users/{userId} {
-      // Allow any signed-in user to check roles or validate referral codes
-      allow list: if isSignedIn();
-      allow read: if isSignedIn(); 
-      allow create: if isOwner(userId);
+      // Prevent public listing of users
+      allow list: if isStaffOrAdmin();
+      // Only the owner or staff can read a specific profile
+      allow read: if isOwner(userId) || isStaffOrAdmin(); 
       
-      // PROTECTION: Prevent users from escalating their own role or arbitrarily adding points.
-      // Owners can update their own non-protected fields.
-      // Non-owners can ONLY update loyaltyPoints if they are signed in (limited referral logic simulation).
-      allow update: if isOwner(userId) 
-        ? (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyLevelId']))
-        : (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['loyaltyPoints', 'lifetimePoints']));
+      // Users can only create their own profile as a 'customer'
+      allow create: if isOwner(userId) && request.resource.data.role == 'customer';
+      
+      // PROTECTION: Prevent role escalation and arbitrary point changes.
+      // Owners can update personal details, but NOT their role or level.
+      // Staff/Admins have full update access for management.
+      allow update: if isStaffOrAdmin() 
+        || (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyLevelId']));
         
       allow delete: if isAdmin();
     }
@@ -51,6 +57,7 @@ service cloud.firestore {
     }
 
     match /menu_items/{menuItemId} {
+      // Publicly readable for browsing
       allow read: if true;
       allow write: if isStaffOrAdmin();
     }
@@ -77,23 +84,26 @@ service cloud.firestore {
     
     match /orders/{orderId} {
         allow read, list: if isStaffOrAdmin();
+        // Users can create orders for themselves with 'Placed' status
         allow create: if isSignedIn() 
-          && request.resource.data.customerId == request.auth.uid;
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.status == 'Placed';
         allow update: if isStaffOrAdmin();
         allow delete: if isAdmin();
     }
 
     match /users/{userId}/orders/{orderId} {
       allow read, list: if isOwner(userId) || isStaffOrAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.status == 'Placed';
+      // Only staff can move an order to 'Processing' or 'Completed'
       allow update: if isStaffOrAdmin();
       allow delete: if false;
     }
 
     match /users/{userId}/point_transactions/{transactionId} {
       allow read, list: if isOwner(userId) || isAdmin();
-      // Allow creation for orders/referrals
-      allow create: if isSignedIn();
+      // Allow creation during order checkout/signup, but no modification thereafter
+      allow create: if isOwner(userId) || isAdmin();
       allow update, delete: if false;
     }
 
@@ -103,6 +113,7 @@ service cloud.firestore {
     }
     
     match /mobile_numbers/{mobileNumber} {
+      // Publicly readable for uniqueness checks during signup
       allow read: if isSignedIn(); 
       allow create: if request.resource.data.userId == request.auth.uid;
     }

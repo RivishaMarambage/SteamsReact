@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -12,11 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore } from '@/firebase';
 import type { UserProfile, LoyaltyLevel } from '@/lib/types';
 import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 export default function UserManagementTable() {
   const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>("users");
@@ -58,14 +58,11 @@ export default function UserManagementTable() {
 
   const confirmDelete = async () => {
     if (!selectedUser || !firestore) return;
-    
-    // Note: This deletes the Firestore user document, but not the Firebase Auth user.
-    // For a production app, you'd want a Cloud Function to handle full user deletion.
     await deleteDoc(doc(firestore, "users", selectedUser.id));
 
     toast({
       title: "User Deleted",
-      description: `${selectedUser.name} has been removed from the system.`,
+      description: `${selectedUser.name} has been removed from the database.`,
     });
     setDeleteDialogOpen(false);
     setSelectedUser(null);
@@ -82,7 +79,6 @@ export default function UserManagementTable() {
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
           </div>
         </CardContent>
       </Card>
@@ -91,12 +87,9 @@ export default function UserManagementTable() {
 
   const getRoleBadgeVariant = (role: UserProfile['role']) => {
     switch (role) {
-      case 'admin':
-        return 'destructive';
-      case 'staff':
-        return 'secondary';
-      default:
-        return 'outline';
+      case 'admin': return 'destructive';
+      case 'staff': return 'secondary';
+      default: return 'outline';
     }
   };
 
@@ -118,62 +111,35 @@ export default function UserManagementTable() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Mobile Number</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Loyalty Level</TableHead>
-                <TableHead>Order Count</TableHead>
-                <TableHead>Linked Socials</TableHead>
-                <TableHead>Left Review</TableHead>
-                <TableHead>Redeemable Points</TableHead>
-                <TableHead>Lifetime Points</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
+                <TableHead>Level</TableHead>
+                <TableHead className="text-right">Points</TableHead>
+                <TableHead className="sr-only">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users?.map(user => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.mobileNumber || 'N/A'}</TableCell>
+                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
                   </TableCell>
-                  <TableCell className="capitalize">
+                  <TableCell className="capitalize text-xs font-bold">
                     {user.role === 'customer' ? getLoyaltyLevelName(user.loyaltyLevelId) : 'N/A'}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {user.role === 'customer' ? user.orderCount ?? 0 : 'N/A'}
-                  </TableCell>
-                   <TableCell>
-                    {user.role === 'customer' ? (
-                      <Badge variant={user.hasLinkedSocials ? "secondary" : "outline"}>
-                        {user.hasLinkedSocials ? 'Yes' : 'No'}
-                      </Badge>
-                    ) : 'N/A'}
-                  </TableCell>
-                   <TableCell>
-                    {user.role === 'customer' ? (
-                      <Badge variant={user.hasLeftReview ? "secondary" : "outline"}>
-                        {user.hasLeftReview ? 'Yes' : 'No'}
-                      </Badge>
-                    ) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">{user.loyaltyPoints ?? 0}</TableCell>
-                  <TableCell className="text-right">{user.lifetimePoints ?? 0}</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-primary">{user.loyaltyPoints ?? 0}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <Button size="icon" variant="ghost">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>Manage User</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditRoleClick(user)}>Edit Role</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(user)}>Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(user)}>Delete Profile</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -184,12 +150,11 @@ export default function UserManagementTable() {
         </CardContent>
       </Card>
 
-      {/* Edit Role Dialog */}
       <Dialog open={isRoleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Role for {selectedUser?.name}</DialogTitle>
-            <DialogDescription>Select a new role for this user.</DialogDescription>
+            <DialogTitle>Edit Role: {selectedUser?.name}</DialogTitle>
+            <DialogDescription>Change system permissions for this user.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -208,23 +173,29 @@ export default function UserManagementTable() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleRoleChange}>Save Changes</Button>
+            <Button onClick={handleRoleChange}>Confirm Change</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Alert Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user's data from the database.
+            <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>This will remove the user's document from the database. This action is irreversible.</p>
+              <Alert variant="destructive" className="bg-destructive/5 text-destructive border-destructive/20">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="font-bold uppercase tracking-widest text-[10px]">Security Note</AlertTitle>
+                <AlertDescription className="text-xs">
+                  This does NOT delete the user's authentication account. They will still be able to log in but will have no profile.
+                </AlertDescription>
+              </Alert>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete Data</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

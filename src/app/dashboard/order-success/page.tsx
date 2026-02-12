@@ -13,9 +13,8 @@ import { format } from 'date-fns';
 /**
  * SECURITY NOTE: 
  * This page processes order finalization on the client-side for prototype purposes.
- * For a PRODUCTION application, this logic MUST be moved to a server-side 
- * Firebase Cloud Function triggered by a payment gateway webhook. 
- * Client-side point awarding is vulnerable to manipulation.
+ * PRODUCTION UPGRADE: This logic should be moved to a Server Action or Cloud Function
+ * triggered by a payment webhook to prevent client-side manipulation of points.
  */
 
 function OrderSuccessContent() {
@@ -30,18 +29,11 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const processOrder = async () => {
-      // 1. Core Guards: Only proceed if auth/firestore are ready and we haven't already processed this mount
       if (hasProcessed.current || !authUser || !firestore) return;
       
       const checkoutDataString = localStorage.getItem('checkoutData');
-      if (!checkoutDataString) {
-        if (status === 'processing') {
-            // Already processed or bad reload.
-        }
-        return;
-      }
+      if (!checkoutDataString) return;
 
-      // 2. ATOMIC LOCK: Set ref and clear storage IMMEDIATELY to prevent double-processing
       hasProcessed.current = true;
       localStorage.removeItem('checkoutData');
 
@@ -111,7 +103,6 @@ function OrderSuccessContent() {
         batch.set(rootOrderRef, orderData);
         batch.set(userOrderRef, orderData);
 
-        // REWARD CLEANUP: Strictly clear birthday rewards so they are ONE-TIME use
         const userUpdates: any = {
             loyaltyPoints: increment(-(checkoutData.loyaltyDiscount || 0)),
             orderCount: increment(1),
@@ -139,18 +130,30 @@ function OrderSuccessContent() {
             });
         }
 
-        await batch.commit();
-        setStatus('success');
+        // NON-BLOCKING COMMIT with standardized error handling
+        batch.commit()
+          .then(() => {
+            setStatus('success');
+          })
+          .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: `users/${authUser.uid}/orders/${transactionId}`,
+              operation: 'create',
+              requestResourceData: orderData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            setErrorMessage("Permission denied by security rules. Points or profile could not be updated.");
+            setStatus('error');
+          });
         
       } catch (error: any) {
-        console.error("Error finalizing order:", error);
         setErrorMessage(error.message || "Unexpected error.");
         setStatus('error');
       }
     };
 
     processOrder();
-  }, [searchParams, authUser, firestore, status]);
+  }, [searchParams, authUser, firestore]);
 
   if (status === 'processing') {
     return (
