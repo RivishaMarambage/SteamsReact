@@ -1,10 +1,10 @@
+
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, Addon, AddonCategory } from '@/lib/types';
 import { ShoppingCart, Minus, Plus, Trash2, Tag, Utensils, ShoppingBag, Sparkles, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, ChevronRight, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -180,27 +180,25 @@ export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps
     setIsCartOpen(true);
   };
 
-  const applicableWelcomeOffer = useMemo(() => {
-    if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || !isEmailVerified) return null;
-    return WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0));
-  }, [userProfile, isEmailVerified]);
-
   const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
-  const welcomeDiscountAmount = applicableWelcomeOffer ? subtotal * (applicableWelcomeOffer.discount / 100) : 0;
-  const birthdayDiscountAmount = userProfile?.birthdayDiscountValue ? (userProfile.birthdayDiscountType === 'percentage' ? subtotal * (userProfile.birthdayDiscountValue / 100) : userProfile.birthdayDiscountValue) : 0;
-  
-  const discountedSubtotal = Math.max(0, subtotal - (birthdayDiscountAmount || 0) - welcomeDiscountAmount);
-  const serviceCharge = orderType === 'Dine-in' ? discountedSubtotal * 0.10 : 0;
-  const cartTotal = discountedSubtotal + serviceCharge;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleProceedToCheckout = async () => {
     if (cart.length === 0) return;
     setIsProcessing(true);
+    
+    // Calculate final totals for storage
+    const welcomeOffer = userProfile && (userProfile.orderCount ?? 0) < 3 && isEmailVerified 
+        ? WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0)) : null;
+    const wDiscount = welcomeOffer ? subtotal * (welcomeOffer.discount / 100) : 0;
+    const bDiscount = userProfile?.birthdayDiscountValue ? (userProfile.birthdayDiscountType === 'percentage' ? subtotal * (userProfile.birthdayDiscountValue / 100) : userProfile.birthdayDiscountValue) : 0;
+    const discSub = Math.max(0, subtotal - bDiscount - wDiscount);
+    const sCharge = orderType === 'Dine-in' ? discSub * 0.10 : 0;
+
     localStorage.setItem('checkoutData', JSON.stringify({
-        cart, subtotal, serviceCharge, appliedPoints: 0, 
-        birthdayDiscountAmount, welcomeDiscountAmount, 
-        cartTotal, orderType, tableNumber, welcomeOfferApplied: !!applicableWelcomeOffer,
+        cart, subtotal, serviceCharge: sCharge, appliedPoints: 0, 
+        birthdayDiscountAmount: bDiscount, welcomeDiscountAmount: wDiscount, 
+        cartTotal: discSub + sCharge, orderType, tableNumber, welcomeOfferApplied: !!welcomeOffer,
     }));
     router.push('/dashboard/checkout');
   };
@@ -208,16 +206,13 @@ export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps
   const scrollToCategory = (id: string) => {
     const element = document.getElementById(`cat-${id}`);
     if (element) {
-        const offset = 180; // Account for sticky headers
+        const offset = 180;
         const bodyRect = document.body.getBoundingClientRect().top;
         const elementRect = element.getBoundingClientRect().top;
         const elementPosition = elementRect - bodyRect;
         const offsetPosition = elementPosition - offset;
 
-        window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-        });
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
   };
 
@@ -301,7 +296,6 @@ export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps
                         </div>
                     </div>
 
-                    {/* CATEGORY JUMPER */}
                     <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar scroll-smooth">
                         {sortedCategories.filter(c => c.type === selectedMainGroup).map((cat) => (
                             <button
@@ -316,7 +310,7 @@ export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps
                 </div>
             </div>
 
-            {/* PUBLIC STYLE SCROLLING SECTIONS */}
+            {/* CATEGORY SECTIONS */}
             <div className="space-y-24 pb-32">
                 {sortedCategories.filter(c => c.type === selectedMainGroup).map(subCategory => {
                     const subItems = sortedMenuItems.filter(item => item.categoryId === subCategory.id);
@@ -536,30 +530,12 @@ export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps
           <div className="p-12 border-t bg-[#2c1810] text-white space-y-8 rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
                 <div className="w-full space-y-4 text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
                     <div className="flex justify-between">
-                        <span>Items Subtotal</span>
+                        <span>Subtotal</span>
                         <span>LKR {subtotal.toFixed(2)}</span>
                     </div>
-                    {birthdayDiscountAmount > 0 && (
-                        <div className="flex justify-between text-accent">
-                            <span>Birthday Reward</span>
-                            <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
-                        </div>
-                    )}
-                    {applicableWelcomeOffer && (
-                        <div className="flex justify-between text-blue-400">
-                            <span>{applicableWelcomeOffer.label}</span>
-                            <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
-                        </div>
-                    )}
-                    {serviceCharge > 0 && (
-                        <div className="flex justify-between">
-                            <span>Service Charge (10%)</span>
-                            <span>LKR {serviceCharge.toFixed(2)}</span>
-                        </div>
-                    )}
                     <div className="flex justify-between text-4xl font-black text-white tracking-tighter pt-6 border-t border-white/10 opacity-100">
                         <span className="uppercase text-[10px] tracking-[0.3em] self-end mb-2">Grand Total</span>
-                        <span className="text-accent">LKR {cartTotal.toFixed(2)}</span>
+                        <span className="text-accent">LKR {subtotal.toFixed(2)}</span>
                     </div>
                 </div>
                  <Button size="lg" className="w-full h-20 rounded-full text-base font-black uppercase tracking-[0.2em] shadow-2xl bg-primary hover:bg-[#b45309] text-white border-0" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
