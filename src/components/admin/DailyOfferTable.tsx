@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Search, ChevronDown, ChevronRight, Tag, Percent, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, ChevronDown, ChevronRight, Tag, Percent, X, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -18,13 +18,6 @@ import { collection, doc, setDoc, deleteDoc, addDoc, query, orderBy } from 'fire
 import { addDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
-import { Checkbox } from '../ui/checkbox';
-
-/**
- * FIXED: DailyOfferTable
- * Resolves "Maximum update depth exceeded" by stabilizing state management and removing
- * recursive rendering loops caused by unstable ShadCN Select components in tight re-render paths.
- */
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
@@ -90,7 +83,7 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
-  const handleToggleItem = (itemId: string) => {
+  const handleToggleItem = useCallback((itemId: string) => {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
       const updated = current.includes(itemId) 
@@ -98,9 +91,9 @@ export default function DailyOfferTable() {
         : [...current, itemId];
       return { ...prev, menuItemIds: updated };
     });
-  };
+  }, []);
 
-  const handleToggleCategory = (categoryName: string) => {
+  const handleToggleCategory = useCallback((categoryName: string) => {
     const itemsInCategory = groupedMenuItems[categoryName] || [];
     const itemIds = itemsInCategory.map(i => i.id);
     
@@ -113,7 +106,7 @@ export default function DailyOfferTable() {
         return { ...prev, menuItemIds: Array.from(new Set([...current, ...itemIds])) };
       }
     });
-  };
+  }, [groupedMenuItems]);
 
   const handleEdit = (offer: DailyOffer) => {
     const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
@@ -298,12 +291,14 @@ export default function DailyOfferTable() {
                             </div>
                           </div>
                           {isExpanded && (
-                            <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+                            <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {items.map(item => {
                                 const isChecked = (formData.menuItemIds || []).includes(item.id);
                                 return (
                                   <div key={item.id} className={cn("flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer", isChecked ? "bg-primary/5 border-primary" : "border-muted/50 hover:border-primary/20")} onClick={() => handleToggleItem(item.id)}>
-                                    <Checkbox checked={isChecked} className="h-6 w-6 pointer-events-none" />
+                                    <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors", isChecked ? "bg-primary border-primary text-white" : "border-muted-foreground/30")}>
+                                        {isChecked && <Check className="h-3 w-3 stroke-[4]" />}
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-black truncate uppercase tracking-tight">{item.name}</p>
                                         <span className="text-[10px] font-black text-primary uppercase tracking-widest">LKR {item.price.toFixed(0)}</span>
