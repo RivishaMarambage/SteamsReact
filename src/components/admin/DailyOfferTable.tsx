@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Tag, Search, FilterX, Trash2, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Trash2, ChevronDown, ChevronUp, CheckCircle2, Calendar as CalendarIcon, Tag, Percent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -19,8 +19,6 @@ import { addDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
-import { Separator } from '../ui/separator';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
@@ -90,12 +88,12 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
-  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
+  };
 
-  const handleToggleItem = useCallback((itemId: string) => {
+  const handleToggleItem = (itemId: string) => {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
       const updated = current.includes(itemId) 
@@ -103,9 +101,9 @@ export default function DailyOfferTable() {
         : [...current, itemId];
       return { ...prev, menuItemIds: updated };
     });
-  }, []);
+  };
 
-  const handleToggleCategorySelection = useCallback((categoryName: string) => {
+  const handleToggleCategorySelection = (categoryName: string) => {
     const itemsInCategory = groupedMenuItems[categoryName];
     if (!itemsInCategory) return;
     
@@ -126,7 +124,7 @@ export default function DailyOfferTable() {
         };
       }
     });
-  }, [groupedMenuItems]);
+  };
 
   const toggleCategoryExpand = (categoryName: string) => {
     setExpandedCategories(prev => ({
@@ -180,7 +178,7 @@ export default function DailyOfferTable() {
     if (!firestore) return;
 
     if (!formData.title || !formData.menuItemIds?.length) {
-        toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all fields and select at least one item." });
+        toast({ variant: "destructive", title: "Missing Information", description: "Please select at least one item." });
         return;
     }
 
@@ -192,7 +190,7 @@ export default function DailyOfferTable() {
         }
         setFormOpen(false);
         setSelectedOffer(null);
-        toast({ title: "Offer Saved Successfully" });
+        toast({ title: "Promotion Saved" });
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error Saving", description: error.message });
     }
@@ -307,7 +305,7 @@ export default function DailyOfferTable() {
               </DialogHeader>
             </div>
             
-            <div className="flex-1 overflow-y-auto bg-background p-8 space-y-12 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto bg-background p-8 space-y-12">
                 <div className="grid gap-8">
                   <div className="grid gap-3">
                     <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Title</Label>
@@ -350,7 +348,7 @@ export default function DailyOfferTable() {
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
                       const selectedInCat = items.filter(i => (formData.menuItemIds || []).includes(i.id));
                       const isExpanded = !!expandedCategories[categoryName];
-                      const allSelected = selectedInCat.length === items.length;
+                      const allSelected = items.length > 0 && selectedInCat.length === items.length;
                       
                       return (
                         <div key={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
@@ -366,13 +364,16 @@ export default function DailyOfferTable() {
                             </div>
                             <div 
                                 role="button"
-                                onClick={() => handleToggleCategorySelection(categoryName)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleCategorySelection(categoryName);
+                                }}
                                 className={cn(
                                     "h-8 text-[9px] font-black uppercase tracking-widest px-4 rounded-full transition-all flex items-center cursor-pointer border-2",
                                     allSelected ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground hover:border-primary/30"
                                 )}
                             >
-                                {allSelected ? 'All Selected' : 'Select Category'}
+                                {allSelected ? 'Selected' : 'Select Category'}
                             </div>
                           </div>
                           
@@ -408,12 +409,21 @@ export default function DailyOfferTable() {
                 <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                         <h3 className="text-2xl font-headline font-black uppercase tracking-tighter">Tier Discounts</h3>
-                        <Tabs value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))}>
-                          <TabsList className="grid w-full grid-cols-2 bg-white/50 p-1 rounded-full h-12 border-2">
-                            <TabsTrigger value="fixed" className="rounded-full text-[10px] font-black">LKR</TabsTrigger>
-                            <TabsTrigger value="percentage" className="rounded-full text-[10px] font-black">% OFF</TabsTrigger>
-                          </TabsList>
-                        </Tabs>
+                        <div className="flex gap-2 bg-white/50 p-1 rounded-full h-12 border-2 w-full sm:w-48">
+                            {['fixed', 'percentage'].map((type) => (
+                                <div 
+                                    key={type}
+                                    role="button"
+                                    onClick={() => setFormData(p => ({ ...p, discountType: type as any }))}
+                                    className={cn(
+                                        "flex-1 flex items-center justify-center rounded-full text-[10px] font-black transition-all cursor-pointer",
+                                        formData.discountType === type ? "bg-primary text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {type === 'fixed' ? 'LKR' : '% OFF'}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-8 pb-10'>
                         {loyaltyLevels.map(level => (

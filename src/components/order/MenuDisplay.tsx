@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -10,7 +9,7 @@ import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, Loya
 import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Tag, Utensils, ShoppingBag, Sparkles, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, MailWarning } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { Separator } from '../ui/separator';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
@@ -80,9 +79,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const addonCategoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'addon_categories') : null, [firestore]);
   const { data: addonCategories } = useCollection<AddonCategory>(addonCategoriesQuery);
 
-  const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels")) : null, [firestore]);
-  const { data: loyaltyLevels } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
-
   const sortedMenuItems = useMemo(() => {
     return [...menuItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   }, [menuItems]);
@@ -135,12 +131,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       if (isBeverage) {
         const isInCart = cart.some(cartItem => cartItem.menuItem.id === item.id);
         if (isInCart) {
-          setTimeout(() => {
-            toast({
-              title: "Item already in order",
-              description: "Beverages can only be ordered in single quantities.",
-            });
-          }, 0);
+          toast({ title: "Already in bag", description: "This drink is already in your order." });
           return;
         }
       }
@@ -164,81 +155,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     setValidationErrors({});
     setCustomizationOpen(true);
   }, [categories, cart, toast]);
-
-  useEffect(() => {
-    if (offerToClaim && offerToClaim !== processedOfferIdRef.current && menuItems.length > 0 && dailyOffers.length > 0 && userProfile && !isProfileLoading) {
-        processedOfferIdRef.current = offerToClaim;
-        const offer = dailyOffers.find(o => o.id === offerToClaim);
-        if (!offer) return;
-
-        const targetItemId = searchParams.get('itemId');
-        const menuItemId = targetItemId || (offer.menuItemIds?.length > 0 ? offer.menuItemIds[0] : null);
-        
-        if (!menuItemId) return;
-
-        const menuItem = menuItems.find(item => item.id === menuItemId);
-        if (!menuItem) return;
-
-        if (!orderType) {
-            const defaultType = offer.orderType === 'Both' ? 'Takeaway' : offer.orderType;
-            setOrderType(defaultType);
-            if (defaultType === 'Takeaway') {
-                setOrderTypeDialogOpen(false);
-            } else {
-                setDialogStep('table');
-            }
-        }
-
-        const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
-        let displayPrice = menuItem.price;
-        if (userTierDiscount > 0) {
-            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
-            if (isPercentage) {
-                displayPrice = menuItem.price - (menuItem.price * userTierDiscount / 100);
-            } else {
-                displayPrice = menuItem.price - userTierDiscount;
-            }
-        }
-        displayPrice = Math.max(0, displayPrice);
-
-        addToCart(menuItem, displayPrice, offer.id);
-
-        const params = new URLSearchParams(window.location.search);
-        params.delete('addOffer');
-        params.delete('itemId');
-        router.replace(`${pathname}?${params.toString()}`);
-    }
-  }, [offerToClaim, menuItems, dailyOffers, userProfile, isProfileLoading, addToCart, router, pathname, orderType, searchParams]);
-
-  useEffect(() => {
-    const reorderString = localStorage.getItem('reorder_items');
-    if (reorderString && !processedReorderRef.current && menuItems.length > 0 && !isProfileLoading) {
-        processedReorderRef.current = true;
-        try {
-            const items = JSON.parse(reorderString);
-            const newCartItems: CartItem[] = items.map((item: any) => {
-                const menuItem = menuItems.find(m => m.id === item.menuItemId);
-                if (!menuItem) return null;
-                return {
-                    id: `${menuItem.id}-${Date.now()}-${Math.random()}`,
-                    menuItem,
-                    quantity: item.quantity,
-                    addons: item.addons,
-                    totalPrice: item.totalPrice,
-                    appliedDailyOfferId: item.appliedDailyOfferId
-                };
-            }).filter((i: any) => i !== null);
-            
-            if (newCartItems.length > 0) {
-                setCart(prev => [...prev, ...newCartItems]);
-                setIsCartOpen(true);
-            }
-            localStorage.removeItem('reorder_items');
-        } catch (e) {
-            console.error("Failed to process reorder", e);
-        }
-    }
-  }, [menuItems, isProfileLoading]);
 
   const updateQuantity = (cartId: string, delta: number) => {
     setCart(prev => prev.map(item => {
@@ -267,10 +183,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     menuItem.addonGroups?.forEach(group => {
       const selectedInGroup = selectedAddons.filter(a => a.addonCategoryId === group.addonCategoryId);
       if (group.isRequired && selectedInGroup.length < group.minSelection) {
-        errors[group.addonCategoryId] = `Please select at least ${group.minSelection} option(s).`;
-      }
-      if (selectedInGroup.length > group.maxSelection) {
-        errors[group.addonCategoryId] = `Please select no more than ${group.maxSelection} option(s).`;
+        errors[group.addonCategoryId] = `Required: ${group.minSelection}`;
       }
     });
 
@@ -302,11 +215,6 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
     return WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0));
   }, [userProfile, isEmailVerified]);
 
-  const potentialWelcomeOffer = useMemo(() => {
-    if (!userProfile || (userProfile.orderCount ?? 0) >= 3 || isEmailVerified) return null;
-    return WELCOME_OFFERS.find(o => o.order === (userProfile.orderCount ?? 0));
-  }, [userProfile, isEmailVerified]);
-
   const subtotal = cart.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
   const welcomeDiscountAmount = applicableWelcomeOffer ? subtotal * (applicableWelcomeOffer.discount / 100) : 0;
   const birthdayDiscountAmount = userProfile?.birthdayDiscountValue ? (userProfile.birthdayDiscountType === 'percentage' ? subtotal * (userProfile.birthdayDiscountValue / 100) : userProfile.birthdayDiscountValue) : 0;
@@ -314,17 +222,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const discountedSubtotal = Math.max(0, subtotal - birthdayDiscountAmount - welcomeDiscountAmount);
   const serviceCharge = orderType === 'Dine-in' ? discountedSubtotal * 0.10 : 0;
   const totalBeforePoints = discountedSubtotal + serviceCharge;
-  const loyaltyDiscount = Math.min(totalBeforePoints, appliedPoints);
-  const cartTotal = totalBeforePoints - loyaltyDiscount;
+  const cartTotal = totalBeforePoints - Math.min(totalBeforePoints, appliedPoints);
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleProceedToCheckout = async () => {
     if (cart.length === 0) return;
     setIsProcessing(true);
     localStorage.setItem('checkoutData', JSON.stringify({
-        cart, subtotal, serviceCharge, appliedPoints, loyaltyDiscount, 
+        cart, subtotal, serviceCharge, appliedPoints, 
         birthdayDiscountAmount, welcomeDiscountAmount, 
-        totalDiscount: loyaltyDiscount + birthdayDiscountAmount + welcomeDiscountAmount,
         cartTotal, orderType, tableNumber, welcomeOfferApplied: !!applicableWelcomeOffer,
     }));
     router.push('/dashboard/checkout');
@@ -337,16 +243,16 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
            {dialogStep === 'type' && (
              <>
                 <DialogHeader>
-                    <DialogTitle className="text-center">How will you be joining us?</DialogTitle>
-                    <DialogDescription className="text-center">Select whether you want to dine-in or take your order away.</DialogDescription>
+                    <DialogTitle className="text-center">Welcome to Steamsbury</DialogTitle>
+                    <DialogDescription className="text-center">How will you be joining us today?</DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-2 gap-4 py-4">
-                    <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Dine-in')}>
-                        <Utensils className="h-8 w-8"/>
+                    <Button variant="outline" className="h-32 flex-col gap-2 rounded-3xl" onClick={() => handleTypeSelect('Dine-in')}>
+                        <Utensils className="h-8 w-8 text-primary"/>
                         <span>Dine-in</span>
                     </Button>
-                     <Button variant="outline" className="h-32 flex-col gap-2" onClick={() => handleTypeSelect('Takeaway')}>
-                        <ShoppingBag className="h-8 w-8"/>
+                     <Button variant="outline" className="h-32 flex-col gap-2 rounded-3xl" onClick={() => handleTypeSelect('Takeaway')}>
+                        <ShoppingBag className="h-8 w-8 text-primary"/>
                         <span>Takeaway</span>
                     </Button>
                 </div>
@@ -355,20 +261,20 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
            {dialogStep === 'table' && (
                <>
                 <DialogHeader>
-                    <DialogTitle className="text-center">Select Table Number</DialogTitle>
-                    <DialogDescription className="text-center">Choose the table where you are seated.</DialogDescription>
+                    <DialogTitle className="text-center">Select Your Table</DialogTitle>
+                    <DialogDescription className="text-center">We'll bring your order right to you.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <div className="grid grid-cols-5 gap-2">
                         {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                            <Button key={num} variant="outline" className="h-16 text-lg" onClick={() => handleTableSelect(String(num))}>
+                            <Button key={num} variant="outline" className="h-16 text-lg rounded-xl" onClick={() => handleTableSelect(String(num))}>
                                 {num}
                             </Button>
                         ))}
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogStep('type')}>Back</Button>
+                    <Button variant="ghost" onClick={() => setDialogStep('type')}>Back</Button>
                 </DialogFooter>
                </>
            )}
@@ -376,168 +282,171 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       </Dialog>
       
       {!isOrderTypeDialogOpen && (
-        <>
-            <div className="mb-8">
-                <Card className="border-none shadow-md overflow-hidden bg-gradient-to-r from-primary/5 to-transparent">
-                    <CardHeader className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                        <div>
-                            <CardTitle className="font-headline text-lg sm:text-2xl uppercase tracking-tight">Order Details</CardTitle>
-                            <CardDescription suppressHydrationWarning>
-                                Order Type: <span className="font-bold text-primary uppercase">{orderType}</span>
-                                {orderType === 'Dine-in' && tableNumber && (
-                                    <> • Table: <span className="font-bold text-primary">#{tableNumber}</span></>
-                                )}
-                            </CardDescription>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => { setOrderTypeDialogOpen(true); setDialogStep('type'); }} className="text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all">
-                            <RotateCcw className="mr-2 h-3 w-3" /> Change Mode
-                        </Button>
-                    </CardHeader>
-                </Card>
-            </div>
-
-            <div className="flex justify-center mb-12">
-                <div className="bg-muted/50 p-1.5 rounded-full flex gap-1 border">
-                    {MAIN_GROUPS.map((group) => (
-                        <Button
-                            key={group}
-                            variant={selectedMainGroup === group ? "default" : "ghost"}
-                            className={cn(
-                                "rounded-full px-10 py-6 text-xs font-black uppercase tracking-[0.2em] transition-all",
-                                selectedMainGroup === group ? "shadow-xl scale-105" : "text-muted-foreground hover:text-foreground"
-                            )}
-                            onClick={() => setSelectedMainGroup(group)}
-                        >
-                            {group === 'Beverages' ? <Coffee className="mr-2 h-4 w-4" /> : <Pizza className="mr-2 h-4 w-4" />}
-                            {group}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="mb-12 overflow-x-auto pb-4 scrollbar-hide">
-                    <TabsList className="h-auto p-1.5 bg-muted/30 rounded-2xl border flex justify-start w-max mx-auto">
-                        {filteredCategories.map(category => (
-                        <TabsTrigger 
-                            key={category.id} 
-                            value={category.id} 
-                            className="whitespace-nowrap px-8 py-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-[10px] font-black uppercase tracking-[0.2em]"
-                        >
-                            {category.name}
-                        </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </div>
-                {filteredCategories.map(subCategory => (
-                <TabsContent key={subCategory.id} value={subCategory.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="flex overflow-x-auto gap-8 pb-12 snap-x scrollbar-hide">
-                    {sortedMenuItems.filter(item => item.categoryId === subCategory.id).map(item => {
-                        const todayString = format(new Date(), 'yyyy-MM-dd');
-                        const offer = dailyOffers.find(o => {
-                            if (!o.offerStartDate || !o.offerEndDate || !o.menuItemIds?.includes(item.id)) return false;
-                            if (o.orderType !== 'Both' && o.orderType !== orderType) return false;
-                            return isWithinInterval(new Date(), { start: parseISO(o.offerStartDate), end: parseISO(o.offerEndDate) });
-                        });
-
-                        const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
-                        let displayPrice = item.price;
-                        let isOfferApplied = false;
-                        
-                        if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
-                            const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
-                            if (userTierDiscount > 0) {
-                                const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
-                                displayPrice = isPercentage ? item.price - (item.price * userTierDiscount / 100) : item.price - userTierDiscount;
-                                isOfferApplied = true;
-                            }
-                        }
-                        displayPrice = Math.max(0, displayPrice);
-
-                        return (
-                        <Card key={item.id} className={cn("flex flex-col shrink-0 w-[280px] sm:w-[340px] snap-start overflow-hidden shadow-xl border-0 bg-white group hover:shadow-2xl transition-all duration-500 rounded-[2.5rem]", item.isOutOfStock && "opacity-60 grayscale")}>
-                            <div className="relative w-full h-60 overflow-hidden">
-                                <Image
-                                    src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
-                                    alt={item.name}
-                                    fill
-                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                                    data-ai-hint="food item"
-                                />
-                                {item.isOutOfStock && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                                        <Badge variant="destructive" className="h-12 px-8 uppercase font-black tracking-widest text-[10px]">Out of Stock</Badge>
-                                    </div>
-                                )}
-                                {isOfferApplied && !item.isOutOfStock && (
-                                    <Badge variant="destructive" className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 shadow-2xl animate-pulse rounded-full border-0">
-                                    <Tag className="h-3 w-3 fill-current"/> <span className="font-black text-[10px] uppercase tracking-widest">Daily Special</span>
-                                    </Badge>
-                                )}
-                            </div>
-                            <CardContent className="p-8 flex-grow">
-                                <CardTitle className="font-headline text-3xl mb-3 text-[#2c1810] leading-none tracking-tight">{item.name}</CardTitle>
-                                <CardDescription className="line-clamp-2 text-[#6b584b] leading-relaxed text-sm font-medium">{item.description}</CardDescription>
-                            </CardContent>
-                            <CardFooter className="p-8 pt-0 flex justify-between items-center border-t border-muted/50 bg-muted/5 mt-auto">
-                                <div className="flex flex-col pt-6">
-                                    {isOfferApplied && <span className="text-[10px] text-muted-foreground line-through opacity-60 font-black uppercase tracking-widest">LKR {item.price.toFixed(2)}</span>}
-                                    <span className="font-black text-3xl text-primary tracking-tighter">LKR {displayPrice.toFixed(2)}</span>
-                                </div>
-                                <Button size="lg" onClick={() => addToCart(item, displayPrice, offer?.id)} disabled={item.isOutOfStock} className="rounded-full w-14 h-14 bg-[#2c1810] hover:bg-primary transition-all shadow-xl hover:shadow-primary/20 mt-6 p-0">
-                                    {item.isOutOfStock ? <Minus className="h-5 w-5" /> : <Plus className="h-6 w-6" />}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                        );
-                    })}
+        <div className="relative">
+            {/* STICKY HEADER AREA */}
+            <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-md pt-4 pb-6 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b space-y-6">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-headline font-black uppercase tracking-tight text-[#2c1810]">
+                            Menu • <span className="text-primary">{orderType}</span>
+                            {orderType === 'Dine-in' && tableNumber && <span className="text-muted-foreground ml-2">#{tableNumber}</span>}
+                        </h2>
                     </div>
-                </TabsContent>
+                    <Button variant="ghost" size="sm" onClick={() => { setOrderTypeDialogOpen(true); setDialogStep('type'); }} className="h-8 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary">
+                        <RotateCcw className="mr-2 h-3.5 w-3.5" /> Reset Selection
+                    </Button>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex justify-center">
+                        <div className="bg-muted/50 p-1 rounded-full flex gap-1 border w-full sm:w-auto">
+                            {MAIN_GROUPS.map((group) => (
+                                <button
+                                    key={group}
+                                    className={cn(
+                                        "flex-1 sm:flex-none flex items-center justify-center rounded-full px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                                        selectedMainGroup === group ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                    onClick={() => setSelectedMainGroup(group)}
+                                >
+                                    {group === 'Beverages' ? <Coffee className="mr-2 h-3.5 w-3.5" /> : <Pizza className="mr-2 h-3.5 w-3.5" />}
+                                    {group}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto flex gap-2 pb-2 scrollbar-hide">
+                        {filteredCategories.map(category => (
+                            <button
+                                key={category.id}
+                                onClick={() => setActiveTab(category.id)}
+                                className={cn(
+                                    "whitespace-nowrap px-6 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border-2 transition-all",
+                                    activeTab === category.id 
+                                        ? "bg-[#2c1810] border-[#2c1810] text-white shadow-md scale-105" 
+                                        : "bg-white border-muted-foreground/10 text-muted-foreground hover:border-primary/30"
+                                )}
+                            >
+                                {category.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* MAIN MENU CONTENT */}
+            <div className="pt-12">
+                {filteredCategories.map(subCategory => (
+                    <div key={subCategory.id} className={cn("space-y-8 animate-in fade-in duration-500", activeTab !== subCategory.id && "hidden")}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {sortedMenuItems.filter(item => item.categoryId === subCategory.id).map(item => {
+                                const todayString = format(new Date(), 'yyyy-MM-dd');
+                                const offer = dailyOffers.find(o => {
+                                    if (!o.menuItemIds?.includes(item.id)) return false;
+                                    if (o.orderType !== 'Both' && o.orderType !== orderType) return false;
+                                    return todayString >= o.offerStartDate && todayString <= o.offerEndDate;
+                                });
+
+                                const alreadyRedeemed = offer && userProfile?.dailyOffersRedeemed?.[offer.id] === todayString;
+                                let displayPrice = item.price;
+                                let isOfferApplied = false;
+                                
+                                if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
+                                    const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
+                                    if (userTierDiscount > 0) {
+                                        const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+                                        displayPrice = isPercentage ? item.price - (item.price * userTierDiscount / 100) : item.price - userTierDiscount;
+                                        isOfferApplied = true;
+                                    }
+                                }
+                                displayPrice = Math.max(0, displayPrice);
+
+                                return (
+                                    <Card key={item.id} className={cn("flex flex-col overflow-hidden shadow-lg border-0 bg-white group hover:shadow-2xl transition-all duration-500 rounded-[2rem]", item.isOutOfStock && "opacity-60")}>
+                                        <div className="relative aspect-[4/3] overflow-hidden">
+                                            <Image
+                                                src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
+                                                alt={item.name}
+                                                fill
+                                                className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                data-ai-hint="food item"
+                                            />
+                                            {item.isOutOfStock && (
+                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                                                    <Badge variant="destructive" className="h-10 px-6 uppercase font-black text-[9px]">Out of Stock</Badge>
+                                                </div>
+                                            )}
+                                            {isOfferApplied && !item.isOutOfStock && (
+                                                <Badge className="absolute top-4 right-4 bg-primary text-white px-3 py-1 shadow-lg animate-pulse rounded-full border-0">
+                                                    <Tag className="h-3 w-3 mr-1.5 fill-current"/> 
+                                                    <span className="font-black text-[9px] uppercase">Member Special</span>
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <CardContent className="p-6 flex-grow">
+                                            <CardTitle className="font-headline text-xl mb-2 text-[#2c1810] leading-none">{item.name}</CardTitle>
+                                            <CardDescription className="line-clamp-2 text-[#6b584b] text-xs font-medium leading-relaxed">{item.description}</CardDescription>
+                                        </CardContent>
+                                        <CardFooter className="px-6 pb-6 pt-0 flex justify-between items-end">
+                                            <div className="flex flex-col">
+                                                {isOfferApplied && <span className="text-[9px] text-muted-foreground line-through opacity-60 font-black uppercase">LKR {item.price.toFixed(2)}</span>}
+                                                <span className="font-black text-xl text-primary tracking-tighter">LKR {displayPrice.toFixed(2)}</span>
+                                            </div>
+                                            <Button size="icon" onClick={() => addToCart(item, displayPrice, offer?.id)} disabled={item.isOutOfStock} className="rounded-full w-12 h-12 bg-[#2c1810] hover:bg-primary transition-all shadow-lg p-0 shrink-0">
+                                                {item.isOutOfStock ? <Minus className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    </div>
                 ))}
-            </Tabs>
-        </>
+            </div>
+        </div>
       )}
 
       <Dialog open={isCustomizationOpen} onOpenChange={setCustomizationOpen}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-[3rem]">
-          <div className="relative h-48 w-full">
-            {customizingItem?.menuItem.imageUrl && (
-              <Image src={customizingItem.menuItem.imageUrl} alt={customizingItem.menuItem.name} fill className="object-cover" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-          </div>
-          <div className="p-8 -mt-12 relative bg-background rounded-t-[3rem]">
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-[3rem] border-none">
+          <div className="p-8 bg-background">
             <DialogHeader>
-              <DialogTitle className="text-3xl font-headline font-black text-[#2c1810] uppercase tracking-tighter">{customizingItem?.menuItem.name}</DialogTitle>
-              <DialogDescription className="text-sm font-medium text-[#6b584b]">Customize your perfect cup exactly how you like it.</DialogDescription>
+              <DialogTitle className="text-2xl font-headline font-black text-[#2c1810] uppercase tracking-tighter">{customizingItem?.menuItem.name}</DialogTitle>
+              <DialogDescription className="text-xs font-medium text-[#6b584b]">Customize your selection below.</DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[40vh] mt-6 pr-4">
+            <ScrollArea className="max-h-[50vh] mt-6 pr-4">
               <div className="space-y-8 pb-4">
                 {customizingItem?.menuItem.addonGroups?.map(group => {
                   const category = addonCategories?.find(c => c.id === group.addonCategoryId);
                   const groupAddons = allAddons?.filter(a => a.addonCategoryId === group.addonCategoryId && a.isActive !== false);
                   return (
                     <div key={group.addonCategoryId} className="space-y-4">
-                      <div className="flex justify-between items-baseline">
-                        <Label className="text-xs font-black uppercase tracking-widest text-[#2c1810]">{category?.name || 'Options'}</Label>
-                        {group.isRequired && <Badge variant="outline" className="text-[8px] h-4 border-primary text-primary">Required</Badge>}
+                      <div className="flex justify-between items-baseline border-b pb-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-[#2c1810]">{category?.name || 'Options'}</Label>
+                        {group.isRequired && <Badge variant="outline" className="text-[8px] h-4 border-primary text-primary px-2">REQUIRED</Badge>}
                       </div>
-                      <div className="grid gap-3">
+                      <div className="grid gap-2">
                         {groupAddons?.map(addon => (
-                          <div key={addon.id} className="flex items-center space-x-3 p-4 rounded-2xl border-2 hover:border-primary/30 transition-all cursor-pointer has-[:checked]:bg-primary/5 has-[:checked]:border-primary group">
+                          <div 
+                            key={addon.id} 
+                            onClick={() => handleAddonToggle(addon)}
+                            className={cn(
+                                "flex items-center space-x-3 p-4 rounded-2xl border-2 transition-all cursor-pointer group",
+                                selectedAddons.find(a => a.id === addon.id) ? "bg-primary/5 border-primary" : "hover:border-primary/20"
+                            )}
+                          >
                             <Checkbox 
-                              id={`addon-${addon.id}`} 
                               checked={!!selectedAddons.find(a => a.id === addon.id)} 
                               onCheckedChange={() => handleAddonToggle(addon)}
-                              className="h-6 w-6 border-2"
+                              className="h-5 w-5"
                             />
-                            <Label htmlFor={`addon-${addon.id}`} className="flex-grow cursor-pointer font-bold text-sm">{addon.name}</Label>
-                            <span className="font-black text-xs text-primary">+ LKR {addon.price.toFixed(2)}</span>
+                            <Label className="flex-grow cursor-pointer font-bold text-sm">{addon.name}</Label>
+                            <span className="font-black text-[10px] text-primary">+ LKR {addon.price.toFixed(0)}</span>
                           </div>
                         ))}
                       </div>
                       {validationErrors[group.addonCategoryId] && (
-                        <p className="text-[10px] font-bold text-destructive uppercase tracking-widest">{validationErrors[group.addonCategoryId]}</p>
+                        <p className="text-[9px] font-bold text-destructive uppercase tracking-widest">{validationErrors[group.addonCategoryId]}</p>
                       )}
                     </div>
                   );
@@ -545,8 +454,8 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
               </div>
             </ScrollArea>
             <DialogFooter className="mt-8">
-              <Button size="lg" className="w-full h-16 rounded-full text-lg font-black uppercase tracking-widest shadow-2xl" onClick={confirmCustomization}>
-                Add to Order <PlusCircle className="ml-2 h-5 w-5" />
+              <Button size="lg" className="w-full h-16 rounded-full text-sm font-black uppercase tracking-widest shadow-2xl" onClick={confirmCustomization}>
+                Add to Bag <PlusCircle className="ml-2 h-4 w-4" />
               </Button>
             </DialogFooter>
           </div>
@@ -556,114 +465,93 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button onClick={() => setIsCartOpen(true)} className="fixed bottom-8 right-8 rounded-full w-20 h-20 shadow-[0_20px_50px_rgba(217,119,6,0.4)] z-50 transition-all active:scale-90 group border-0 bg-primary hover:bg-[#b45309]">
-            <ShoppingCart className="h-8 w-8 text-white group-hover:rotate-12 transition-transform" />
+            <ShoppingCart className="h-8 w-8 text-white" />
             {cartItemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-white text-primary rounded-full h-10 w-10 flex items-center justify-center text-sm font-black ring-4 ring-primary shadow-2xl animate-in zoom-in">
+              <span className="absolute -top-2 -right-2 bg-white text-primary rounded-full h-10 w-10 flex items-center justify-center text-sm font-black ring-4 ring-primary shadow-xl">
                 {cartItemCount}
               </span>
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 overflow-hidden border-l-0 shadow-2xl rounded-l-[3rem]">
+        <SheetContent className="flex h-full flex-col w-full sm:max-w-md p-0 overflow-hidden border-none shadow-2xl rounded-l-[3rem]">
           <SheetHeader className="p-10 border-b bg-muted/10">
-            <SheetTitle className="font-headline text-4xl uppercase tracking-tighter text-[#2c1810]">Your Order</SheetTitle>
-            <SheetDescription className="font-bold text-[#6b584b] uppercase tracking-widest text-[10px]">Review your items before checkout.</SheetDescription>
+            <SheetTitle className="font-headline text-3xl uppercase tracking-tighter text-[#2c1810]">Your Order</SheetTitle>
+            <SheetDescription className="font-bold text-[#6b584b] uppercase tracking-widest text-[10px]">Review items before checkout.</SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-1">
-            <div className="p-10 space-y-10">
+            <div className="p-10">
                 {cart.length === 0 ? (
-                <div className="text-center text-muted-foreground h-64 flex flex-col items-center justify-center space-y-8">
-                    <div className="bg-muted p-10 rounded-full scale-110">
-                        <ShoppingBag className="w-16 h-16 opacity-20" />
-                    </div>
-                    <p className="font-black uppercase tracking-[0.2em] text-[10px]">Your bag is empty</p>
+                <div className="text-center py-20 flex flex-col items-center justify-center space-y-6">
+                    <ShoppingBag className="w-16 h-16 text-muted-foreground/20" />
+                    <p className="font-black uppercase tracking-[0.2em] text-[10px] text-muted-foreground">Your bag is empty</p>
                     </div>
                 ) : (
                 <div className="space-y-8">
-                    {cart.map(item => {
-                    const category = categories?.find(c => c.id === item.menuItem.categoryId);
-                    const isBeverage = category?.type === 'Beverages';
-                    return (
-                        <div key={item.id} className="flex items-center gap-6 group animate-in fade-in slide-in-from-right-4 duration-500">
-                        <div className="relative w-24 h-24 rounded-[1.5rem] overflow-hidden shrink-0 shadow-lg border">
-                            <Image
-                                src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
-                                alt={item.menuItem.name}
-                                fill
-                                className="object-cover"
-                                data-ai-hint="food item"
-                            />
+                    {cart.map(item => (
+                        <div key={item.id} className="flex items-center gap-6 animate-in fade-in slide-in-from-right-4">
+                            <div className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-md border">
+                                <Image
+                                    src={item.menuItem.imageUrl || `https://picsum.photos/seed/${item.menuItem.id}/100/100`}
+                                    alt={item.menuItem.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                            <div className="flex-grow min-w-0">
+                                <p className="font-black text-base leading-tight truncate text-[#2c1810] uppercase">{item.menuItem.name}</p>
+                                {item.addons.length > 0 && (
+                                    <p className="text-[8px] text-[#6b584b] font-bold uppercase tracking-widest truncate mt-1">
+                                        {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
+                                    </p>
+                                )}
+                                <p className="text-sm font-black text-primary mt-1">LKR {item.totalPrice.toFixed(2)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-full shrink-0">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-white" onClick={() => updateQuantity(item.id, -1)}>
+                                    {item.quantity === 1 ? <Trash2 className="h-3.5 w-3.5 text-destructive" /> : <Minus className="h-3.5 w-3.5" />}
+                                </Button>
+                                <span className="w-4 text-center text-xs font-black">{item.quantity}</span>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-white" onClick={() => updateQuantity(item.id, 1)}>
+                                    <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex-grow min-w-0">
-                            <p className="font-black text-lg leading-tight truncate text-[#2c1810] uppercase tracking-tight">{item.menuItem.name}</p>
-                            {item.addons.length > 0 && (
-                            <p className="text-[9px] text-[#6b584b] font-bold uppercase tracking-widest truncate mt-1">
-                                {item.addons.map(addon => `+ ${addon.name}`).join(', ')}
-                            </p>
-                            )}
-                            <p className="text-base font-black text-primary mt-2">LKR {item.totalPrice.toFixed(2)}</p>
-                        </div>
-                        <div className="flex items-center gap-3 bg-muted/50 p-1.5 rounded-full shrink-0 border">
-                            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-white shadow-sm" onClick={() => updateQuantity(item.id, -1)}>
-                            {item.quantity === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
-                            </Button>
-                            <span className="w-6 text-center text-sm font-black">{item.quantity}</span>
-                            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-white shadow-sm" onClick={() => updateQuantity(item.id, 1)} disabled={isBeverage}>
-                            <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        </div>
-                    );
-                    })}
+                    ))}
                 </div>
                 )}
             </div>
           </ScrollArea>
-          <div className="p-10 border-t bg-muted/5 space-y-8">
-                <div className="w-full space-y-4 text-xs font-bold uppercase tracking-widest">
+          <div className="p-10 border-t bg-muted/5 space-y-6">
+                <div className="w-full space-y-3 text-[10px] font-black uppercase tracking-widest">
                     <div className="flex justify-between text-[#6b584b]">
                         <span>Subtotal</span>
                         <span>LKR {subtotal.toFixed(2)}</span>
                     </div>
                     {birthdayDiscountAmount > 0 && (
-                    <div className="flex justify-between text-destructive font-black">
-                        <span>Birthday Reward</span>
-                        <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
-                    </div>
+                        <div className="flex justify-between text-destructive">
+                            <span>Birthday Reward</span>
+                            <span>- LKR {birthdayDiscountAmount.toFixed(2)}</span>
+                        </div>
                     )}
                     {applicableWelcomeOffer && (
-                    <div className="flex justify-between text-blue-600 font-black">
-                        <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 fill-current"/> {applicableWelcomeOffer.label}</span>
-                        <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
-                    </div>
-                    )}
-                    {!isEmailVerified && potentialWelcomeOffer && (
-                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-start gap-4">
-                        <MailWarning className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-amber-700 leading-none">Verify to Save {potentialWelcomeOffer.discount}%</p>
-                            <p className="text-[9px] text-amber-600 font-medium normal-case leading-tight">Discount pending email verification.</p>
-                            <Link href="/dashboard/profile" className="text-[10px] font-black underline text-amber-700 block mt-2">Verify Now</Link>
+                        <div className="flex justify-between text-blue-600">
+                            <span>{applicableWelcomeOffer.label}</span>
+                            <span>- LKR {welcomeDiscountAmount.toFixed(2)}</span>
                         </div>
-                    </div>
                     )}
                     {serviceCharge > 0 && (
-                    <div className="flex justify-between text-muted-foreground/60">
-                        <span>Service Charge (10%)</span>
-                        <span>LKR {serviceCharge.toFixed(2)}</span>
-                    </div>
+                        <div className="flex justify-between text-muted-foreground/60">
+                            <span>Service Charge (10%)</span>
+                            <span>LKR {serviceCharge.toFixed(2)}</span>
+                        </div>
                     )}
-                    <div className="flex justify-between text-4xl font-black text-[#2c1810] uppercase tracking-tighter pt-6 border-t border-muted/50">
+                    <div className="flex justify-between text-3xl font-black text-[#2c1810] tracking-tighter pt-4 border-t">
                         <span>Total</span>
                         <span className="text-primary">LKR {cartTotal.toFixed(2)}</span>
                     </div>
                 </div>
-                 <Button size="lg" className="w-full h-20 rounded-full text-xl font-black uppercase tracking-[0.1em] shadow-2xl group transition-all" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
-                    {isProcessing ? (
-                        <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Processing...</>
-                    ) : (
-                        <>Checkout <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform" /></>
-                    )}
+                 <Button size="lg" className="w-full h-16 rounded-full text-sm font-black uppercase tracking-widest shadow-2xl" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
+                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Working...</> : <>Checkout <ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
           </div>
         </SheetContent>

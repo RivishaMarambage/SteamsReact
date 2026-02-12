@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Loader2 } from 'lucide-react';
+import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, User, Phone, Loader2 } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -72,7 +72,6 @@ const customerSignupSchema = formSchema.pick({ email: true, password: true, conf
     path: ["confirmPassword"],
   });
 
-
 type AuthFormValues = z.infer<typeof formSchema>;
 
 interface AuthFormProps {
@@ -105,12 +104,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   }, [role, authType, router]);
 
   const getSchema = () => {
-    if (authType === 'login') {
-      return loginSchema;
-    }
-    if (role === 'customer') {
-      return customerSignupSchema;
-    }
+    if (authType === 'login') return loginSchema;
+    if (role === 'customer') return customerSignupSchema;
     return genericSignupSchema;
   };
 
@@ -123,45 +118,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const demoAccount = DEMO_ACCOUNTS[role];
 
-  useEffect(() => {
-    const ensureDemoUserExists = async () => {
-      if (!auth || !firestore || authType !== 'login') return;
-
-      try {
-        const methods = await fetchSignInMethodsForEmail(auth, demoAccount.email);
-        if (methods.length === 0) {
-          try {
-            const userCredential = await createUserWithEmailAndPassword(auth, demoAccount.email, demoAccount.password);
-            const user = userCredential.user;
-
-            const userProfile: Omit<UserProfile, 'id'> & { id: string } = {
-              id: user.uid,
-              email: demoAccount.email,
-              name: demoAccount.name,
-              role: role,
-              loyaltyPoints: role === 'customer' ? 125 : 0,
-              lifetimePoints: role === 'customer' ? 125 : 0,
-              loyaltyLevelId: "bronze",
-              orderCount: role === 'customer' ? 1 : 0,
-              emailVerified: true,
-            };
-            
-            await setDoc(doc(firestore, "users", user.uid), userProfile);
-            if (auth.currentUser) await auth.signOut();
-          } catch (creationError: any) {
-              if (creationError.code !== 'auth/email-already-in-use') {
-                console.error(`Failed to create demo user ${demoAccount.email}:`, creationError);
-              }
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to check for demo user ${demoAccount.email}:`, error);
-      }
-    };
-    
-    ensureDemoUserExists();
-  }, [auth, firestore, authType, demoAccount, role]);
-
   const seedDatabase = async () => {
     if (!firestore) return;
 
@@ -171,8 +127,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         { name: 'Matcha & Tea', type: 'Beverages', displayOrder: 2 },
         { name: 'Pastries & Bakes', type: 'Food', displayOrder: 3 },
         { name: 'Savory Snacks', type: 'Food', displayOrder: 4 },
-        { name: 'Lunch Specials', type: 'Food', displayOrder: 5 },
-        { name: 'Custom Creations', type: 'Beverages', displayOrder: 6 },
+        { name: 'Custom Creations', type: 'Beverages', displayOrder: 5 },
     ];
 
     const SEED_LOYALTY_LEVELS: Omit<LoyaltyLevel, 'id'>[] = [
@@ -181,7 +136,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         { name: 'Silver', minimumPoints: 500 },
         { name: 'Gold', minimumPoints: 2000 },
         { name: 'Platinum', minimumPoints: 5000 },
-    ]
+    ];
 
     const SEED_ADDON_CATEGORIES: Omit<AddonCategory, 'id'>[] = [
         { name: 'Milk Options', description: 'Choose your preferred milk' },
@@ -218,22 +173,19 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const addonBatch = writeBatch(firestore);
         const addonsRef = collection(firestore, 'addons');
         
-        const SEED_ADDONS: Omit<Addon, 'id' | 'addonCategoryId'> & { categoryName: string }[] = [
+        const SEED_ADDONS = [
             { name: "Extra Espresso Shot", price: 100, categoryName: "Toppings" },
             { name: "Almond Milk", price: 80, categoryName: "Milk Options" },
             { name: "Oat Milk", price: 80, categoryName: "Milk Options" },
-            { name: "Soy Milk", price: 70, categoryName: "Milk Options" },
             { name: "Whipped Cream", price: 50, categoryName: "Toppings" },
             { name: "Caramel Drizzle", price: 60, categoryName: "Syrups" },
-            { name: "Chocolate Syrup", price: 60, categoryName: "Syrups" },
         ];
 
         SEED_ADDONS.forEach(addon => {
             const categoryId = addonCategoryRefs[addon.categoryName];
             if (categoryId) {
                 const docRef = doc(addonsRef);
-                const { categoryName, ...addonData } = addon;
-                addonBatch.set(docRef, { ...addonData, addonCategoryId: categoryId });
+                addonBatch.set(docRef, { name: addon.name, price: addon.price, addonCategoryId: categoryId });
             }
         });
         
@@ -249,23 +201,10 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 addonGroups: [
                     { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
                     { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
-                    { addonCategoryId: addonCategoryRefs['Toppings'], isRequired: false, minSelection: 0, maxSelection: 3 },
-                ]
-            };
-             const teaBase: Omit<MenuItem, 'id'> = {
-                name: 'Custom Tea Base',
-                description: 'Your own tea creation.',
-                price: 200,
-                categoryId: customCreationsCategoryId,
-                isOutOfStock: false,
-                displayOrder: 1,
-                addonGroups: [
-                    { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: false, minSelection: 0, maxSelection: 1 },
-                    { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
                 ]
             };
             addonBatch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
-            addonBatch.set(doc(menuItemsRef, 'custom-tea-base'), teaBase);
+            addonBatch.set(doc(menuItemsRef, 'custom-tea-base'), { ...coffeeBase, name: 'Custom Tea Base', price: 200 });
         }
 
         await addonBatch.commit();
@@ -274,33 +213,22 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
   };
 
-
   const onSubmit = async (data: AuthFormValues) => {
-    if (!auth || !firestore) {
-      toast({ variant: 'destructive', title: 'Firebase not initialized.' });
-      return;
-    }
-
+    if (!auth || !firestore) return;
     setIsProcessing(true);
 
     if (authType === 'signup') {
         try {
-            // 1. Create Auth Account First to establish UID and 'isSignedIn' state
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
             
-            // 2. Perform existence checks for seeding or admin restriction
             const usersRef = collection(firestore, "users");
             const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
             const adminSnapshot = await getDocs(adminQuery);
             
             if (role !== 'customer' && !adminSnapshot.empty) {
                 await user.delete();
-                toast({
-                    variant: 'destructive',
-                    title: 'Restricted Action',
-                    description: 'Admin and Staff accounts must be created by an existing administrator.'
-                });
+                toast({ variant: 'destructive', title: 'Restricted Action', description: 'Admin/Staff accounts must be created by an existing administrator.' });
                 setIsProcessing(false);
                 return;
             }
@@ -311,7 +239,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             await sendEmailVerification(user);
             
-            const userDocRef = doc(firestore, "users", user.uid);
             const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
 
             const userProfile: UserProfile = {
@@ -329,42 +256,29 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               emailVerified: user.emailVerified,
             };
 
-            await setDoc(userDocRef, userProfile);
-
-            toast({
-              title: 'Account Created!',
-              description: "Welcome! We've sent you a verification email. Please check your inbox.",
-            });
+            await setDoc(doc(firestore, "users", user.uid), userProfile);
+            toast({ title: 'Account Created!', description: "Welcome! Please verify your email." });
             router.replace(`/login/${role}`);
 
         } catch (error: any) {
             setIsProcessing(false);
-            toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message || 'An unexpected error occurred.' });
+            toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
         }
-      
     } else {
-        const persistence = browserLocalPersistence;
-        setPersistence(auth, persistence).then(() => {
+        setPersistence(auth, browserLocalPersistence).then(() => {
             return signInWithEmailAndPassword(auth, data.email, data.password)
         })
         .then(userCredential => {
-            const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-            getDoc(userDocRef).then(userDocSnap => {
-                if (userDocSnap.exists()) {
-                    const userProfile = userDocSnap.data() as UserProfile;
-                    if (userProfile.role === role) {
-                        router.replace(getDashboardPathForRole(role));
-                    } else {
-                        auth.signOut();
-                        setIsProcessing(false);
-                        toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
-                    }
-                } else {
-                    auth.signOut();
-                    setIsProcessing(false);
-                    toast({ variant: 'destructive', title: 'Login Failed', description: 'User profile not found.' });
-                }
-            });
+            return getDoc(doc(firestore, 'users', userCredential.user.uid));
+        })
+        .then(userDocSnap => {
+            if (userDocSnap.exists() && (userDocSnap.data() as UserProfile).role === role) {
+                router.replace(getDashboardPathForRole(role));
+            } else {
+                auth.signOut();
+                setIsProcessing(false);
+                toast({ variant: 'destructive', title: 'Access Denied', description: `Invalid role for this portal.` });
+            }
         })
         .catch(error => {
             setIsProcessing(false);
@@ -373,33 +287,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!auth || !resetEmail) {
-        toast({ variant: 'destructive', title: 'Email required' });
-        return;
-    }
-    try {
-        await sendPasswordResetEmail(auth, resetEmail);
-        toast({ title: 'Password Reset Email Sent' });
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
-    const provider = new GoogleAuthProvider();
     setIsProcessing(true);
-
     try {
+        const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
-        const additionalUserInfo = getAdditionalUserInfo(result);
-
         const userDocRef = doc(firestore, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        if (additionalUserInfo?.isNewUser || !userDocSnap.exists()) {
+        if (!userDocSnap.exists()) {
             const userProfile: UserProfile = {
                 id: user.uid,
                 email: user.email!,
@@ -411,53 +309,43 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 orderCount: 0,
                 emailVerified: user.emailVerified,
             };
-            
             await setDoc(userDocRef, userProfile);
-            toast({ title: 'Account Created!' });
         } else {
             const userProfile = userDocSnap.data() as UserProfile;
              if (userProfile.role !== role) {
                 await auth.signOut();
                 setIsProcessing(false);
-                toast({ variant: 'destructive', title: 'Access Denied', description: `You are not authorized to log in as a ${role}.` });
+                toast({ variant: 'destructive', title: 'Access Denied', description: `Invalid role for this portal.` });
                 return;
             }
-             if (user.emailVerified !== userProfile.emailVerified) {
-                 await updateDoc(userDocRef, { emailVerified: user.emailVerified });
-             }
-             toast({ title: `Welcome back, ${user.displayName}!` });
         }
         router.replace(getDashboardPathForRole(role));
     } catch (error: any) {
         setIsProcessing(false);
         if (error.code !== 'auth/popup-closed-by-user') {
-            toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
+            toast({ variant: 'destructive', title: 'Sign-In Failed', description: error.message });
         }
     }
   };
 
-  if (!mounted) {
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background p-4">
-            <div className="w-full max-w-4xl h-[600px] bg-card animate-pulse rounded-2xl" />
-        </div>
-    );
-  }
+  const handlePasswordReset = async () => {
+    if (!auth || !resetEmail) return;
+    try {
+        await sendPasswordResetEmail(auth, resetEmail);
+        toast({ title: 'Reset Email Sent' });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
 
-  const title = authType === 'login' ? 'Welcome Back' : 'Create an Account';
-  const description = authType === 'login' ? 'Please enter your details to sign in.' : 'Join us for exclusive rewards.';
+  if (!mounted) return null;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden bg-card">
         <div className="relative p-8 text-white hidden md:flex flex-col justify-between">
             <div className="absolute inset-0">
-                <Image
-                    src={LoginImg} 
-                    alt="Steamsbury Cafe" 
-                    className="absolute inset-0 w-full h-full object-cover" 
-                    data-ai-hint="cafe exterior night" 
-                />
+                <Image src={LoginImg} alt="Steamsbury" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
             <div className="relative z-10">
@@ -467,20 +355,20 @@ export function AuthForm({ authType, role }: AuthFormProps) {
              <div className="relative z-10 space-y-4">
                 <Coffee className="w-12 h-12 text-accent" />
                 <h3 className="text-3xl font-bold font-headline">Morning brew, on us.</h3>
-                <p className="text-muted-foreground text-white/80">Join our rewards program today. Earn points for every purchase and get a free drink after just 5 visits.</p>
+                <p className="text-white/80">Join our rewards program today. Earn points for every purchase and enjoy exclusive member benefits.</p>
             </div>
         </div>
 
         <div className="p-8">
             <div className="flex flex-col h-full justify-center">
                  <div className="mb-6">
-                    <h1 className="text-3xl font-bold font-headline">{title}</h1>
-                    <p className="text-muted-foreground">{description}</p>
+                    <h1 className="text-3xl font-bold font-headline">{authType === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
+                    <p className="text-muted-foreground">{authType === 'login' ? 'Sign in to access your rewards.' : 'Start your journey with Steamsbury.'}</p>
                 </div>
                 
                 {role === 'customer' ? (
                     <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
-                        <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
+                        <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50">
                             <TabsTrigger className="rounded-full" value="login">Login</TabsTrigger>
                             <TabsTrigger className="rounded-full" value="signup">Sign Up</TabsTrigger>
                         </TabsList>
@@ -498,7 +386,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                         <FormControl>
                                             <div className="relative">
                                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input placeholder="John Doe" className="pl-10" {...field} />
+                                                <Input placeholder="John Doe" className="pl-10 h-12 rounded-xl" {...field} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
@@ -516,11 +404,11 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                                     control={form.control}
                                                     name="countryCode"
                                                     render={({ field }) => (
-                                                        <FormItem className="w-1/3">
+                                                        <FormItem className="w-[100px]">
                                                             <FormControl>
                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                    <SelectTrigger><SelectValue placeholder="+94" /></SelectTrigger>
-                                                                    <SelectContent><SelectItem value="+94">+94 (LK)</SelectItem></SelectContent>
+                                                                    <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="+94" /></SelectTrigger>
+                                                                    <SelectContent><SelectItem value="+94">+94</SelectItem></SelectContent>
                                                                 </Select>
                                                             </FormControl>
                                                         </FormItem>
@@ -534,14 +422,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                                             <FormControl>
                                                                 <div className="relative">
                                                                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                                    <Input placeholder="77 123 4567" className="pl-10" {...field} />
+                                                                    <Input placeholder="77 123 4567" className="pl-10 h-12 rounded-xl" {...field} />
                                                                 </div>
                                                             </FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
                                             </div>
-                                            <FormMessage>{form.formState.errors.mobileNumber?.message}</FormMessage>
+                                            <FormMessage />
                                         </FormItem>
                                     )}
                                 />
@@ -554,35 +442,14 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                         <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                "w-full pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                format(field.value, "PPP")
-                                                ) : (
-                                                <span>Pick a date</span>
-                                                )}
+                                            <Button variant={"outline"} className={cn("w-full h-12 rounded-xl pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                            mode="single"
-                                            captionLayout="dropdown-buttons"
-                                            fromYear={new Date().getFullYear() - 100}
-                                            toYear={new Date().getFullYear()}
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            disabled={(date) =>
-                                                date > new Date() || date < new Date("1900-01-01")
-                                            }
-                                            initialFocus
-                                            />
+                                            <Calendar mode="single" captionLayout="dropdown-buttons" fromYear={1920} toYear={new Date().getFullYear()} selected={field.value} onSelect={field.onChange} initialFocus />
                                         </PopoverContent>
                                         </Popover>
                                         <FormMessage />
@@ -601,7 +468,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     <FormControl>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input type="email" placeholder="name@example.com" className="pl-10" {...field} />
+                                        <Input type="email" placeholder="name@example.com" className="pl-10 h-12 rounded-xl" {...field} />
                                     </div>
                                     </FormControl>
                                     <FormMessage />
@@ -618,20 +485,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                         {authType === 'login' && (
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
+                                                    <Button variant="link" className="p-0 h-auto text-xs">Forgot Password?</Button>
                                                 </DialogTrigger>
                                                 <DialogContent>
                                                     <DialogHeader>
                                                         <DialogTitle>Reset Password</DialogTitle>
-                                                        <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
+                                                        <DialogDescription>Enter your email to receive a reset link.</DialogDescription>
                                                     </DialogHeader>
-                                                    <div className="grid gap-2">
-                                                    <Label htmlFor="reset-email">Email</Label>
-                                                    <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
-                                                    </div>
+                                                    <div className="grid gap-2"><Input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="m@example.com" /></div>
                                                     <DialogFooter>
-                                                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                                                        <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
+                                                        <DialogClose asChild><Button onClick={handlePasswordReset}>Send Link</Button></DialogClose>
                                                     </DialogFooter>
                                                 </DialogContent>
                                             </Dialog>
@@ -640,8 +503,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     <FormControl>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Create a password" {...field} />
-                                        <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
+                                        <Input type={showPassword ? 'text' : 'password'} className="pl-10 h-12 rounded-xl" {...field} />
+                                        <Button type="button" variant="ghost" size="icon" className="absolute right-0 h-full w-10" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </Button>
                                     </div>
@@ -651,49 +514,18 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                 )}
                             />
                             {authType === 'signup' && (
-                                <>
-                                    <FormField
+                                <FormField
                                     control={form.control}
-                                    name="confirmPassword"
+                                    name="agreeToTerms"
                                     render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Confirm Password</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                    <Input type={showConfirmPassword ? 'text' : 'password'} className="pl-10" placeholder="Confirm your password" {...field} />
-                                                    <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowConfirmPassword((prev) => !prev)} tabIndex={-1}>
-                                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                    </Button>
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <div className="space-y-1 leading-none"><FormLabel>I agree to the <Link href="/privacy" className="underline">Privacy Policy</Link></FormLabel></div>
                                         </FormItem>
                                     )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="agreeToTerms"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                            <FormControl>
-                                                <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                                />
-                                            </FormControl>
-                                            <div className="space-y-1 leading-none">
-                                                <FormLabel>
-                                                I agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>
-                                                </FormLabel>
-                                                <FormMessage />
-                                            </div>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </>
+                                />
                             )}
-                            <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                            <Button type="submit" className="w-full h-12 rounded-xl font-bold mt-2" size="lg" disabled={isProcessing}>
                                 {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (authType === 'login' ? 'Sign In' : 'Create Account')}
                             </Button>
                             </form>
@@ -708,13 +540,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     name="email"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email Address</FormLabel>
-                                        <FormControl>
-                                        <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input type="email" placeholder="admin@example.com" className="pl-10" {...field} />
-                                        </div>
-                                        </FormControl>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl><Input type="email" className="h-12 rounded-xl" {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                     )}
@@ -724,42 +551,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                     name="password"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex justify-between items-center">
-                                            <FormLabel>Password</FormLabel>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="link" className="p-0 h-auto text-sm">Forgot Password?</Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Reset Password</DialogTitle>
-                                                        <DialogDescription>Enter your email and we will send you a link to reset your password.</DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-2">
-                                                    <Label htmlFor="reset-email">Email</Label>
-                                                    <Input id="reset-email" type="email" placeholder="m@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                                                        <DialogClose asChild><Button onClick={handlePasswordReset}>Send Reset Link</Button></DialogClose>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                        <FormControl>
-                                        <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input type={showPassword ? 'text' : 'password'} className="pl-10" placeholder="Enter your password" {...field} />
-                                            <Button type="button" variant="ghost" size="icon" className="absolute inset-y-0 right-0 h-full w-10 text-muted-foreground" onClick={() => setShowPassword((prev) => !prev)} tabIndex={-1}>
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                            </Button>
-                                        </div>
-                                        </FormControl>
+                                        <FormLabel>Password</FormLabel>
+                                        <FormControl><Input type="password" className="h-12 rounded-xl" {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                     )}
                                 />
-                                <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                                <Button type="submit" className="w-full h-12 rounded-xl font-bold" size="lg" disabled={isProcessing}>
                                     {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
                                 </Button>
                             </form>
@@ -768,18 +566,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 )}
 
                 <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isProcessing}>
-                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><FaGoogle className="mr-2 h-4 w-4" /> Google</>}
-                    </Button>
-                </div>
+                <Button variant="outline" className="w-full h-12 rounded-xl font-bold" onClick={handleGoogleSignIn} disabled={isProcessing}>
+                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><FaGoogle className="mr-2 h-4 w-4" /> Continue with Google</>}
+                </Button>
             </div>
         </div>
       </div>
