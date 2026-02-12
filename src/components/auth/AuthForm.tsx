@@ -7,15 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Loader2, Ticket } from 'lucide-react';
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, Award, User, Phone, Loader2 } from 'lucide-react';
+import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -30,7 +29,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from '../ui/checkbox';
 import LoginImg from '../../assets/login.webp';
 
-const REFERRAL_BONUS = 50;
 const BASE_SIGNUP_POINTS = 50;
 
 const formSchema = z.object({
@@ -43,7 +41,6 @@ const formSchema = z.object({
   cafeNickname: z.string().optional(),
   dateOfBirth: z.date().optional(),
   agreeToTerms: z.boolean().optional(),
-  referralCode: z.string().optional(),
 });
 
 const loginSchema = formSchema.pick({ email: true, password: true });
@@ -58,7 +55,7 @@ const genericSignupSchema = formSchema.pick({ email: true, password: true, confi
     path: ["confirmPassword"],
   });
 
-const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true, referralCode: true })
+const customerSignupSchema = formSchema.pick({ email: true, password: true, confirmPassword: true, fullName: true, mobileNumber: true, countryCode: true, cafeNickname: true, dateOfBirth: true, agreeToTerms: true })
   .extend({
     fullName: z.string().min(1, { message: "Full name is required." }),
     mobileNumber: z.string().min(9, { message: "Please enter a valid mobile number." }),
@@ -121,7 +118,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false, referralCode: '' },
+    defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false },
   });
 
   const demoAccount = DEMO_ACCOUNTS[role];
@@ -273,11 +270,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
         await addonBatch.commit();
     } catch (e: any) {
-        if (e instanceof FirestorePermissionError) {
-            errorEmitter.emit('permission-error', e);
-        } else {
-            toast({ variant: 'destructive', title: 'Database Seeding Failed', description: "Could not set up initial data." });
-        }
+        console.error("Database Seeding Failed:", e);
     }
   };
 
@@ -292,20 +285,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
     if (authType === 'signup') {
         try {
-            // 1. Create the Auth User FIRST.
-            // This ensures that subsequent Firestore queries have a request.auth context.
+            // 1. Create Auth Account First to establish UID and 'isSignedIn' state
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
             
-            // 2. Perform existence checks now that we are authenticated.
+            // 2. Perform existence checks for seeding or admin restriction
             const usersRef = collection(firestore, "users");
-            
-            // Security: Check for existing admins to prevent unauthorized internal account signups.
             const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
             const adminSnapshot = await getDocs(adminQuery);
             
             if (role !== 'customer' && !adminSnapshot.empty) {
-                // If this is the second admin/staff trying to sign up manually, reject them.
                 await user.delete();
                 toast({
                     variant: 'destructive',
@@ -316,31 +305,13 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 return;
             }
 
-            // Trigger seeding if this is the first admin ever.
             if (role === 'admin' && adminSnapshot.empty) {
                 await seedDatabase();
             }
 
-            let referrerProfile: UserProfile | null = null;
-            if (data.referralCode) {
-                const q = query(usersRef, where('referralCode', '==', data.referralCode.toUpperCase()), limit(1));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    referrerProfile = snap.docs[0].data() as UserProfile;
-                } else {
-                    await user.delete();
-                    form.setError('referralCode', { type: 'manual', message: 'Invalid referral code.' });
-                    setIsProcessing(false);
-                    return;
-                }
-            }
-
             await sendEmailVerification(user);
             
-            const batch = writeBatch(firestore);
             const userDocRef = doc(firestore, "users", user.uid);
-            
-            const initialPoints = BASE_SIGNUP_POINTS;
             const fullMobileNumber = data.countryCode && data.mobileNumber ? `${data.countryCode}${data.mobileNumber.replace(/^0+/, '')}` : undefined;
 
             const userProfile: UserProfile = {
@@ -351,55 +322,24 @@ export function AuthForm({ authType, role }: AuthFormProps) {
               mobileNumber: fullMobileNumber,
               cafeNickname: data.cafeNickname || '',
               dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : '',
-              loyaltyPoints: initialPoints,
-              lifetimePoints: initialPoints,
+              loyaltyPoints: BASE_SIGNUP_POINTS,
+              lifetimePoints: BASE_SIGNUP_POINTS,
               loyaltyLevelId: "member",
               orderCount: 0,
               emailVerified: user.emailVerified,
-              referralRedeemed: !!referrerProfile,
             };
 
-            batch.set(userDocRef, userProfile);
-
-            if (referrerProfile) {
-                const referrerRef = doc(firestore, 'users', referrerProfile.id);
-                batch.update(referrerRef, {
-                    loyaltyPoints: increment(REFERRAL_BONUS),
-                    lifetimePoints: increment(REFERRAL_BONUS)
-                });
-
-                const referrerTxRef = doc(collection(firestore, `users/${referrerProfile.id}/point_transactions`));
-                batch.set(referrerTxRef, {
-                    date: serverTimestamp(),
-                    description: `Referred friend (${data.fullName})`,
-                    amount: REFERRAL_BONUS,
-                    type: 'earn'
-                });
-            }
-
-            await batch.commit().catch((error) => {
-                 throw new FirestorePermissionError({
-                    path: `users/${user.uid}`,
-                    operation: 'create',
-                    requestResourceData: userProfile
-                });
-            });
+            await setDoc(userDocRef, userProfile);
 
             toast({
               title: 'Account Created!',
-              description: referrerProfile 
-                ? `Welcome! Your referral has been noted and your friend has received bonus points. Please check your inbox to verify your email.`
-                : "Welcome! We've sent you a verification email. Please check your inbox.",
+              description: "Welcome! We've sent you a verification email. Please check your inbox.",
             });
             router.replace(`/login/${role}`);
 
         } catch (error: any) {
             setIsProcessing(false);
-            if (error instanceof FirestorePermissionError) {
-                errorEmitter.emit('permission-error', error);
-            } else {
-                 toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message || 'An unexpected error occurred.' });
-            }
+            toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message || 'An unexpected error occurred.' });
         }
       
     } else {
@@ -409,8 +349,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         })
         .then(userCredential => {
             const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-            getDoc(userDocRef)
-            .then(userDocSnap => {
+            getDoc(userDocRef).then(userDocSnap => {
                 if (userDocSnap.exists()) {
                     const userProfile = userDocSnap.data() as UserProfile;
                     if (userProfile.role === role) {
@@ -425,10 +364,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     setIsProcessing(false);
                     toast({ variant: 'destructive', title: 'Login Failed', description: 'User profile not found.' });
                 }
-            })
-            .catch(error => {
-                setIsProcessing(false);
-                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'get' }));
             });
         })
         .catch(error => {
@@ -461,17 +396,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         const user = result.user;
         const additionalUserInfo = getAdditionalUserInfo(result);
 
-        const usersRef = collection(firestore, "users");
-        const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
-        const adminSnapshot = await getDocs(adminQuery);
-
-        if (role === 'admin' && adminSnapshot.empty) {
-            await seedDatabase();
-        } else if (role !== 'customer' && !adminSnapshot.empty) {
-             // Logic for existing admin check would need to happen before or during signup,
-             // but here we allow Google users to create profiles if they aren't forbidden.
-        }
-
         const userDocRef = doc(firestore, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -488,9 +412,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 emailVerified: user.emailVerified,
             };
             
-            await setDoc(userDocRef, userProfile).catch(err => {
-                throw new FirestorePermissionError({ path: userDocRef.path, operation: 'create', requestResourceData: userProfile });
-            });
+            await setDoc(userDocRef, userProfile);
             toast({ title: 'Account Created!' });
         } else {
             const userProfile = userDocSnap.data() as UserProfile;
@@ -508,9 +430,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
         router.replace(getDashboardPathForRole(role));
     } catch (error: any) {
         setIsProcessing(false);
-        if (error instanceof FirestorePermissionError) {
-            errorEmitter.emit('permission-error', error);
-        } else if (error.code !== 'auth/popup-closed-by-user') {
+        if (error.code !== 'auth/popup-closed-by-user') {
             toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
         }
     }
@@ -537,25 +457,17 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                     alt="Steamsbury Cafe" 
                     className="absolute inset-0 w-full h-full object-cover" 
                     data-ai-hint="cafe exterior night" 
-                    onError={(e) => {
-                    e.currentTarget.src = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1200";
-                    }}
                 />
                 <div className="absolute inset-0 bg-black/60" />
             </div>
             <div className="relative z-10">
-                <h2 className="text-4xl font-bold font-headline">STEAMSBURY</h2>
+                <h2 className="text-4xl font-bold font-headline text-accent">STEAMSBURY</h2>
                 <p className="text-sm">by SANTHIYAGU</p>
             </div>
              <div className="relative z-10 space-y-4">
                 <Coffee className="w-12 h-12 text-accent" />
                 <h3 className="text-3xl font-bold font-headline">Morning brew, on us.</h3>
                 <p className="text-muted-foreground text-white/80">Join our rewards program today. Earn points for every purchase and get a free drink after just 5 visits.</p>
-                 <div className="inline-flex items-center gap-2 p-2 pr-4 rounded-full bg-black/50 border border-white/20">
-                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-accent-foreground">
-                        <Award className="h-5 w-5"/>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -569,8 +481,8 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 {role === 'customer' ? (
                     <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
                         <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50 transition-all">
-                            <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="login">Login</TabsTrigger>
-                            <TabsTrigger className="rounded-full transition-all duration-300 ease-in-out data-[state=active]:bg-[#6F4E37] data-[state=active]:text-white data-[state=active]:shadow-md hover:text-[#6F4E37] data-[state=active]:hover:text-white" value="signup">Sign Up</TabsTrigger>
+                            <TabsTrigger className="rounded-full" value="login">Login</TabsTrigger>
+                            <TabsTrigger className="rounded-full" value="signup">Sign Up</TabsTrigger>
                         </TabsList>
 
                         <Form {...form}>
@@ -673,25 +585,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                                             />
                                         </PopoverContent>
                                         </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="referralCode"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center">
-                                            <FormLabel>Referral Code</FormLabel>
-                                            <span className="text-xs text-muted-foreground">Optional</span>
-                                        </div>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input placeholder="Enter code from a friend" className="pl-10 uppercase font-mono" {...field} />
-                                            </div>
-                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                     )}

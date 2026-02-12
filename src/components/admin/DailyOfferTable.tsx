@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
@@ -10,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Tag, Search, FilterX, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Tag, Search, FilterX, Trash2, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -21,7 +20,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
@@ -60,6 +58,7 @@ export default function DailyOfferTable() {
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   
   const loyaltyLevels = useMemo(() => {
     if (!loyaltyLevelsRaw) return [];
@@ -72,20 +71,12 @@ export default function DailyOfferTable() {
   const isLoading = areOffersLoading || areMenuItemsLoading || areLevelsLoading || areCategoriesLoading;
 
   const filteredOffers = useMemo(() => {
-    if (!offers || !menuItems) return [];
-    
+    if (!offers) return [];
     return offers.filter(offer => {
-      const itemsInOffer = menuItems.filter(m => (offer.menuItemIds || []).includes(m.id));
-      const itemNames = itemsInOffer.map(i => i.name.toLowerCase()).join(' ');
-      
-      const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           itemNames.includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = categoryFilter === 'all' || itemsInOffer.some(i => i.categoryId === categoryFilter);
-      
-      return matchesSearch && matchesCategory;
+      const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
     }).sort((a, b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || ''));
-  }, [offers, menuItems, searchTerm, categoryFilter]);
+  }, [offers, searchTerm]);
 
   const groupedMenuItems = useMemo(() => {
     if (!menuItems || !categories) return {};
@@ -114,7 +105,7 @@ export default function DailyOfferTable() {
     });
   }, []);
 
-  const handleToggleCategory = useCallback((categoryName: string) => {
+  const handleToggleCategorySelection = useCallback((categoryName: string) => {
     const itemsInCategory = groupedMenuItems[categoryName];
     if (!itemsInCategory) return;
     
@@ -137,14 +128,12 @@ export default function DailyOfferTable() {
     });
   }, [groupedMenuItems]);
 
-  const handleSelectAll = useCallback(() => {
-    if (!menuItems) return;
-    setFormData(prev => ({ ...prev, menuItemIds: menuItems.map(m => m.id) }));
-  }, [menuItems]);
-
-  const handleDeselectAll = useCallback(() => {
-    setFormData(prev => ({ ...prev, menuItemIds: [] }));
-  }, []);
+  const toggleCategoryExpand = (categoryName: string) => {
+    setExpandedCategories(prev => ({
+        ...prev,
+        [categoryName]: !prev[categoryName]
+    }));
+  };
 
   const handleEdit = (offer: DailyOffer) => {
     const tierDiscounts = loyaltyLevels.reduce((acc, level) => {
@@ -161,12 +150,14 @@ export default function DailyOfferTable() {
       orderType: offer.orderType || 'Both',
       tierDiscounts,
     });
+    setExpandedCategories({});
     setSelectedOffer(offer);
     setFormOpen(true);
   };
 
   const handleAddNew = () => {
     setFormData(getInitialFormData(loyaltyLevels));
+    setExpandedCategories({});
     setSelectedOffer(null);
     setFormOpen(true);
   };
@@ -179,7 +170,7 @@ export default function DailyOfferTable() {
   const confirmDelete = async () => {
     if(!selectedOffer || !firestore) return;
     await deleteDoc(doc(firestore, "daily_offers", selectedOffer.id));
-    toast({ title: "Offer Deleted", description: `The offer "${selectedOffer.title}" has been removed.`});
+    toast({ title: "Offer Deleted" });
     setAlertOpen(false);
     setSelectedOffer(null);
   };
@@ -196,13 +187,12 @@ export default function DailyOfferTable() {
     try {
         if (selectedOffer) {
           await setDoc(doc(firestore, "daily_offers", selectedOffer.id), formData, { merge: true });
-          toast({ title: "Offer Updated", description: `The offer "${formData.title}" has been updated.`});
         } else {
           await addDoc(collection(firestore, "daily_offers"), formData);
-          toast({ title: "Offer Added", description: `The offer "${formData.title}" has been created.`});
         }
         setFormOpen(false);
         setSelectedOffer(null);
+        toast({ title: "Offer Saved Successfully" });
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error Saving", description: error.message });
     }
@@ -241,9 +231,6 @@ export default function DailyOfferTable() {
             ))}
           </select>
 
-          {(searchTerm !== '' || categoryFilter !== 'all') && (
-            <Button variant="ghost" size="icon" onClick={() => { setSearchTerm(''); setCategoryFilter('all'); }} className="rounded-full"><FilterX className="h-4 w-4" /></Button>
-          )}
           <Button size="sm" onClick={handleAddNew} className="h-10 ml-auto rounded-full px-6 shadow-lg"><PlusCircle className="mr-2 h-4 w-4" /> Add New Offer</Button>
         </div>
       </CardHeader>
@@ -254,8 +241,7 @@ export default function DailyOfferTable() {
                 <TableRow>
                 <TableHead>Date Range</TableHead>
                 <TableHead>Offer Title</TableHead>
-                <TableHead>Target Items</TableHead>
-                <TableHead>Order Type</TableHead>
+                <TableHead>Items</TableHead>
                 <TableHead>Discounts</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -264,19 +250,16 @@ export default function DailyOfferTable() {
                 {filteredOffers.map(offer => (
                     <TableRow key={offer.id}>
                     <TableCell><Badge variant="outline" className="rounded-md font-mono">{offer.offerStartDate} to {offer.offerEndDate}</Badge></TableCell>
-                    <TableCell className="font-bold text-lg">{offer.title}</TableCell>
-                    <TableCell><Badge variant="secondary" className="rounded-md bg-primary/5 text-primary">{(offer.menuItemIds || []).length} Items</Badge></TableCell>
-                    <TableCell><Badge variant="secondary" className="rounded-md">{offer.orderType || 'Both'}</Badge></TableCell>
+                    <TableCell className="font-bold">{offer.title}</TableCell>
+                    <TableCell><Badge variant="secondary" className="rounded-md">{(offer.menuItemIds || []).length} Items</Badge></TableCell>
                     <TableCell>
                         <div className="flex flex-col gap-1">
                         {loyaltyLevels.map(level => {
                             const discount = offer.tierDiscounts?.[level.id];
-                            const isPercentage = (offer.discountType as string) === 'percentage';
                             if (discount > 0) {
                                 return (
-                                    <div key={level.id} className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                                        <span className="text-primary">{level.name}: </span> 
-                                        {isPercentage ? `${discount}%` : `LKR ${discount.toFixed(2)}`}
+                                    <div key={level.id} className="text-[10px] font-black uppercase text-muted-foreground">
+                                        {level.name}: {offer.discountType === 'percentage' ? `${discount}%` : `LKR ${discount}`}
                                     </div>
                                 )
                             }
@@ -300,12 +283,11 @@ export default function DailyOfferTable() {
         </div>
         <div className="grid grid-cols-1 gap-4 md:hidden">
             {filteredOffers.map(offer => (
-                <Card key={offer.id} className="rounded-3xl border-2 p-4 space-y-4 shadow-sm">
+                <Card key={offer.id} className="rounded-3xl border-2 p-4 space-y-2 shadow-sm">
                     <div className="flex justify-between items-start">
                         <h3 className="font-headline font-bold text-xl">{offer.title}</h3>
                         <Badge variant="secondary">{offer.orderType}</Badge>
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground">{offer.offerStartDate} to {offer.offerEndDate}</div>
                     <div className="flex justify-between pt-2">
                         <span className="text-xs font-bold uppercase text-muted-foreground">{(offer.menuItemIds || []).length} Items</span>
                         <Button size="sm" variant="ghost" onClick={() => handleEdit(offer)}>Edit</Button>
@@ -321,35 +303,23 @@ export default function DailyOfferTable() {
             <div className="p-8 border-b bg-muted/10 shrink-0">
               <DialogHeader>
                 <DialogTitle className="font-headline text-3xl uppercase tracking-tighter text-primary">{selectedOffer ? 'Edit Promotion' : 'New Promotion'}</DialogTitle>
-                <DialogDescription className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Configure your multi-item rewards.</DialogDescription>
+                <DialogDescription className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground">Configure your tiered rewards.</DialogDescription>
               </DialogHeader>
             </div>
             
-            <div className="flex-1 overflow-y-auto bg-background p-8 space-y-12">
+            <div className="flex-1 overflow-y-auto bg-background p-8 space-y-12 scrollbar-hide">
                 <div className="grid gap-8">
                   <div className="grid gap-3">
-                    <Label htmlFor="title" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Title</Label>
-                    <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required placeholder="e.g., Muffin Monday" className="h-14 rounded-2xl px-6 text-lg font-bold border-2" />
+                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Promotion Title</Label>
+                    <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required className="h-14 rounded-2xl px-6 text-lg font-bold border-2" />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="grid gap-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Validity Period</Label>
                       <div className="flex gap-2">
-                        <Input 
-                          type="date" 
-                          name="offerStartDate" 
-                          value={formData.offerStartDate} 
-                          onChange={handleFormChange} 
-                          className="h-14 rounded-2xl px-4 border-2 font-mono"
-                        />
-                        <Input 
-                          type="date" 
-                          name="offerEndDate" 
-                          value={formData.offerEndDate} 
-                          onChange={handleFormChange} 
-                          className="h-14 rounded-2xl px-4 border-2 font-mono"
-                        />
+                        <Input type="date" name="offerStartDate" value={formData.offerStartDate} onChange={handleFormChange} className="h-14 rounded-2xl px-4 border-2 font-mono" />
+                        <Input type="date" name="offerEndDate" value={formData.offerEndDate} onChange={handleFormChange} className="h-14 rounded-2xl px-4 border-2 font-mono" />
                       </div>
                     </div>
                     <div className="grid gap-3">
@@ -374,46 +344,40 @@ export default function DailyOfferTable() {
                   </div>
                 </div>
 
-                <Separator />
-
-                <div className="space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Menu Selection</h3>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" className="h-10 rounded-full px-6 text-[10px] font-black uppercase border-2" onClick={handleSelectAll}>All Items</Button>
-                      <Button type="button" variant="ghost" size="sm" className="h-10 rounded-full px-6 text-[10px] font-black uppercase text-destructive" onClick={handleDeselectAll}>Clear</Button>
-                    </div>
-                  </div>
-
-                  <Accordion type="multiple" className="space-y-4">
+                <div className="space-y-6">
+                  <h3 className="text-2xl font-headline font-black uppercase tracking-tighter text-[#2c1810]">Menu Selection</h3>
+                  <div className="space-y-4">
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
                       const selectedInCat = items.filter(i => (formData.menuItemIds || []).includes(i.id));
-                      const selectedCount = selectedInCat.length;
-                      const allSelectedInCat = selectedCount === items.length;
+                      const isExpanded = !!expandedCategories[categoryName];
+                      const allSelected = selectedInCat.length === items.length;
                       
                       return (
-                        <AccordionItem key={categoryName} value={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
-                          <div className="flex items-center bg-muted/5 pr-4 group/header">
-                            <AccordionTrigger className="px-6 h-16 hover:no-underline flex-1">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
-                                    {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedCount}</Badge>}
-                                </div>
-                            </AccordionTrigger>
-                            <span 
+                        <div key={categoryName} className="border-2 rounded-[1.5rem] overflow-hidden bg-background">
+                          <div className="flex items-center justify-between p-4 bg-muted/5">
+                            <div 
                                 role="button"
-                                className="h-8 text-[9px] font-black uppercase tracking-[0.1em] px-4 rounded-full bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer select-none"
-                                onClick={(e) => { 
-                                  e.preventDefault(); 
-                                  e.stopPropagation(); 
-                                  handleToggleCategory(categoryName); 
-                                }}
+                                onClick={() => toggleCategoryExpand(categoryName)}
+                                className="flex items-center gap-3 flex-1 cursor-pointer select-none"
                             >
-                                {allSelectedInCat ? 'Deselect Section' : 'Select Section'}
-                            </span>
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <span className="font-black text-xs uppercase tracking-widest">{categoryName}</span>
+                                {selectedInCat.length > 0 && <Badge className="bg-primary text-white text-[10px] rounded-full">{selectedInCat.length}</Badge>}
+                            </div>
+                            <div 
+                                role="button"
+                                onClick={() => handleToggleCategorySelection(categoryName)}
+                                className={cn(
+                                    "h-8 text-[9px] font-black uppercase tracking-widest px-4 rounded-full transition-all flex items-center cursor-pointer border-2",
+                                    allSelected ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground hover:border-primary/30"
+                                )}
+                            >
+                                {allSelected ? 'All Selected' : 'Select Category'}
+                            </div>
                           </div>
-                          <AccordionContent className="p-6 border-t">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          
+                          {isExpanded && (
+                            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
                               {items.map(item => {
                                 const isChecked = (formData.menuItemIds || []).includes(item.id);
                                 return (
@@ -421,39 +385,37 @@ export default function DailyOfferTable() {
                                     key={item.id} 
                                     className={cn(
                                       "flex items-center space-x-4 p-4 rounded-[1.25rem] border-2 transition-all cursor-pointer",
-                                      isChecked ? "bg-primary/5 border-primary shadow-sm" : "border-muted/50 hover:border-primary/20"
+                                      isChecked ? "bg-primary/5 border-primary" : "border-muted/50 hover:border-primary/20"
                                     )}
                                     onClick={() => handleToggleItem(item.id)}
                                   >
                                     <Checkbox checked={isChecked} className="h-6 w-6 pointer-events-none" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-black truncate uppercase">{item.name}</p>
-                                        <span className="text-[10px] font-black text-muted-foreground uppercase">LKR {item.price.toFixed(0)}</span>
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">LKR {item.price.toFixed(0)}</span>
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
-                          </AccordionContent>
-                        </AccordionItem>
+                          )}
+                        </div>
                       );
                     })}
-                  </Accordion>
+                  </div>
                 </div>
 
-                <Separator />
-
-                <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10 pb-24">
+                <div className="p-8 border-2 border-primary/10 bg-primary/5 rounded-[2.5rem] space-y-10">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                         <h3 className="text-2xl font-headline font-black uppercase tracking-tighter">Tier Discounts</h3>
                         <Tabs value={formData.discountType} onValueChange={(v) => setFormData(p => ({ ...p, discountType: v as any }))}>
                           <TabsList className="grid w-full grid-cols-2 bg-white/50 p-1 rounded-full h-12 border-2">
-                            <TabsTrigger value="fixed" className="rounded-full text-[10px] font-black uppercase px-6">LKR</TabsTrigger>
-                            <TabsTrigger value="percentage" className="rounded-full text-[10px] font-black uppercase px-6">Percent</TabsTrigger>
+                            <TabsTrigger value="fixed" className="rounded-full text-[10px] font-black">LKR</TabsTrigger>
+                            <TabsTrigger value="percentage" className="rounded-full text-[10px] font-black">% OFF</TabsTrigger>
                           </TabsList>
                         </Tabs>
                     </div>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-8'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-8 pb-10'>
                         {loyaltyLevels.map(level => (
                         <div className="grid gap-3" key={level.id}>
                             <Label className='text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] px-2'>{level.name} SAVINGS</Label>
@@ -471,7 +433,7 @@ export default function DailyOfferTable() {
                                       }))
                                     }}
                                 />
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black opacity-50 uppercase text-[10px]">
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black uppercase text-[10px]">
                                     {formData.discountType === 'fixed' ? 'LKR' : '%'}
                                 </div>
                             </div>
@@ -492,14 +454,14 @@ export default function DailyOfferTable() {
       </Dialog>
       
       <AlertDialog open={isAlertOpen} onOpenChange={setAlertOpen}>
-        <AlertDialogContent className="rounded-[2.5rem] p-10">
-            <AlertDialogHeader className="space-y-4">
+        <AlertDialogContent className="rounded-[2.5rem]">
+            <AlertDialogHeader>
                 <AlertDialogTitle className="font-headline text-3xl text-center uppercase tracking-tighter">Terminate Campaign?</AlertDialogTitle>
                 <AlertDialogDescription className="text-center">This will permanently remove the promotion.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="sm:justify-center gap-4 mt-8">
-                <AlertDialogCancel className="rounded-full h-14 px-8 border-2 font-bold flex-1">Keep</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 rounded-full h-14 px-10 font-bold flex-1 text-white border-none">Delete</AlertDialogAction>
+                <AlertDialogCancel className="rounded-full h-14 border-2 font-bold flex-1">Keep</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 rounded-full h-14 font-bold flex-1 border-none">Delete</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

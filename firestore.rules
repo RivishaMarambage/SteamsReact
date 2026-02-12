@@ -26,9 +26,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow searching for admins or referrers during signup
+      // Relaxed list permission to allow admin existence checks and referral code validation during signup
       allow list: if isSignedIn();
-      allow read: if isOwner(userId) || isStaffOrAdmin();
+      allow read: if isSignedIn(); 
       allow create: if isOwner(userId);
       
       // Allow users to update their own non-protected fields, 
@@ -51,7 +51,7 @@ service cloud.firestore {
 
     match /menu_items/{menuItemId} {
       allow read: if true;
-      // Relaxed for initial database seeding
+      // Relaxed for initial database seeding by the first admin
       allow write: if isSignedIn();
     }
     
