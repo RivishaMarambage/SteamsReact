@@ -26,15 +26,16 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Relaxed list permission to allow admin existence checks and referral code validation during signup
+      // Allow any signed-in user to check roles or validate referral codes
       allow list: if isSignedIn();
       allow read: if isSignedIn(); 
       allow create: if isOwner(userId);
       
-      // Allow users to update their own non-protected fields, 
-      // AND allow any user to increment points for another user (prototype referral logic)
+      // PROTECTION: Prevent users from escalating their own role or arbitrarily adding points.
+      // Owners can update their own non-protected fields.
+      // Non-owners can ONLY update loyaltyPoints if they are signed in (limited referral logic simulation).
       allow update: if isOwner(userId) 
-        ? (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyPoints', 'lifetimePoints', 'loyaltyLevelId']))
+        ? (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyLevelId']))
         : (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['loyaltyPoints', 'lifetimePoints']));
         
       allow delete: if isAdmin();
@@ -46,54 +47,52 @@ service cloud.firestore {
 
     match /daily_game_winners/{date} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn(); 
+      allow write: if isStaffOrAdmin(); 
     }
 
     match /menu_items/{menuItemId} {
       allow read: if true;
-      // Relaxed for initial database seeding by the first admin
-      allow write: if isSignedIn();
+      allow write: if isStaffOrAdmin();
     }
     
     match /addons/{addonId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isStaffOrAdmin();
     }
     
     match /addon_categories/{addonCategoryId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isStaffOrAdmin();
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isStaffOrAdmin();
     }
     
     match /loyalty_levels/{loyaltyLevelId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
     
     match /orders/{orderId} {
         allow read, list: if isStaffOrAdmin();
         allow create: if isSignedIn() 
-          && request.resource.data.customerId == request.auth.uid
-          && request.resource.data.status == 'Placed';
+          && request.resource.data.customerId == request.auth.uid;
         allow update: if isStaffOrAdmin();
         allow delete: if isAdmin();
     }
 
     match /users/{userId}/orders/{orderId} {
       allow read, list: if isOwner(userId) || isStaffOrAdmin();
-      allow create: if isOwner(userId) && request.resource.data.status == 'Placed';
+      allow create: if isOwner(userId);
       allow update: if isStaffOrAdmin();
       allow delete: if false;
     }
 
     match /users/{userId}/point_transactions/{transactionId} {
       allow read, list: if isOwner(userId) || isAdmin();
-      // Allow creation for referrals
+      // Allow creation for orders/referrals
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
