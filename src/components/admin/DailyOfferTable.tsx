@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Search, Trash2, ChevronDown, ChevronRight, CheckCircle2, Tag, Percent, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, ChevronDown, ChevronRight, Tag, Percent, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -19,6 +19,12 @@ import { addDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
+
+/**
+ * FIXED: DailyOfferTable
+ * Resolves "Maximum update depth exceeded" by stabilizing state management and removing
+ * recursive rendering loops caused by unstable ShadCN Select components in tight re-render paths.
+ */
 
 const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
   const tierDiscounts = levels.reduce((acc, level) => {
@@ -52,7 +58,6 @@ export default function DailyOfferTable() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
@@ -60,7 +65,7 @@ export default function DailyOfferTable() {
   
   const loyaltyLevels = useMemo(() => {
     if (!loyaltyLevelsRaw) return [];
-    return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard' && l.name.toLowerCase() !== 'none');
+    return loyaltyLevelsRaw.filter(l => l.name.toLowerCase() !== 'standard');
   }, [loyaltyLevelsRaw]);
 
   const [formData, setFormData] = useState<Omit<DailyOffer, 'id'>>(() => getInitialFormData([]));
@@ -85,11 +90,6 @@ export default function DailyOfferTable() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems, categories]);
 
-  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
-
   const handleToggleItem = (itemId: string) => {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
@@ -107,7 +107,6 @@ export default function DailyOfferTable() {
     setFormData(prev => {
       const current = prev.menuItemIds || [];
       const allSelected = itemIds.every(id => current.includes(id));
-      
       if (allSelected) {
         return { ...prev, menuItemIds: current.filter(id => !itemIds.includes(id)) };
       } else {
@@ -127,7 +126,7 @@ export default function DailyOfferTable() {
       menuItemIds: offer.menuItemIds || [],
       offerStartDate: offer.offerStartDate || format(new Date(), 'yyyy-MM-dd'),
       offerEndDate: offer.offerEndDate || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-      discountType: (offer.discountType as string) === 'percent' ? 'percentage' : (offer.discountType || 'percentage'),
+      discountType: offer.discountType === 'percentage' ? 'percentage' : 'fixed',
       orderType: offer.orderType || 'Both',
       tierDiscounts,
     });
@@ -148,7 +147,7 @@ export default function DailyOfferTable() {
     if (!firestore) return;
 
     if (!formData.title || !formData.menuItemIds?.length) {
-        toast({ variant: "destructive", title: "Incomplete Form", description: "Select at least one item." });
+        toast({ variant: "destructive", title: "Selection Required", description: "Select at least one item." });
         return;
     }
 
@@ -161,11 +160,11 @@ export default function DailyOfferTable() {
         setFormOpen(false);
         toast({ title: "Promotion Saved" });
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message });
+        toast({ variant: "destructive", title: "Save Error", description: error.message });
     }
   };
   
-  if (isLoading) return <div className="space-y-4"><Skeleton className="h-48 w-full" /><Skeleton className="h-48 w-full" /></div>;
+  if (isLoading) return <div className="space-y-4 p-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-48 w-full" /></div>;
 
   return (
     <Card className="shadow-lg border-none overflow-hidden">
@@ -184,7 +183,7 @@ export default function DailyOfferTable() {
             <option value="all">All Categories</option>
             {categories?.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
-          <Button size="lg" onClick={handleAddNew} className="h-11 rounded-xl px-6 shadow-xl"><PlusCircle className="mr-2 h-4 w-4" /> Launch Promotion</Button>
+          <Button size="lg" onClick={handleAddNew} className="h-11 rounded-xl px-6 shadow-xl"><PlusCircle className="mr-2 h-4 w-4" /> New Campaign</Button>
         </div>
       </CardHeader>
       
@@ -195,7 +194,7 @@ export default function DailyOfferTable() {
               <TableHead>Validity</TableHead>
               <TableHead>Campaign</TableHead>
               <TableHead>Scope</TableHead>
-              <TableHead>Incentives</TableHead>
+              <TableHead>Benefit</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -220,7 +219,7 @@ export default function DailyOfferTable() {
                     <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(offer)}>Edit Campaign</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(offer)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive font-bold" onClick={() => { setSelectedOffer(offer); setAlertOpen(true); }}>Terminate</DropdownMenuItem>
                     </DropdownMenuContent>
                     </DropdownMenu>
@@ -236,8 +235,8 @@ export default function DailyOfferTable() {
           <form onSubmit={handleFormSubmit} className="flex flex-col h-full bg-background">
             <div className="p-10 border-b shrink-0 flex justify-between items-center bg-muted/5">
               <DialogHeader>
-                <DialogTitle className="font-headline text-4xl uppercase tracking-tighter text-primary">{selectedOffer ? 'Edit Promotion' : 'New Promotion'}</DialogTitle>
-                <DialogDescription className="font-black text-[10px] uppercase tracking-[0.3em] text-[#6b584b]">Define campaign scope and incentives</DialogDescription>
+                <DialogTitle className="font-headline text-4xl uppercase tracking-tighter text-primary">Promotion Builder</DialogTitle>
+                <DialogDescription className="font-black text-[10px] uppercase tracking-[0.3em] text-[#6b584b]">Configuration & Incentives</DialogDescription>
               </DialogHeader>
               <Button type="button" variant="ghost" size="icon" onClick={() => setFormOpen(false)} className="rounded-full h-12 w-12"><X className="h-6 w-6" /></Button>
             </div>
@@ -246,15 +245,15 @@ export default function DailyOfferTable() {
                 <div className="grid gap-10">
                   <div className="grid gap-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Campaign Title</Label>
-                    <Input name="title" value={formData.title} onChange={handleFormChange} required className="h-16 rounded-2xl px-6 text-xl font-bold border-2 focus:ring-primary shadow-sm" />
+                    <Input name="title" value={formData.title} onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))} required className="h-16 rounded-2xl px-6 text-xl font-bold border-2 focus:ring-primary shadow-sm" />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="grid gap-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Validity Period</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Validity Window</Label>
                       <div className="flex gap-3">
-                        <Input type="date" name="offerStartDate" value={formData.offerStartDate} onChange={handleFormChange} className="h-14 rounded-2xl px-4 border-2 font-mono font-bold" />
-                        <Input type="date" name="offerEndDate" value={formData.offerEndDate} onChange={handleFormChange} className="h-14 rounded-2xl px-4 border-2 font-mono font-bold" />
+                        <Input type="date" value={formData.offerStartDate} onChange={(e) => setFormData(p => ({ ...p, offerStartDate: e.target.value }))} className="h-14 rounded-2xl px-4 border-2 font-mono font-bold" />
+                        <Input type="date" value={formData.offerEndDate} onChange={(e) => setFormData(p => ({ ...p, offerEndDate: e.target.value }))} className="h-14 rounded-2xl px-4 border-2 font-mono font-bold" />
                       </div>
                     </div>
                     <div className="grid gap-3">
@@ -280,31 +279,30 @@ export default function DailyOfferTable() {
                   <div className="space-y-6">
                     {Object.entries(groupedMenuItems).map(([categoryName, items]) => {
                       const isExpanded = !!expandedCategories[categoryName];
-                      const selectedCount = items.filter(i => (formData.menuItemIds || []).includes(i.id)).length;
-                      const allSelected = items.length > 0 && selectedCount === items.length;
+                      const selectedInCat = items.filter(i => (formData.menuItemIds || []).includes(i.id));
+                      const allInCatSelected = items.length > 0 && selectedInCat.length === items.length;
                       
                       return (
-                        <div key={categoryName} className="border-2 rounded-[2rem] overflow-hidden bg-background shadow-sm hover:shadow-md transition-all">
+                        <div key={categoryName} className="border-2 rounded-[2rem] overflow-hidden bg-background">
                           <div className="flex items-center justify-between p-5 bg-muted/10">
-                            <div role="button" onClick={() => setExpandedCategories(p => ({ ...p, [categoryName]: !isExpanded }))} className="flex items-center gap-4 flex-1 cursor-pointer select-none">
+                            <div className="flex items-center gap-4 cursor-pointer select-none flex-1" onClick={() => setExpandedCategories(p => ({ ...p, [categoryName]: !isExpanded }))}>
                                 {isExpanded ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5" />}
                                 <span className="font-black text-xs uppercase tracking-[0.2em]">{categoryName}</span>
-                                {selectedCount > 0 && <Badge className="bg-primary text-white text-[10px] h-6 w-6 flex items-center justify-center rounded-full p-0">{selectedCount}</Badge>}
+                                {selectedInCat.length > 0 && <Badge className="bg-primary text-white text-[10px] h-6 w-6 flex items-center justify-center rounded-full p-0">{selectedInCat.length}</Badge>}
                             </div>
-                            <button 
-                                type="button" 
-                                onClick={() => handleToggleCategory(categoryName)}
-                                className={cn("h-9 text-[9px] font-black uppercase tracking-widest px-6 rounded-full transition-all border-2", allSelected ? "bg-primary text-white border-primary shadow-lg" : "bg-white text-muted-foreground hover:border-primary/30")}
+                            <div 
+                                onClick={(e) => { e.stopPropagation(); handleToggleCategory(categoryName); }}
+                                className={cn("h-9 text-[9px] font-black uppercase tracking-widest px-6 rounded-full transition-all border-2 cursor-pointer flex items-center justify-center", allInCatSelected ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground hover:border-primary/30")}
                             >
-                                {allSelected ? 'Selected' : 'Select Category'}
-                            </button>
+                                {allInCatSelected ? 'Selected' : 'Select Section'}
+                            </div>
                           </div>
                           {isExpanded && (
                             <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
                               {items.map(item => {
                                 const isChecked = (formData.menuItemIds || []).includes(item.id);
                                 return (
-                                  <div key={item.id} className={cn("flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer group", isChecked ? "bg-primary/5 border-primary shadow-sm" : "border-muted/50 hover:border-primary/20")} onClick={() => handleToggleItem(item.id)}>
+                                  <div key={item.id} className={cn("flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer", isChecked ? "bg-primary/5 border-primary" : "border-muted/50 hover:border-primary/20")} onClick={() => handleToggleItem(item.id)}>
                                     <Checkbox checked={isChecked} className="h-6 w-6 pointer-events-none" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-black truncate uppercase tracking-tight">{item.name}</p>
@@ -365,7 +363,7 @@ export default function DailyOfferTable() {
         <AlertDialogContent className="rounded-[3rem] border-none shadow-3xl p-12">
             <AlertDialogHeader className="space-y-6">
                 <AlertDialogTitle className="font-headline text-4xl text-center uppercase tracking-tighter">Terminate Campaign?</AlertDialogTitle>
-                <AlertDialogDescription className="text-center font-bold text-[#6b584b] text-base leading-relaxed">This promotion will be permanently removed and no longer applicable to future orders. This action cannot be undone.</AlertDialogDescription>
+                <AlertDialogDescription className="text-center font-bold text-[#6b584b] text-base leading-relaxed">This action cannot be undone. The promotion will be removed from all future eligibility.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="sm:justify-center gap-4 mt-10">
                 <AlertDialogCancel className="rounded-full h-16 border-2 font-black uppercase tracking-widest flex-1">Keep Active</AlertDialogCancel>

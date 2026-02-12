@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MenuItem, CartItem, Category, Order, UserProfile, DailyOffer, Addon, AddonCategory } from '@/lib/types';
-import { PlusCircle, ShoppingCart, Minus, Plus, Trash2, Tag, Utensils, ShoppingBag, Sparkles, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, Tag, Utensils, ShoppingBag, Sparkles, ArrowRight, Loader2, RotateCcw, Coffee, Pizza, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -35,7 +35,7 @@ const WELCOME_OFFERS = [
 
 const MAIN_GROUPS: Category['type'][] = ['Beverages', 'Food'];
 
-export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, offerToClaim }: MenuDisplayProps) {
+export default function MenuDisplay({ menuItems, dailyOffers }: MenuDisplayProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<Order['orderType'] | null>(null);
   const [tableNumber, setTableNumber] = useState('');
@@ -189,10 +189,9 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
   const welcomeDiscountAmount = applicableWelcomeOffer ? subtotal * (applicableWelcomeOffer.discount / 100) : 0;
   const birthdayDiscountAmount = userProfile?.birthdayDiscountValue ? (userProfile.birthdayDiscountType === 'percentage' ? subtotal * (userProfile.birthdayDiscountValue / 100) : userProfile.birthdayDiscountValue) : 0;
   
-  const discountedSubtotal = Math.max(0, subtotal - birthdayDiscountAmount - welcomeDiscountAmount);
+  const discountedSubtotal = Math.max(0, subtotal - (birthdayDiscountAmount || 0) - welcomeDiscountAmount);
   const serviceCharge = orderType === 'Dine-in' ? discountedSubtotal * 0.10 : 0;
-  const totalBeforePoints = discountedSubtotal + serviceCharge;
-  const cartTotal = totalBeforePoints; // Applied points removed for simplicity in this display
+  const cartTotal = discountedSubtotal + serviceCharge;
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const handleProceedToCheckout = async () => {
@@ -204,6 +203,22 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
         cartTotal, orderType, tableNumber, welcomeOfferApplied: !!applicableWelcomeOffer,
     }));
     router.push('/dashboard/checkout');
+  };
+
+  const scrollToCategory = (id: string) => {
+    const element = document.getElementById(`cat-${id}`);
+    if (element) {
+        const offset = 180; // Account for sticky headers
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+        });
+    }
   };
 
   return (
@@ -261,25 +276,40 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                         {orderType === 'Dine-in' && tableNumber && <span className="text-muted-foreground ml-2 opacity-50">#{tableNumber}</span>}
                     </h2>
                     <Button variant="ghost" size="sm" onClick={() => { setOrderTypeDialogOpen(true); setDialogStep('type'); }} className="h-8 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary">
-                        <RotateCcw className="mr-2 h-3.5 w-3.5" /> Change Order Type
+                        <RotateCcw className="mr-2 h-3.5 w-3.5" /> Change Context
                     </Button>
                 </div>
 
-                <div className="flex justify-center">
-                    <div className="bg-muted/50 p-1.5 rounded-full flex gap-1 border shadow-inner w-full sm:w-auto">
-                        {MAIN_GROUPS.map((group) => (
+                <div className="flex flex-col gap-4">
+                    <div className="flex justify-center">
+                        <div className="bg-muted/50 p-1 rounded-full flex gap-1 border shadow-inner w-full sm:w-auto overflow-x-auto no-scrollbar">
+                            {MAIN_GROUPS.map((group) => (
+                                <button
+                                    key={group}
+                                    className={cn(
+                                        "flex-1 sm:flex-none flex items-center justify-center rounded-full px-8 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap",
+                                        selectedMainGroup === group 
+                                            ? "bg-primary text-white shadow-xl scale-105" 
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                    onClick={() => setSelectedMainGroup(group)}
+                                >
+                                    {group === 'Beverages' ? <Coffee className="mr-2 h-4 w-4" /> : <Pizza className="mr-2 h-4 w-4" />}
+                                    {group}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* CATEGORY JUMPER */}
+                    <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar scroll-smooth">
+                        {sortedCategories.filter(c => c.type === selectedMainGroup).map((cat) => (
                             <button
-                                key={group}
-                                className={cn(
-                                    "flex-1 sm:flex-none flex items-center justify-center rounded-full px-10 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all",
-                                    selectedMainGroup === group 
-                                        ? "bg-primary text-white shadow-xl scale-105" 
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                                onClick={() => setSelectedMainGroup(group)}
+                                key={cat.id}
+                                onClick={() => scrollToCategory(cat.id)}
+                                className="shrink-0 px-5 py-2 rounded-full bg-muted border border-transparent hover:border-primary/30 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white hover:shadow-sm"
                             >
-                                {group === 'Beverages' ? <Coffee className="mr-2 h-4 w-4" /> : <Pizza className="mr-2 h-4 w-4" />}
-                                {group}
+                                {cat.name}
                             </button>
                         ))}
                     </div>
@@ -287,15 +317,15 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
             </div>
 
             {/* PUBLIC STYLE SCROLLING SECTIONS */}
-            <div className="space-y-20 pb-20">
+            <div className="space-y-24 pb-32">
                 {sortedCategories.filter(c => c.type === selectedMainGroup).map(subCategory => {
                     const subItems = sortedMenuItems.filter(item => item.categoryId === subCategory.id);
                     if (subItems.length === 0) return null;
 
                     return (
-                        <div key={subCategory.id} className="animate-in fade-in slide-in-from-left-4 duration-700">
+                        <div key={subCategory.id} id={`cat-${subCategory.id}`} className="animate-in fade-in slide-in-from-left-4 duration-700">
                             <div className="flex items-center gap-6 mb-8">
-                                <h3 className="text-3xl md:text-4xl font-headline font-black uppercase tracking-tight text-[#2c1810] italic italic-primary">
+                                <h3 className="text-3xl md:text-4xl font-headline font-black uppercase tracking-tight text-[#2c1810] italic">
                                     {subCategory.name}
                                 </h3>
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
@@ -317,7 +347,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                                     if (offer && userProfile?.loyaltyLevelId && !alreadyRedeemed) {
                                         const userTierDiscount = offer.tierDiscounts?.[userProfile.loyaltyLevelId] || 0;
                                         if (userTierDiscount > 0) {
-                                            const isPercentage = (offer.discountType as string) === 'percentage' || (offer.discountType as string) === 'percent';
+                                            const isPercentage = offer.discountType === 'percentage';
                                             displayPrice = isPercentage ? item.price - (item.price * userTierDiscount / 100) : item.price - userTierDiscount;
                                             isOfferApplied = true;
                                         }
@@ -533,7 +563,7 @@ export default function MenuDisplay({ menuItems, dailyOffers, freebieToClaim, of
                     </div>
                 </div>
                  <Button size="lg" className="w-full h-20 rounded-full text-base font-black uppercase tracking-[0.2em] shadow-2xl bg-primary hover:bg-[#b45309] text-white border-0" disabled={cart.length === 0 || isProcessing} onClick={handleProceedToCheckout}>
-                    {isProcessing ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Finalizing...</> : <>Order Now <ArrowRight className="ml-3 h-5 w-5" /></>}
+                    {isProcessing ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Finalizing...</> : <>Checkout <ArrowRight className="ml-3 h-5 w-5" /></>}
                 </Button>
           </div>
         </SheetContent>
