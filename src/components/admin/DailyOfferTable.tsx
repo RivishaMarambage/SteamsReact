@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
@@ -47,6 +46,7 @@ export default function DailyOfferTable() {
   const { data: loyaltyLevelsRaw, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [tableFilter, setTableFilter] = useState('all');
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
@@ -65,7 +65,8 @@ export default function DailyOfferTable() {
   const filteredOffers = useMemo(() => {
     if (!offers) return [];
     return offers.filter(offer => {
-      return offer.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchSearch;
     }).sort((a, b) => (b.offerStartDate || '').localeCompare(a.offerStartDate || ''));
   }, [offers, searchTerm]);
 

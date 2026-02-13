@@ -13,16 +13,15 @@ import { useToast } from '@/hooks/use-toast';
 import { CalendarIcon, Eye, EyeOff, Mail, Lock, Coffee, User, Phone, Loader2 } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { getDashboardPathForRole } from '@/lib/auth/paths';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, setPersistence, browserLocalPersistence, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, writeBatch, query, limit, getDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import type { Category, LoyaltyLevel, UserProfile, MenuItem, Addon, AddonCategory } from '@/lib/types';
+import type { Category, LoyaltyLevel, UserProfile, AddonCategory } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Label } from '../ui/label';
 import { FaGoogle } from "react-icons/fa";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -79,12 +78,6 @@ interface AuthFormProps {
   role: 'customer' | 'staff' | 'admin';
 }
 
-const DEMO_ACCOUNTS = {
-    customer: { email: 'customer@example.com', password: 'password123', name: 'Demo Customer' },
-    staff: { email: 'staff@example.com', password: 'password123', name: 'Demo Staff' },
-    admin: { email: 'admin@example.com', password: 'password123', name: 'Demo Admin' },
-}
-
 export function AuthForm({ authType, role }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -92,7 +85,6 @@ export function AuthForm({ authType, role }: AuthFormProps) {
   const firestore = useFirestore();
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -103,20 +95,12 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     }
   }, [role, authType, router]);
 
-  const getSchema = () => {
-    if (authType === 'login') return loginSchema;
-    if (role === 'customer') return customerSignupSchema;
-    return genericSignupSchema;
-  };
-
-  const currentFormSchema = getSchema();
+  const currentFormSchema = authType === 'login' ? loginSchema : (role === 'customer' ? customerSignupSchema : genericSignupSchema);
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(currentFormSchema),
     defaultValues: { email: '', password: '', confirmPassword: '', fullName: '', mobileNumber: '', countryCode: '+94', cafeNickname: '', dateOfBirth: undefined, agreeToTerms: false },
   });
-
-  const demoAccount = DEMO_ACCOUNTS[role];
 
   const seedDatabase = async () => {
     if (!firestore) return;
@@ -146,68 +130,16 @@ export function AuthForm({ authType, role }: AuthFormProps) {
     
     try {
         const batch = writeBatch(firestore);
-        let customCreationsCategoryId = '';
-        const categoriesRef = collection(firestore, 'categories');
         SEED_CATEGORIES.forEach(category => {
-            const docRef = doc(categoriesRef);
-            if(category.name === 'Custom Creations') customCreationsCategoryId = docRef.id;
-            batch.set(docRef, category);
+            batch.set(doc(collection(firestore, 'categories')), category);
         });
-
-        const loyaltyLevelsRef = collection(firestore, 'loyalty_levels');
         SEED_LOYALTY_LEVELS.forEach(level => {
-            const docRef = doc(loyaltyLevelsRef, level.name.toLowerCase());
-            batch.set(docRef, level);
+            batch.set(doc(firestore, 'loyalty_levels', level.name.toLowerCase()), level);
         });
-        
-        const addonCategoriesRef = collection(firestore, 'addon_categories');
-        const addonCategoryRefs: Record<string, string> = {};
         SEED_ADDON_CATEGORIES.forEach(category => {
-            const docRef = doc(addonCategoriesRef);
-            batch.set(docRef, category);
-            addonCategoryRefs[category.name] = docRef.id;
+            batch.set(doc(collection(firestore, 'addon_categories')), category);
         });
-
         await batch.commit(); 
-
-        const addonBatch = writeBatch(firestore);
-        const addonsRef = collection(firestore, 'addons');
-        
-        const SEED_ADDONS = [
-            { name: "Extra Espresso Shot", price: 100, categoryName: "Toppings" },
-            { name: "Almond Milk", price: 80, categoryName: "Milk Options" },
-            { name: "Oat Milk", price: 80, categoryName: "Milk Options" },
-            { name: "Whipped Cream", price: 50, categoryName: "Toppings" },
-            { name: "Caramel Drizzle", price: 60, categoryName: "Syrups" },
-        ];
-
-        SEED_ADDONS.forEach(addon => {
-            const categoryId = addonCategoryRefs[addon.categoryName];
-            if (categoryId) {
-                const docRef = doc(addonsRef);
-                addonBatch.set(docRef, { name: addon.name, price: addon.price, addonCategoryId: categoryId });
-            }
-        });
-        
-        if(customCreationsCategoryId) {
-            const menuItemsRef = collection(firestore, 'menu_items');
-            const coffeeBase: Omit<MenuItem, 'id'> = {
-                name: 'Custom Coffee Base',
-                description: 'Your own coffee creation.',
-                price: 250,
-                categoryId: customCreationsCategoryId,
-                isOutOfStock: false,
-                displayOrder: 0,
-                addonGroups: [
-                    { addonCategoryId: addonCategoryRefs['Milk Options'], isRequired: true, minSelection: 1, maxSelection: 1 },
-                    { addonCategoryId: addonCategoryRefs['Syrups'], isRequired: false, minSelection: 0, maxSelection: 2 },
-                ]
-            };
-            addonBatch.set(doc(menuItemsRef, 'custom-coffee-base'), coffeeBase);
-            addonBatch.set(doc(menuItemsRef, 'custom-tea-base'), { ...coffeeBase, name: 'Custom Tea Base', price: 200 });
-        }
-
-        await addonBatch.commit();
     } catch (e: any) {
         console.error("Database Seeding Failed:", e);
     }
@@ -219,16 +151,18 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
     if (authType === 'signup') {
         try {
+            // 1. Create Auth Account FIRST to establish permissions
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const user = userCredential.user;
             
+            // 2. Perform existence checks now that we are authenticated
             const usersRef = collection(firestore, "users");
             const adminQuery = query(usersRef, where("role", "==", "admin"), limit(1));
             const adminSnapshot = await getDocs(adminQuery);
             
             if (role !== 'customer' && !adminSnapshot.empty) {
                 await user.delete();
-                toast({ variant: 'destructive', title: 'Restricted Action', description: 'Admin/Staff accounts must be created by an existing administrator.' });
+                toast({ variant: 'destructive', title: 'Restricted Action', description: 'Staff accounts must be created by an administrator.' });
                 setIsProcessing(false);
                 return;
             }
@@ -258,32 +192,28 @@ export function AuthForm({ authType, role }: AuthFormProps) {
 
             await setDoc(doc(firestore, "users", user.uid), userProfile);
             toast({ title: 'Account Created!', description: "Welcome! Please verify your email." });
-            router.replace(`/login/${role}`);
+            router.replace(getDashboardPathForRole(role));
 
         } catch (error: any) {
             setIsProcessing(false);
             toast({ variant: 'destructive', title: 'Sign Up Failed', description: error.message });
         }
     } else {
-        setPersistence(auth, browserLocalPersistence).then(() => {
-            return signInWithEmailAndPassword(auth, data.email, data.password)
-        })
-        .then(userCredential => {
-            return getDoc(doc(firestore, 'users', userCredential.user.uid));
-        })
-        .then(userDocSnap => {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+            const userDocSnap = await getDoc(doc(firestore, 'users', userCredential.user.uid));
+            
             if (userDocSnap.exists() && (userDocSnap.data() as UserProfile).role === role) {
                 router.replace(getDashboardPathForRole(role));
             } else {
-                auth.signOut();
+                await auth.signOut();
                 setIsProcessing(false);
                 toast({ variant: 'destructive', title: 'Access Denied', description: `Invalid role for this portal.` });
             }
-        })
-        .catch(error => {
+        } catch (error: any) {
             setIsProcessing(false);
             toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid email or password.' });
-        });
+        }
     }
   };
 
@@ -359,7 +289,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
             </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-8 overflow-y-auto">
             <div className="flex flex-col h-full justify-center">
                  <div className="mb-6">
                     <h1 className="text-3xl font-bold font-headline">{authType === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
@@ -367,7 +297,7 @@ export function AuthForm({ authType, role }: AuthFormProps) {
                 </div>
                 
                 {role === 'customer' ? (
-                    <Tabs defaultValue={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
+                    <Tabs value={authType} className="w-full" onValueChange={(value) => router.replace(`/${value}/${role}`)}>
                         <TabsList className="grid w-full grid-cols-2 mb-6 rounded-full p-1 bg-stone-200/50">
                             <TabsTrigger className="rounded-full" value="login">Login</TabsTrigger>
                             <TabsTrigger className="rounded-full" value="signup">Sign Up</TabsTrigger>
