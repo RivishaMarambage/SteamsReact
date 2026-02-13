@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailyOffer, MenuItem, Category, LoyaltyLevel } from '@/lib/types';
-import { MoreHorizontal, PlusCircle, Search, ChevronDown, ChevronRight, Tag, Percent, X, Check } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, ChevronDown, ChevronRight, Tag, X, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
@@ -40,18 +40,13 @@ const getInitialFormData = (levels: LoyaltyLevel[]): Omit<DailyOffer, 'id'> => {
 
 export default function DailyOfferTable() {
   const firestore = useFirestore();
-  const offersQuery = useMemoFirebase(() => firestore ? collection(firestore, "daily_offers") : null, [firestore]);
-  const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, "menu_items") : null, [firestore]);
-  const categoriesQuery = useMemoFirebase(() => firestore ? collection(firestore, "categories") : null, [firestore]);
+  const { data: offers, isLoading: areOffersLoading } = useCollection<DailyOffer>("daily_offers");
+  const { data: menuItems, isLoading: areMenuItemsLoading } = useCollection<MenuItem>("menu_items");
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>("categories");
   const loyaltyLevelsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints")) : null, [firestore]);
-
-  const { data: offers, isLoading: areOffersLoading } = useCollection<DailyOffer>(offersQuery);
-  const { data: menuItems, isLoading: areMenuItemsLoading } = useCollection<MenuItem>(menuItemsQuery);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   const { data: loyaltyLevelsRaw, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);
@@ -169,14 +164,6 @@ export default function DailyOfferTable() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-11 rounded-xl" />
           </div>
-          <select 
-            value={categoryFilter} 
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-11 px-4 rounded-xl bg-muted/50 border-none text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="all">All Categories</option>
-            {categories?.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-          </select>
           <Button size="lg" onClick={handleAddNew} className="h-11 rounded-xl px-6 shadow-xl"><PlusCircle className="mr-2 h-4 w-4" /> New Campaign</Button>
         </div>
       </CardHeader>
@@ -278,11 +265,11 @@ export default function DailyOfferTable() {
                       
                       return (
                         <div key={categoryName} className="border-2 rounded-[2rem] overflow-hidden bg-background">
-                          <div className="flex items-center justify-between p-5 bg-muted/10">
-                            <div className="flex items-center gap-4 cursor-pointer select-none flex-1" onClick={() => setExpandedCategories(p => ({ ...p, [categoryName]: !isExpanded }))}>
+                          <div className="flex items-center justify-between p-5 bg-muted/10 h-[72px]">
+                            <div className="flex items-center gap-4 cursor-pointer select-none flex-1 h-full" onClick={() => setExpandedCategories(p => ({ ...p, [categoryName]: !isExpanded }))}>
                                 {isExpanded ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5" />}
                                 <span className="font-black text-xs uppercase tracking-[0.2em]">{categoryName}</span>
-                                {selectedInCat.length > 0 && <Badge className="bg-primary text-white text-[10px] h-6 w-6 flex items-center justify-center rounded-full p-0">{selectedInCat.length}</Badge>}
+                                {selectedInCat.length > 0 && <span className="bg-primary text-white text-[10px] h-6 w-6 flex items-center justify-center rounded-full font-black">{selectedInCat.length}</span>}
                             </div>
                             <div 
                                 onClick={(e) => { e.stopPropagation(); handleToggleCategory(categoryName); }}
@@ -296,7 +283,7 @@ export default function DailyOfferTable() {
                               {items.map(item => {
                                 const isChecked = (formData.menuItemIds || []).includes(item.id);
                                 return (
-                                  <div key={item.id} className={cn("flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer", isChecked ? "bg-primary/5 border-primary" : "border-muted/50 hover:border-primary/20")} onClick={() => handleToggleItem(item.id)}>
+                                  <div key={item.id} className={cn("flex items-center space-x-4 p-5 rounded-2xl border-2 transition-all cursor-pointer h-[84px]", isChecked ? "bg-primary/5 border-primary" : "border-muted/50 hover:border-primary/20")} onClick={() => handleToggleItem(item.id)}>
                                     <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors", isChecked ? "bg-primary border-primary text-white" : "border-muted-foreground/30")}>
                                         {isChecked && <Check className="h-3 w-3 stroke-[4]" />}
                                     </div>
