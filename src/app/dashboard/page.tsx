@@ -8,7 +8,7 @@ import { useUser } from "@/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User as UserIcon, Sparkles, MailWarning, Percent, CheckCircle2, ArrowRight } from "lucide-react";
+import { ShoppingCart, User as UserIcon, Sparkles, MailWarning, Percent, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
