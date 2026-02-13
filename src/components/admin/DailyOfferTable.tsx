@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
@@ -46,7 +47,7 @@ export default function DailyOfferTable() {
   const { data: loyaltyLevelsRaw, isLoading: areLevelsLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [tableFilter, setTableFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isFormOpen, setFormOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DailyOffer | null>(null);

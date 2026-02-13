@@ -1,3 +1,4 @@
+
 'use client';
 
 import LoyaltyStatus from "@/components/dashboard/LoyaltyStatus";
@@ -13,7 +14,9 @@ import { doc } from "firebase/firestore";
 import BirthdayReward from "@/components/dashboard/BirthdayReward";
 import DailyOffersPreview from "@/components/dashboard/DailyOffersPreview";
 import type { UserProfile } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getDashboardPathForRole } from "@/lib/auth/paths";
 
 const WELCOME_OFFERS = [
     { order: 0, discount: 10, label: "First Order Reward" },
@@ -24,8 +27,17 @@ const WELCOME_OFFERS = [
 export default function DashboardPage() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
+  
   const userRef = useMemoFirebase(() => authUser ? doc(firestore, "users", authUser.uid) : null, [authUser, firestore]);
   const { data: user, isLoading: isProfileLoading } = useDoc<UserProfile>(userRef);
+
+  // REDIRECT LOGIC: Ensure non-customers land on their appropriate dashboards
+  useEffect(() => {
+    if (user && user.role !== 'customer') {
+      router.replace(getDashboardPathForRole(user.role));
+    }
+  }, [user, router]);
 
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -49,15 +61,15 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
+  if (!user || user.role !== 'customer') {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
         <div className="bg-muted p-6 rounded-full mb-4">
           <UserIcon className="size-12 text-muted-foreground opacity-50" />
         </div>
-        <h2 className="text-2xl font-bold">Session Expired</h2>
-        <p className="text-muted-foreground max-sm mb-6">Please log in again to access your dashboard and rewards.</p>
-        <Button asChild><Link href="/login/customer">Log In</Link></Button>
+        <h2 className="text-2xl font-bold">Redirecting...</h2>
+        <p className="text-muted-foreground max-sm mb-6">Navigating to your portal.</p>
+        <Loader2 className="animate-spin text-primary" />
       </div>
     );
   }
