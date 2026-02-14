@@ -65,10 +65,17 @@ export default function AboutExperience() {
 
                             <div className="space-y-6 text-lg text-[#6b584b] leading-relaxed">
                                 <p>
-                                    Steamsbury Tea and Coffee House by Santhiyagu blends tradition and comfort in a cozy space. Enjoy authentic Ceylon teas, premium coffee, refreshing mocktails, lemonades, and floral infusions, crafted for every taste.
+                                    Steamsbury was born from a simple idea to create a space where people can slow down, feel at
+                                    home and enjoy truly good tea, coffee and food made with care, quality ingredients and a personal
+                                    touch.
+                                    Rooted in Sri Lanka’s rich heritage, Steamsbury proudly celebrates Ceylon tea and coffee, sourcing
+                                    the finest leaves and beans to craft beverages that are both comforting and refined. Every cup
+                                    served reflects our respect for tradition, our attention to detail and our passion for authentic flavour.
                                 </p>
                                 <p>
-                                    Relax indoors or outdoors, savor diverse menu options from breakfast to burgers, sandwiches, and pastas. With welcoming staff and comfortable spaces, Steamsbury is a true home for tea and coffee lovers.
+                                    At our core, Steamsbury is about people; our guests, our team, and the communities we serve. We
+                                    believe a café should feel like a second home, a place to relax, connect, work, celebrate or simply
+                                    enjoy a quiet moment with a perfectly brewed cup.
                                 </p>
                             </div>
 
@@ -106,7 +113,7 @@ export default function AboutExperience() {
                         <div className="relative delay-200">
                             <div className="relative aspect-square md:aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl">
                                 <Image
-                                    src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2047&auto=format&fit=crop"
+                                    src="/IMG_2747.webp"
                                     alt="Steamsbury Cafe Exterior"
                                     fill
                                     className="object-cover"
@@ -142,10 +149,16 @@ export default function AboutExperience() {
                         <h2 className="text-4xl md:text-5xl font-headline font-bold">The Journey</h2>
                         <div className="space-y-6 text-lg text-white/70 leading-relaxed">
                             <p>
-                                It started with a simple belief: that coffee shouldn’t just wake you up, it should inspire you. David Steams, our founder, spent 2011 traveling through the highlands of Ethiopia and the volcanic soils of Guatemala.
+                                Rooted in Sri Lanka’s rich heritage, Steamsbury proudly celebrates Ceylon tea and coffee, sourcing
+                                the finest leaves and beans to craft beverages that are both comforting and refined. Every cup
+                                served reflects our respect for tradition, our attention to detail and our passion for authentic flavour.
                             </p>
                             <p>
-                                He returned with a suitcase full of beans and a head full of dreams. What followed was a decade of obsession—tweaking roast profiles, hunting for the perfect water chemistry, and building a team that cares as much as he does.
+                                Steamsbury is developed and operated under the guidance of Santhiyagu Ceylon Trading Company,
+                                a Sri Lankan enterprise engaged in food commodity trading, exports and supply chain
+                                operations. With experience in sourcing, quality assurance and internationally aligned food
+                                safety standards, Santhiyagu Ceylon Trading Company provides the operational foundation that
+                                supports Steamsbury’s commitment to consistency, quality and reliability across all its locations.
                             </p>
                         </div>
                         <div className="flex gap-4 pt-4">
@@ -174,7 +187,7 @@ export default function AboutExperience() {
                         <div className="space-y-4">
                             <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl border border-white/5">
                                 <Image
-                                    src="https://images.unsplash.com/photo-1511920174188-155e12d62541?q=80&w=2070&auto=format&fit=crop"
+                                    src="/THE jOURNY.webp"
                                     alt="Latte Art"
                                     fill
                                     className="object-cover hover:scale-110 transition-transform duration-700"
@@ -315,7 +328,7 @@ export default function AboutExperience() {
                                             <Input id="email" placeholder="you@example.com" className="bg-white border-gray-300" />
                                         </div>
                                     </div>
-                                    
+
                                     <div className="space-y-2">
                                         <Label htmlFor="subject">Subject</Label>
                                         <Select value={subject} onValueChange={setSubject}>

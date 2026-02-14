@@ -15,6 +15,7 @@ import HighlightsSection from "@/components/home/HighlightsSection";
 
 import OffersHighlight from "@/components/home/OffersHighlight";
 import NewsBanner from "@/components/home/NewsBanner";
+import CraftedCoffeeSection from "@/components/home/CraftedCoffeeSection";
 import PublicHeader from "@/components/layout/PublicHeader";
 import { useUser } from "@/firebase";
 
@@ -78,31 +79,25 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* --- HERO SECTION --- */}
         <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover scale-105"
-          >
-            <source src="/coffee.mp4" type="video/mp4" />
-          </video>
+          <img
+            src="/most-iconic-cafe-in-the.jpg"
+            alt="Most iconic cafe"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a110a]" />
-          
+
           <div className="relative container mx-auto px-4 md:px-6 flex flex-col items-center text-center text-white space-y-6 md:space-y-8 max-w-5xl">
-            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-medium tracking-wider mb-2 animate-fade-in uppercase">
-              Est. 2023 • Premium Roastery
-            </div>
+
             <h1 className="text-4xl xs:text-5xl font-headline font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
-              Brewing Moments,<br />
-              <span className="text-[#f59e0b]">One Cup at a Time</span>
+              Your Home,<br />
+              <span className="text-[#f59e0b]">Away from Home</span>
             </h1>
             <p className="max-w-[800px] mx-auto text-sm md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
               We bring together authentic Ceylon teas, expertly crafted coffee and comforting food
-              in a homely space designed for everyday moments and meaningful conversations
+              in a homely space designed for everyday moments and meaningful conversations.
             </p>
-            
+
             {/* Buttons: Stack on mobile, row on desktop */}
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row justify-center items-center gap-4 w-full sm:w-auto px-4">
               <Button asChild size="lg" className="rounded-full h-14 px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">
@@ -191,8 +186,11 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
- {/* --- QUOTES SECTION --- */}
- <section className="bg-[#211811] text-white py-16 lg:py-24">
+
+        {/* --- CRAFTED COFFEE SECTION --- */}
+        <CraftedCoffeeSection />
+        {/* --- QUOTES SECTION --- */}
+        <section className="bg-[#211811] text-white py-16 lg:py-24">
           <div className="container mx-auto px-4 md:px-6 text-center">
             <p className="text-4xl md:text-5xl font-headline text-accent mb-4">❞</p>
             <div className="h-32 md:h-24 relative">
@@ -236,10 +234,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <Button asChild size="lg" className="rounded-2xl h-14 px-8 bg-white text-[#d97706] hover:bg-white/90 font-bold border-none shadow-xl w-full sm:w-auto transition-all duration-300 hover:scale-105 active:scale-95">
-                <Link href="/dashboard/creator" className="flex items-center justify-center gap-2">Start Building Now <ArrowRight className="h-5 w-5" /></Link>
+                <Link href="/dashboard/creator" className="flex items-center justify-center gap-2">Coming Soon <ArrowRight className="h-5 w-5" /></Link>
               </Button>
             </div>
-            
+
             {/* Image/Visual Area */}
             <div className="flex justify-center items-center relative h-[250px] md:h-[450px]">
               <div className="absolute w-40 h-40 md:w-72 md:h-72 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
@@ -253,7 +251,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-       
+
 
         <NewsBanner />
         <HighlightsSection />
