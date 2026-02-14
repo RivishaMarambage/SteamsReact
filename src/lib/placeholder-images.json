@@ -1,0 +1,148 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A cozy, warm interior of a modern coffee shop.",
+      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjb2ZmZWUlMjBzaG9wfGVufDB8fHx8MTc2Mzg4OTE3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee shop"
+    },
+    {
+      "id": "espresso",
+      "description": "A close-up of a rich, dark espresso shot in a white cup.",
+      "imageUrl": "https://images.unsplash.com/photo-1610889556528-9a770e32642f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlc3ByZXNzb3xlbnwwfHx8fDE3NjM5MTEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "espresso"
+    },
+    {
+      "id": "latte",
+      "description": "A latte with intricate art on top, in a ceramic mug.",
+      "imageUrl": "https://images.unsplash.com/photo-1563311977-d285756282dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsYXR0ZSUyMGFydHxlbnwwfHx8fDE3NjM5MTEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "latte art"
+    },
+    {
+      "id": "cappuccino",
+      "description": "A cappuccino with a thick layer of foam, dusted with cocoa.",
+      "imageUrl": "https://images.unsplash.com/photo-1534687941688-651ccaafbff8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYXBwdWNjaW5vfGVufDB8fHx8MTc2MzkzMDY0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cappuccino"
+    },
+    {
+      "id": "iced-coffee",
+      "description": "A tall glass of iced coffee with milk swirling in.",
+      "imageUrl": "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpY2VkJTIwY29mZmVlfGVufDB8fHx8MTc2MzkwODQ5OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iced coffee"
+    },
+    {
+      "id": "croissant",
+      "description": "A golden, flaky croissant on a wooden board.",
+      "imageUrl": "https://images.unsplash.com/photo-1612366747681-e4ca6992b1e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjcm9pc3NhbnR8ZW58MHx8fHwxNzYzOTMwNjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "croissant"
+    },
+    {
+      "id": "muffin",
+      "description": "A freshly baked blueberry muffin with a crumbly top.",
+      "imageUrl": "https://images.unsplash.com/photo-1606188074044-fcd750f6996a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtdWZmaW58ZW58MHx8fHwxNzYzOTMwNjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "muffin"
+    },
+    {
+      "id": "about-main",
+      "description": "Coffee grounds in a portafilter, ready for brewing.",
+      "imageUrl": "https://images.unsplash.com/photo-1768295982371-b8088871dd42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb3J0YWZpbHRlciUyMGNvZmZlZS1ncm91bmRzfGVufDB8fHx8MTc2OTEwNTA3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portafilter coffee-grounds"
+    },
+    {
+      "id": "about-early-days",
+      "description": "Three friends cheering with their coffee cups.",
+      "imageUrl": "https://images.unsplash.com/photo-1510972527921-ce03766a1cf1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb2ZmZWUlMjBmcmllbmRzfGVufDB8fHx8MTc2OTEwNTA3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee friends"
+    },
+    {
+      "id": "about-sourcing-roots",
+      "description": "A close up of freshly roasted coffee beans.",
+      "imageUrl": "https://images.unsplash.com/photo-1606486544554-164d98da4889?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb2ZmZWUlMjBiZWFuc3xlbnwwfHx8fDE3NjkwNDc4OTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee beans"
+    },
+    {
+      "id": "sensory-1",
+      "description": "Top down view of a black coffee.",
+      "imageUrl": "https://images.unsplash.com/photo-1595434091143-b375ced5fe5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjb2ZmZWUlMjBjdXB8ZW58MHx8fHwxNzY5MDAwNDAzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee cup"
+    },
+    {
+      "id": "sensory-2",
+      "description": "A barista pouring over coffee.",
+      "imageUrl": "https://images.unsplash.com/photo-1586848384751-aa8f7ee302c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjb2ZmZWUlMjBicmV3aW5nfGVufDB8fHx8MTc2OTA2MDkyNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee brewing"
+    },
+    {
+      "id": "sensory-3",
+      "description": "A setup for coffee tasting with different roasts.",
+      "imageUrl": "https://images.unsplash.com/photo-1761526443792-bddba5d480b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2ZmZWUlMjB0YXN0aW5nfGVufDB8fHx8MTc2OTEwNTA3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee tasting"
+    },
+    {
+      "id": "sensory-4",
+      "description": "Coffee beans being roasted in a large machine.",
+      "imageUrl": "https://images.unsplash.com/photo-1680381615265-6cce996f6e4f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb2ZmZWUlMjByb2FzdGluZ3xlbnwwfHx8fDE3Njg5OTY0MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee roasting"
+    },
+    {
+      "id": "team-marcus",
+      "description": "Portrait of Marcus Chen, Head Roaster",
+      "imageUrl": "https://images.unsplash.com/photo-1522556189639-b150ed9c4330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwb3J0cmFpdCUyMG1hbnxlbnwwfHx8fDE3NjkwOTM3MjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait man"
+    },
+    {
+      "id": "team-sarah",
+      "description": "Portrait of Sarah Jenkins, Lead Barista",
+      "imageUrl": "https://images.unsplash.com/photo-1669844444850-5acd7e8c71c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwb3J0cmFpdCUyMHdvbWFufGVufDB8fHx8MTc2OTA3NDE3M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait woman"
+    },
+    {
+      "id": "team-david",
+      "description": "Portrait of David Steams, Founder",
+      "imageUrl": "https://images.unsplash.com/photo-1758691737644-ef8be18256c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb3J0cmFpdCUyMGZvdW5kZXJ8ZW58MHx8fHwxNzY5MTA1MjU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait founder"
+    },
+    {
+      "id": "team-elena",
+      "description": "Portrait of Elena Rossi, Community Manager",
+      "imageUrl": "https://images.unsplash.com/photo-1679508056709-03167f9c13ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb3J0cmFpdCUyMG1hbmFnZXJ8ZW58MHx8fHwxNzY5MTA1MjU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait manager"
+    },
+    {
+      "id": "gallery-interior-1",
+      "description": "Wide shot of the cafe interior",
+      "imageUrl": "https://images.unsplash.com/photo-1709548145082-04d0cde481d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2FmZSUyMGludGVyaW9yfGVufDB8fHx8MTc2OTA1MDkzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cafe interior"
+    },
+    {
+      "id": "gallery-lattes",
+      "description": "Several cups of latte with art",
+      "imageUrl": "https://images.unsplash.com/photo-1563311977-d285756282dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxsYXR0ZSUyMGFydHxlbnwwfHx8fDE3NjkwMDAxODR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "latte art"
+    },
+    {
+      "id": "gallery-iced-coffee",
+      "description": "A glass of iced coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1533007716222-4b465613a984?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxpY2VkJTIwY29mZmVlfGVufDB8fHx8MTc2OTA4MDM3OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iced coffee"
+    },
+    {
+      "id": "gallery-interior-2",
+      "description": "Another view of the cafe seating area",
+      "imageUrl": "https://images.unsplash.com/photo-1579421941946-08d83bc4b02b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYWZlJTIwc2VhdGluZ3xlbnwwfHx8fDE3NjkxMDUyNTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cafe seating"
+    },
+    {
+      "id": "gallery-bread",
+      "description": "Freshly baked artisan bread",
+      "imageUrl": "https://images.unsplash.com/photo-1627308595181-fa2b6f5f04e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhcnRpc2FuJTIwYnJlYWR8ZW58MHx8fHwxNzY5MDQ3Mjg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "artisan bread"
+    },
+    {
+      "id": "gallery-sign",
+      "description": "A neon or lit up 'CAFE' sign",
+      "imageUrl": "https://images.unsplash.com/photo-1751309165880-59de3b27de7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYWZlJTIwc2lnbnxlbnwwfHx8fDE3NjkxMDUyNTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cafe sign"
+    }
+  ]
+}

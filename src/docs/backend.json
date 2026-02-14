@@ -1,0 +1,85 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "type": "object",
+      "description": "Represents a user's profile, including their role and loyalty information.",
+      "properties": {
+        "id": { "type": "string", "description": "User's unique ID (matches Auth UID)." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "name": { "type": "string", "description": "User's full name." },
+        "mobileNumber": { "type": "string", "description": "User's mobile phone number." },
+        "cafeNickname": { "type": "string", "description": "User's preferred nickname for order callouts." },
+        "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points." },
+        "lifetimePoints": { "type": "number", "description": "Total points accumulated over the user's lifetime, not reduced by redemptions." },
+        "loyaltyLevelId": { "type": "string", "description": "ID of the user's current loyalty level." },
+        "role": { "type": "string", "enum": ["customer", "staff", "admin"], "description": "The user's role in the system." },
+        "dateOfBirth": { "type": "string", "format": "date", "description": "User's date of birth." },
+        "birthdayDiscountValue": { "type": ["number", "null"], "description": "The value of the birthday discount (fixed amount or percentage)." },
+        "birthdayDiscountType": { "type": ["string", "null"], "enum": ["fixed", "percentage"], "description": "The type of birthday discount." },
+        "birthdayFreebieMenuItemIds": { "type": "array", "items": { "type": "string" }, "description": "List of menu item IDs awarded as a birthday freebie." },
+        "orderCount": { "type": "number", "description": "The number of orders the user has placed, used for tiered welcome offers." },
+        "emailVerified": { "type": "boolean", "description": "Mirrors the email verification status from Firebase Auth." },
+        "referralCode": { "type": "string", "description": "Unique code for referring friends." },
+        "hasLinkedSocials": { "type": "boolean", "description": "Whether the user has claimed points for linking social media." },
+        "hasLeftReview": { "type": "boolean", "description": "Whether the user has claimed points for leaving a review." },
+        "dailyOffersRedeemed": {
+          "type": "object",
+          "description": "A map of daily offer IDs to the date (YYYY-MM-DD) they were redeemed.",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["id", "email", "name", "role"]
+    },
+    "DailyOffer": {
+      "title": "Daily Offer",
+      "type": "object",
+      "description": "Represents a special daily offer for one or more menu items.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the offer." },
+        "title": { "type": "string", "description": "Title of the offer (e.g., 'Muffin Monday')." },
+        "menuItemIds": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of menu item IDs this offer applies to."
+        },
+        "tierDiscounts": {
+          "type": "object",
+          "description": "A map of loyalty tier IDs to their specific discount value.",
+          "additionalProperties": { "type": "number" }
+        },
+        "discountType": {
+            "type": "string",
+            "enum": ["fixed", "percentage"],
+            "description": "The type of discount (LKR or %)."
+        },
+        "orderType": {
+            "type": "string",
+            "enum": ["Dine-in", "Takeaway", "Both"],
+            "description": "The type of order the offer applies to."
+        },
+        "offerStartDate": { "type": "string", "description": "The start date of the offer, in YYYY-MM-DD format." },
+        "offerEndDate": { "type": "string", "description": "The end date of the offer, in YYYY-MM-DD format." }
+      },
+      "required": ["id", "title", "menuItemIds", "tierDiscounts", "discountType", "offerStartDate", "offerEndDate"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "anonymous", "google.com"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profile data. Secured by user ID."
+    },
+    "/menu_items/{menuItemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "Publicly readable list of all menu items."
+    },
+    "/daily_offers/{offerId}": {
+      "schema": { "$ref": "#/entities/DailyOffer" },
+      "description": "Publicly readable list of daily offers. Writable only by admins."
+    }
+  }
+}

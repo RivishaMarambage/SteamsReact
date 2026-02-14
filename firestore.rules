@@ -1,0 +1,114 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaffOrAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+             && getUserData().role in ['staff', 'admin'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+             && getUserData().role == 'admin';
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /users/{userId} {
+      // Allow any authenticated user to list/query (required for existence checks during signup)
+      allow list: if isSignedIn();
+      // Only the owner or staff can read a specific profile
+      allow read: if isOwner(userId) || isStaffOrAdmin(); 
+      
+      // Users can only create their own profile as a 'customer'
+      allow create: if isOwner(userId) && request.resource.data.role == 'customer';
+      
+      // PROTECTION: Prevent role escalation and arbitrary point changes.
+      allow update: if isStaffOrAdmin() 
+        || (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'loyaltyLevelId']));
+        
+      allow delete: if isAdmin();
+    }
+    
+    match /users/{userId}/data/game_profile {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /daily_game_winners/{date} {
+      allow read: if isSignedIn();
+      allow write: if isStaffOrAdmin(); 
+    }
+
+    match /menu_items/{menuItemId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+    
+    match /addons/{addonId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+    
+    match /addon_categories/{addonCategoryId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+    
+    match /loyalty_levels/{loyaltyLevelId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /orders/{orderId} {
+        allow read, list: if isStaffOrAdmin();
+        allow create: if isSignedIn() 
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.status == 'Placed';
+        allow update: if isStaffOrAdmin();
+        allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/orders/{orderId} {
+      allow read, list: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId) && request.resource.data.status == 'Placed';
+      allow update: if isStaffOrAdmin();
+      allow delete: if false;
+    }
+
+    match /users/{userId}/point_transactions/{transactionId} {
+      allow read, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) || isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /daily_offers/{offerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /mobile_numbers/{mobileNumber} {
+      allow read: if isSignedIn(); 
+      allow create: if request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
