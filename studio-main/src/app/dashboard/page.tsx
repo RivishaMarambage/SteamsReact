@@ -44,49 +44,66 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">Welcome back, {user.name?.split(' ')[0]}!</h1>
-        <p className="text-muted-foreground">Here's a look at your loyalty journey with us.</p>
+    <div className="space-y-8 min-h-screen bg-[#FDFBF7] p-6 lg:p-10 transition-colors duration-500">
+      <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+        <h1 className="text-4xl lg:text-5xl font-black font-headline tracking-tight text-[#2c1810]">
+          Welcome back, <span className="text-[#d97706]">{user.name?.split(' ')[0]}</span>! <span className="inline-block animate-bounce origin-bottom-right">👋</span>
+        </h1>
+        <p className="text-[#6b584b] text-lg mt-2 font-medium">Here's a look at your loyalty journey with us.</p>
       </div>
 
-      <div className="grid gap-8">
+      <div className="grid gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
         <BirthdayReward user={user} />
         <DailyOffersPreview userProfile={user} />
-        <div className="grid md:grid-cols-3 gap-8">
-            <Card className="shadow-lg flex flex-col justify-between">
-                <CardHeader>
-                    <CardTitle className="font-headline">Order Again</CardTitle>
-                    <CardDescription>Ready for another coffee? Your usual is just a click away.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild className="w-full sm:w-auto">
-                        <Link href="/dashboard/order"><ShoppingCart /> Start New Order</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-             <Card className="shadow-lg flex flex-col justify-between bg-primary/5 border-primary/20">
-                <CardHeader>
-                    <CardTitle className="font-headline">Create Your Own</CardTitle>
-                    <CardDescription>Feeling creative? Build your perfect custom drink from scratch.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild className="w-full sm:w-auto">
-                        <Link href="/dashboard/creator"><Sparkles /> Build a Drink</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-            <Card className="shadow-lg flex flex-col justify-between">
-                <CardHeader>
-                    <CardTitle className="font-headline">Your Profile</CardTitle>
-                    <CardDescription>Keep your details and preferences up to date.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <Button asChild variant="secondary" className="w-full sm:w-auto">
-                        <Link href="/dashboard/profile"><UserIcon /> View Profile</Link>
-                    </Button>
-                </CardContent>
-            </Card>
+
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
+              <ShoppingCart className="w-24 h-24 text-[#d97706] -rotate-12" />
+            </div>
+            <CardHeader className="relative z-10">
+              <CardTitle className="font-headline text-2xl text-[#2c1810]">Order Again</CardTitle>
+              <CardDescription className="text-[#6b584b]">Ready for another coffee? Your usual is just a click away.</CardDescription>
+            </CardHeader>
+            <CardContent className="relative z-10 pt-0">
+              <Button asChild className="w-full bg-[#2c1810] hover:bg-[#d97706] text-white rounded-xl h-12 font-bold shadow-md transition-all duration-300">
+                <Link href="/dashboard/order" className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" /> Start New Order
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-[#d97706]/10 to-[#f59e0b]/5 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/20 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative">
+            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-[#d97706]/10 rounded-full blur-2xl group-hover:bg-[#d97706]/20 transition-all duration-300" />
+            <CardHeader className="relative z-10">
+              <CardTitle className="font-headline text-2xl flex items-center gap-2 text-[#d97706]">
+                Create Your Own <Sparkles className="w-5 h-5 animate-pulse" />
+              </CardTitle>
+              <CardDescription className="text-[#6b584b]">Feeling creative? Build your perfect custom drink from scratch.</CardDescription>
+            </CardHeader>
+            <CardContent className="relative z-10 pt-0">
+              <Button asChild className="w-full bg-gradient-to-r from-[#d97706] to-[#f59e0b] hover:from-[#b45309] hover:to-[#d97706] text-white border-none rounded-xl h-12 font-bold shadow-md transition-all duration-300">
+                <Link href="/dashboard/creator" className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Build a Drink
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-md group hover:shadow-2xl hover:shadow-[#d97706]/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+            <CardHeader>
+              <CardTitle className="font-headline text-2xl text-[#2c1810]">Your Profile</CardTitle>
+              <CardDescription className="text-[#6b584b]">Keep your details and preferences up to date.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <Button asChild variant="outline" className="w-full border-2 border-[#2c1810]/10 hover:border-[#d97706] hover:bg-[#d97706]/5 text-[#2c1810] hover:text-[#d97706] rounded-xl h-12 font-bold transition-all duration-300">
+                <Link href="/dashboard/profile" className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4" /> View Profile
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <LoyaltyStatus user={user} />
         <RecentOrders userId={user.id} />

@@ -60,6 +60,26 @@ export const MOCK_MENU_ITEMS = [
         imageUrl: 'https://images.unsplash.com/photo-1574041113330-8041c2c31e7f?q=80&w=1974&auto=format&fit=crop', // Perfect Flat White
         isVegetarian: true,
     },
+    {
+        id: 'm7',
+        name: 'Mocha',
+        description: 'Rich espresso mixed with bittersweet mocha sauce and steamed milk.',
+        price: 900,
+        categoryId: 'Food',
+        subCategory: 'Hot Coffee',
+        imageUrl: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?q=80&w=1887&auto=format&fit=crop', // Mocha
+        isVegetarian: true,
+    },
+    {
+        id: 'm8',
+        name: 'Hazelnut Latte',
+        description: 'Espresso with steamed milk and hazelnut syrup, topped with foam.',
+        price: 0,
+        categoryId: 'Food',
+        subCategory: 'Hot Coffee',
+        imageUrl: 'https://images.unsplash.com/photo-1630140618324-42b789726d17?q=80&w=1887&auto=format&fit=crop', // Hazelnut
+        isVegetarian: true,
+    },
 
     // Cold Brews
     {
@@ -102,6 +122,26 @@ export const MOCK_MENU_ITEMS = [
         imageUrl: 'https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?q=80&w=2070&auto=format&fit=crop', // Clear Green Tea
         isVegetarian: true,
     },
+    {
+        id: 'c5',
+        name: 'Iced Americano',
+        description: 'Espresso shots topped with cold water and ice.',
+        price: 750,
+        categoryId: 'Beverages',
+        subCategory: 'Cold Brews',
+        imageUrl: 'https://images.unsplash.com/photo-1556484687-30636164638a?q=80&w=1887&auto=format&fit=crop', // Iced Americano
+        isVegetarian: true,
+    },
+    {
+        id: 'c6',
+        name: 'Cold Foam Cold Brew',
+        description: 'Slow-steeped cold brew topped with a float of house-made vanilla sweet cream cold foam.',
+        price: 850,
+        categoryId: 'Beverages',
+        subCategory: 'Cold Brews',
+        imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=2069&auto=format&fit=crop', // Cold Foam
+        isVegetarian: true,
+    },
 
     // Teas
     {
@@ -122,6 +162,68 @@ export const MOCK_MENU_ITEMS = [
         categoryId: 'Beverages',
         subCategory: 'Teas',
         imageUrl: 'https://images.unsplash.com/photo-1576092762791-2f34f18d9248?q=80&w=1887&auto=format&fit=crop', // Spiced Chai
+        isVegetarian: true,
+    },
+    {
+        id: 't3',
+        name: 'Jasmine Green Tea',
+        description: 'Fragrant jasmine blossoms infused with green tea leaves.',
+        price: 450,
+        categoryId: 'Beverages',
+        subCategory: 'Teas',
+        imageUrl: 'https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?q=80&w=2070&auto=format&fit=crop', // Jasmine Tea
+        isVegetarian: true,
+    },
+    {
+        id: 't4',
+        name: 'Chamomile Tea',
+        description: 'Calming herbal tea with notes of apple and honey.',
+        price: 450,
+        categoryId: 'Beverages',
+        subCategory: 'Teas',
+        imageUrl: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?q=80&w=2071&auto=format&fit=crop', // Chamomile
+        isVegetarian: true,
+    },
+
+    // Mocktails
+    {
+        id: 'mk1',
+        name: 'Virgin Mojito',
+        description: 'Refreshing blend of lime, mint, and sparkling water.',
+        price: 850,
+        categoryId: 'Beverages',
+        subCategory: 'Mocktails',
+        imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=1887&auto=format&fit=crop', // Mojito
+        isVegetarian: true,
+    },
+    {
+        id: 'mk2',
+        name: 'Strawberry Lemonade',
+        description: 'Fresh strawberries muddled with zesty lemons and sparkling water.',
+        price: 750,
+        categoryId: 'Beverages',
+        subCategory: 'Mocktails',
+        imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=1887&auto=format&fit=crop', // Pink drink - using placeholder or find better
+        isVegetarian: true,
+    },
+    {
+        id: 'mk3',
+        name: 'Blue Lagoon',
+        description: 'Vibrant blue curaçao syrup mixed with lemonade and ice.',
+        price: 800,
+        categoryId: 'Beverages',
+        subCategory: 'Mocktails',
+        imageUrl: 'https://images.unsplash.com/photo-1536935338788-84260e07bc9f?q=80&w=1887&auto=format&fit=crop', // Blue Drink
+        isVegetarian: true,
+    },
+    {
+        id: 'mk4',
+        name: 'Mango Tango',
+        description: 'Rich mango puree blended with ice and a hint of lime.',
+        price: 850,
+        categoryId: 'Beverages',
+        subCategory: 'Mocktails',
+        imageUrl: 'https://images.unsplash.com/photo-1601648764658-ad77728cecc0?q=80&w=1887&auto=format&fit=crop', // Mango Drink
         isVegetarian: true,
     },
 
@@ -164,6 +266,26 @@ export const MOCK_MENU_ITEMS = [
         categoryId: 'Food',
         subCategory: 'Bakery',
         imageUrl: 'https://images.unsplash.com/photo-1621255523432-84334360e29b?q=80&w=2070&auto=format&fit=crop', // Bagel
+        isVegetarian: true,
+    },
+    {
+        id: 'b5',
+        name: 'Blueberry Muffin',
+        description: 'Soft muffin bursting with fresh blueberries and a crumble top.',
+        price: 750,
+        categoryId: 'Food',
+        subCategory: 'Bakery',
+        imageUrl: 'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?q=80&w=1887&auto=format&fit=crop', // Blueberry Muffin
+        isVegetarian: true,
+    },
+    {
+        id: 'b6',
+        name: 'Cinnamon Roll',
+        description: 'Warm, gooey cinnamon roll topped with cream cheese icing.',
+        price: 900,
+        categoryId: 'Food',
+        subCategory: 'Bakery',
+        imageUrl: 'https://images.unsplash.com/photo-1509365465985-25d11c17e812?q=80&w=1932&auto=format&fit=crop', // Cinnamon Roll
         isVegetarian: true,
     }
 ];

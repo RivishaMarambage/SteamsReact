@@ -4,6 +4,7 @@ import { MenuItem } from "@/lib/types";
 import { X, Plus, Minus, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const MOCK_ADDONS = [
 ];
 
 export default function MenuItemModal({ item, isOpen, onClose }: MenuItemModalProps) {
+    const router = useRouter();
     const [quantity, setQuantity] = useState(1);
     const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
     const [isClosing, setIsClosing] = useState(false);
@@ -58,6 +60,11 @@ export default function MenuItemModal({ item, isOpen, onClose }: MenuItemModalPr
             }
         });
         return total * quantity;
+    };
+
+    const handleAddToCart = () => {
+        // Redirect to customer sign-in page
+        router.push('/login/customer');
     };
 
     return (
@@ -169,6 +176,7 @@ export default function MenuItemModal({ item, isOpen, onClose }: MenuItemModalPr
 
                     {/* Add to Cart Button */}
                     <Button
+                        onClick={handleAddToCart}
                         className="flex-1 bg-[#d97706] hover:bg-[#b45309] text-white font-bold text-lg h-12 rounded-xl shadow-lg transition-transform active:scale-95"
                     >
                         Add to Cart - Rs {calculateTotal()}

@@ -2,14 +2,57 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowDown, Crown, Star, Gift, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowDown, Crown, Star, Gift, Sparkles, TrendingUp, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import Footer from '@/components/layout/Footer';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { LoyaltyLevel } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RewardsPage() {
+    const firestore = useFirestore();
+
+    const loyaltyLevelsQuery = useMemoFirebase(() => {
+        if (firestore) {
+            return query(collection(firestore, "loyalty_levels"), orderBy("minimumPoints"));
+        }
+        return null;
+    }, [firestore]);
+
+    const { data: loyaltyTiersFromDB, isLoading } = useCollection<LoyaltyLevel>(loyaltyLevelsQuery);
+
+    const loyaltyTiers = React.useMemo(() => {
+        // Use DB data if available, otherwise use fallback data
+        const defaultTiers = [
+            { id: 'level_member', name: 'Member', minimumPoints: 0 },
+            { id: 'level_bronze', name: 'Bronze', minimumPoints: 500 },
+            { id: 'level_gold', name: 'Gold', minimumPoints: 2000 },
+            { id: 'level_platinum', name: 'Platinum', minimumPoints: 5000 },
+        ];
+
+        const tierData = loyaltyTiersFromDB || defaultTiers;
+
+        return tierData.map((level, idx) => {
+            let perks = ["Earn points on purchases"];
+            const nameLower = level.name.toLowerCase();
+            if (nameLower.includes('bronze')) perks = ["Earn 1pt / 200 LKR", "Pay with Points"];
+            else if (nameLower.includes('gold')) perks = ["Earn 1pt / 100 LKR", "Priority Service"];
+            else if (nameLower.includes('platinum')) perks = ["2x Points", "Free Birthday Drink", "Personal Barista"];
+            else perks = ["Earn 1pt / 400 LKR", "Digital Card"];
+
+            return {
+                id: level.id,
+                name: level.name,
+                price: `${level.minimumPoints} pts`,
+                perks: perks,
+            };
+        });
+    }, [loyaltyTiersFromDB]);
+
     return (
         <div className="min-h-screen bg-[#1a110a] text-white font-body overflow-x-hidden selection:bg-[#d97706] selection:text-white">
             <PublicHeader />
@@ -25,11 +68,6 @@ export default function RewardsPage() {
                         className="object-cover opacity-40 scale-105 animate-pulse-slow"
                     />
                     <div className="absolute inset-0 bg-gradient-to-b from-[#1a110a]/80 via-[#1a110a]/50 to-[#1a110a]" />
-                    {/* Animated Particles/Clouds */}
-                    <div className="steam-container opacity-30">
-                        <div className="cloud" style={{ top: '-10%', left: '-10%' }}></div>
-                        <div className="cloud" style={{ top: '60%', left: '80%', animationDelay: '-5s' }}></div>
-                    </div>
                 </div>
 
                 <div className="relative z-10 container mx-auto px-4 text-center space-y-8">
@@ -80,86 +118,193 @@ export default function RewardsPage() {
                     <div className="absolute top-[80%] left-[20%] text-[#d97706]/20 animate-pulse duration-[4000ms]"><Sparkles className="w-16 h-16" /></div>
                 </div>
 
-                {/* 2. Glassmorphism Benefits Grid */}
-                <section className="py-32 relative z-10 opacity-100">
+                {/* 2. What are Steams Points? */}
+                <section className="py-32 relative z-10">
                     <div className="container mx-auto px-4 md:px-6">
-                        <div className="text-center mb-20">
-                            <h2 className="text-4xl md:text-6xl font-headline font-black mb-6">Why Join?</h2>
-                            <p className="text-white/50 text-xl max-w-xl mx-auto">Three simple reasons to make every sip count.</p>
+                        <div className="glass-card rounded-[3rem] p-8 md:p-16 overflow-hidden relative">
+                            {/* Decorative background glow */}
+                            <div className="absolute -top-20 -left-20 w-[400px] h-[400px] bg-gradient-to-br from-[#d97706]/30 to-transparent rounded-full blur-[120px] pointer-events-none" />
+                            <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-gradient-to-br from-[#d97706]/20 to-transparent rounded-full blur-[120px] pointer-events-none" />
+
+                            <div className="relative z-10 text-center mb-16">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#d97706]/10 border border-[#d97706]/20 mb-6">
+                                    <Sparkles className="w-5 h-5 text-[#d97706]" />
+                                    <span className="text-sm font-bold tracking-wider text-[#d97706] uppercase">Currency of Coffee Lovers</span>
+                                </div>
+                                <h2 className="text-4xl md:text-6xl font-headline font-black mb-6">
+                                    What are <span className="gold-gradient">Steams Points</span>?
+                                </h2>
+                                <p className="text-white/60 text-xl max-w-3xl mx-auto leading-relaxed">
+                                    Steams Points are your golden tickets to exclusive rewards, premium benefits, and elevated coffee experiences.
+                                    Every purchase transforms into points that unlock a world of perks.
+                                </p>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-8 mb-12 relative z-10">
+                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 hover:border-[#d97706]/30 transition-all duration-300 group">
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className="w-14 h-14 rounded-xl bg-[#d97706]/20 flex items-center justify-center border border-[#d97706]/30 group-hover:scale-110 transition-transform duration-300">
+                                            <TrendingUp className="w-7 h-7 text-[#d97706]" />
+                                        </div>
+                                        <h3 className="text-2xl font-headline font-bold mb-2">How to Earn</h3>
+                                    </div>
+                                    <ul className="space-y-4">
+                                        <li className="flex items-start gap-3"><Star className="w-5 h-5 text-[#d97706] mt-0.5 flex-shrink-0" /><span className="text-white/70">Earn points on every purchase</span></li>
+                                        <li className="flex items-start gap-3"><Star className="w-5 h-5 text-[#d97706] mt-0.5 flex-shrink-0" /><span className="text-white/70">Higher tiers earn points faster</span></li>
+                                    </ul>
+                                </div>
+                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 hover:border-[#d97706]/30 transition-all duration-300 group">
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className="w-14 h-14 rounded-xl bg-[#d97706]/20 flex items-center justify-center border border-[#d97706]/30 group-hover:scale-110 transition-transform duration-300">
+                                            <Gift className="w-7 h-7 text-[#d97706]" />
+                                        </div>
+                                        <h3 className="text-2xl font-headline font-bold mb-2">How to Redeem</h3>
+                                    </div>
+                                    <ul className="space-y-4">
+                                        <li className="flex items-start gap-3"><Star className="w-5 h-5 text-[#d97706] mt-0.5 flex-shrink-0" /><span className="text-white/70">Pay with points for any item</span></li>
+                                        <li className="flex items-start gap-3"><Star className="w-5 h-5 text-[#d97706] mt-0.5 flex-shrink-0" /><span className="text-white/70">Unlock exclusive secret menu items</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 3. Why Join The Steamsbury Club Section */}
+                <section className="py-32 relative z-10">
+                    <div className="container mx-auto px-4 md:px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl md:text-5xl font-headline font-black mb-4 bg-gradient-to-r from-white via-white to-[#d97706] bg-clip-text text-transparent">
+                                Why Join The Steamsbury Club?
+                            </h2>
+                            <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto">Three simple reasons to make every sip count.</p>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
+                        <div className="grid md:grid-cols-3 gap-6">
                             {[
-                                { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire.", color: "text-amber-400", glow: "bg-amber-500/20" },
-                                { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, food, or merchandise.", color: "text-rose-400", glow: "bg-rose-500/20" },
-                                { icon: ShieldCheck, title: "Tier Protection", desc: "Once you reach a tier, you keep it. Forever. No downgrades.", color: "text-emerald-400", glow: "bg-emerald-500/20" },
+                                { icon: Star, title: "Earn Points", desc: "Collect Steam Points on every rupee spent. Points never expire.", color: "text-amber-400", glow: "bg-amber-500/20", borderColor: "border-amber-500/30" },
+                                { icon: Gift, title: "Redeem Rewards", desc: "Use points to pay for your favorite drinks, food, or merchandise.", color: "text-rose-400", glow: "bg-rose-500/20", borderColor: "border-rose-500/30" },
+                                { icon: ShieldCheck, title: "Tier Protection", desc: "Once you reach a tier, you keep it. Forever. No downgrades.", color: "text-emerald-400", glow: "bg-emerald-500/20", borderColor: "border-emerald-500/30" },
                             ].map((item, idx) => (
-                                <div key={idx} className="glass-card p-10 rounded-3xl group relative overflow-hidden hover:-translate-y-2 transition-transform duration-500">
-                                    <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[60px] transition-all duration-500 group-hover:blur-[80px] group-hover:scale-150 ${item.glow}`} />
+                                <div
+                                    key={idx}
+                                    className={cn(
+                                        "glass-card p-8 rounded-3xl group relative overflow-hidden cursor-pointer transition-all duration-700 border border-white/5",
+                                        "hover:-translate-y-3 hover:shadow-2xl hover:shadow-[#d97706]/20"
+                                    )}
+                                >
+                                    {/* Animated Glow Effect */}
+                                    <div className={cn(
+                                        "absolute -right-10 -top-10 w-32 h-32 rounded-full blur-[50px] transition-all duration-700",
+                                        "group-hover:blur-[80px] group-hover:scale-[2] group-hover:opacity-100",
+                                        item.glow
+                                    )} />
 
-                                    <div className={`absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity duration-500 ${item.color}`}>
-                                        <item.icon className="w-32 h-32 transform group-hover:rotate-12 transition-transform duration-700" />
+                                    {/* Large Background Icon */}
+                                    <div className={cn(
+                                        "absolute top-0 right-0 p-6 opacity-10 transition-all duration-700",
+                                        "group-hover:opacity-25 group-hover:scale-110 group-hover:rotate-12",
+                                        item.color
+                                    )}>
+                                        <item.icon className="w-24 h-24" />
                                     </div>
-                                    <div className={`w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-8 border border-white/10 group-hover:border-white/20 transition-colors relative z-10 ${item.color}`}>
-                                        <item.icon className="w-8 h-8" />
+
+                                    {/* Icon Container with Pulse Animation */}
+                                    <div className={cn(
+                                        "w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 relative z-10 transition-all duration-500",
+                                        "border group-hover:border-white/30 group-hover:scale-110 group-hover:rotate-6",
+                                        "group-hover:shadow-lg",
+                                        item.borderColor,
+                                        item.color
+                                    )}>
+                                        <item.icon className="w-7 h-7 transition-transform duration-500 group-hover:scale-110" />
+                                        {/* Pulse Ring */}
+                                        <div className={cn(
+                                            "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+                                            "animate-ping",
+                                            item.borderColor
+                                        )} />
                                     </div>
-                                    <h3 className="text-2xl font-bold font-headline mb-4 relative z-10">{item.title}</h3>
-                                    <p className="text-white/60 leading-relaxed relative z-10">{item.desc}</p>
+
+                                    <h3 className="text-xl font-bold font-headline mb-3 relative z-10 transition-colors duration-300 group-hover:text-white">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-white/60 leading-relaxed relative z-10 text-sm transition-colors duration-300 group-hover:text-white/80">
+                                        {item.desc}
+                                    </p>
+
+                                    {/* Interactive Arrow Indicator */}
+                                    <div className={cn(
+                                        "absolute bottom-4 right-4 opacity-0 transition-all duration-500",
+                                        "group-hover:opacity-100 group-hover:translate-x-0 translate-x-2",
+                                        item.color
+                                    )}>
+                                        <ArrowRight className="w-5 h-5" />
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* 3. The Path to Privilege */}
+                {/* 4. The Path to Privilege */}
                 <section id="tiers" className="py-32 relative z-10">
-                    {/* Subtle separator line can remain if desired, or remove for seamlessness */}
                     <div className="container mx-auto px-4">
                         <div className="text-center mb-24">
                             <span className="text-[#d97706] font-bold tracking-widest uppercase mb-4 block">The Ladder</span>
                             <h2 className="text-4xl md:text-6xl font-headline font-black">Path to <span className="gold-gradient">Privilege</span></h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {[
-                                { name: "Member", price: "Free", perks: ["Earn 1pt / 400 LKR", "Digital Card"], color: "bg-stone-700" },
-                                { name: "Bronze", price: "100 pts", perks: ["Earn 1pt / 200 LKR", "Pay with Points"], color: "bg-amber-700" },
-                                { name: "Gold", price: "5000 pts", perks: ["Earn 1pt / 100 LKR", "Priority Service"], color: "bg-yellow-600" },
-                                { name: "Platinum", price: "10000 pts", perks: ["2x Points", "Free Birthday Drink", "Personal Barista"], color: "bg-indigo-900" },
-                            ].map((tier, idx) => (
-                                <div key={idx} className="relative group">
-                                    {idx !== 3 && <div className="hidden md:block absolute top-12 left-1/2 w-full h-1 bg-white/10 -z-10" />}
+                        {isLoading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                <Skeleton className="h-[400px] w-full rounded-3xl bg-white/5" />
+                                <Skeleton className="h-[400px] w-full rounded-3xl bg-white/5" />
+                                <Skeleton className="h-[400px] w-full rounded-3xl bg-white/5" />
+                                <Skeleton className="h-[400px] w-full rounded-3xl bg-white/5" />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {loyaltyTiers?.map((tier, idx) => (
+                                    <div key={tier.id} className="relative group">
+                                        <div className="flex flex-col items-center">
+                                            <div className={cn(
+                                                "w-24 h-24 rounded-full flex items-center justify-center border-4 border-white/10 shadow-2xl z-10 transition-transform duration-300 group-hover:scale-110 mb-8 font-black text-xl backdrop-blur-md bg-black/40",
+                                                tier.name.toLowerCase().includes('member') ? 'text-stone-400 border-stone-500' :
+                                                    tier.name.toLowerCase().includes('bronze') ? 'text-[#cd7f32] border-[#cd7f32]' :
+                                                        tier.name.toLowerCase().includes('gold') ? 'text-[#ffd700] border-[#ffd700]' :
+                                                            tier.name.toLowerCase().includes('platinum') ? 'text-indigo-400 border-indigo-400' :
+                                                                'text-white border-white'
+                                            )}>
+                                                {idx + 1}
+                                            </div>
 
-                                    <div className="flex flex-col items-center">
-                                        <div className={cn(
-                                            "w-24 h-24 rounded-full flex items-center justify-center border-4 border-white/10 shadow-2xl z-10 transition-transform duration-300 group-hover:scale-110 mb-8 font-black text-xl backdrop-blur-md bg-black/40",
-                                            tier.name === 'Member' ? 'text-stone-400 border-stone-500' :
-                                                tier.name === 'Bronze' ? 'text-[#cd7f32] border-[#cd7f32]' :
-                                                    tier.name === 'Gold' ? 'text-[#ffd700] border-[#ffd700]' :
-                                                        'text-white border-white'
-                                        )}>
-                                            {idx + 1}
-                                        </div>
-
-                                        <div className="glass-card w-full p-8 rounded-3xl text-center min-h-[300px] flex flex-col items-center border-t-4 border-t-current bg-black/20" style={{ borderColor: tier.name === 'Member' ? '#78716c' : tier.name === 'Bronze' ? '#cd7f32' : tier.name === 'Gold' ? '#ffd700' : '#ffffff' }}>
-                                            <h3 className="text-3xl font-headline font-black mb-2">{tier.name}</h3>
-                                            <p className="text-[#d97706] font-bold mb-6 font-mono text-sm">{tier.price}</p>
-                                            <ul className="space-y-3 text-white/70 text-sm">
-                                                {tier.perks.map((perk, pIdx) => (
-                                                    <li key={pIdx} className="flex items-center gap-2">
-                                                        <Sparkles className="w-3 h-3 text-[#d97706]" /> {perk}
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            <div className="glass-card w-full p-8 rounded-3xl text-center min-h-[300px] flex flex-col items-center border-t-4 border-t-current bg-black/20"
+                                                style={{
+                                                    borderColor:
+                                                        tier.name.toLowerCase().includes('member') ? '#78716c' :
+                                                            tier.name.toLowerCase().includes('bronze') ? '#cd7f32' :
+                                                                tier.name.toLowerCase().includes('gold') ? '#ffd700' :
+                                                                    tier.name.toLowerCase().includes('platinum') ? '#818cf8' :
+                                                                        '#ffffff'
+                                                }}>
+                                                <h3 className="text-3xl font-headline font-black mb-2">{tier.name}</h3>
+                                                <p className="text-[#d97706] font-bold mb-6 font-mono text-sm">{tier.price}</p>
+                                                <ul className="space-y-3 text-white/70 text-sm">
+                                                    {tier.perks.map((perk, pIdx) => (
+                                                        <li key={pIdx} className="flex items-center gap-2">
+                                                            <Sparkles className="w-3 h-3 text-[#d97706]" /> {perk}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
 
-                {/* 4. Stats / Earning Table */}
+                {/* 5. Maximize Earning Power */}
                 <section className="py-32 relative z-10">
                     <div className="container mx-auto px-4 md:px-6">
                         <div className="glass-card rounded-[3rem] p-8 md:p-16 overflow-hidden relative">
@@ -216,7 +361,7 @@ export default function RewardsPage() {
                     </div>
                 </section>
 
-                {/* 5. CTA Footer */}
+                {/* 6. CTA Footer */}
                 <section className="py-32 text-center relative z-10">
                     <div className="relative z-10 container mx-auto px-4">
                         <h2 className="text-5xl md:text-7xl font-headline font-black mb-8 tracking-tighter">

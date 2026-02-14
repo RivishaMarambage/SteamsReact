@@ -13,9 +13,14 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Coffee, SlidersHorizontal, DollarSign, Sparkles, ArrowRight, Star, Gift, ShieldCheck } from "lucide-react";
 import HighlightsSection from "@/components/home/HighlightsSection";
+
 import OffersHighlight from "@/components/home/OffersHighlight";
+import NewsBanner from "@/components/home/NewsBanner";
+import PublicHeader from "@/components/layout/PublicHeader";
+import { useUser } from "@/firebase";
 
 export default function LandingPage() {
+  const { user } = useUser();
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
   const pathname = usePathname();
   const navLinks = [
@@ -69,68 +74,45 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
-      <header className="px-4 lg:px-6 h-20 flex items-center justify-between fixed top-0 left-0 right-0 z-50 bg-[#1a110a]/80 backdrop-blur-md text-primary-foreground border-b border-white/5">
-        <Logo className="scale-110" />
-        <nav className="hidden lg:flex gap-8">
-          {navLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-accent",
-                pathname === link.href ? "text-accent" : "text-white/70"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <nav className="flex items-center gap-4">
-          <Button asChild className="rounded-full px-6 bg-[#d97706] hover:bg-[#b45309] text-white border-none">
-            <Link href="/login/customer">Sign In</Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-full px-6 bg-white text-black border-none hover:bg-white/90">
-            <Link href="/signup/customer">Sign Up</Link>
-          </Button>
-        </nav>
-      </header>
+      <PublicHeader />
+
       <main className="flex-1">
-        <section className="relative w-full h-screen flex items-center justify-center overflow-hidden">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover scale-105"
-              data-ai-hint={heroImage.imageHint}
-              priority
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#1a110a]" />
-          <div className="relative container mx-auto px-4 md:px-6 text-center text-white space-y-8 max-w-5xl">
-            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-medium tracking-wider mb-2">
+        <section className="relative w-full min-h-[100dvh] flex items-center justify-center overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+          >
+            <source src="/SteamsReact/backgroundHomepage.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a110a]" />
+          <div className="relative container mx-auto px-4 md:px-6 flex flex-col items-center text-center text-white space-y-6 md:space-y-8 max-w-5xl">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-medium tracking-wider mb-2 animate-fade-in">
               Est. 2023 • Premium Roastery
             </div>
-            <h1 className="text-5xl font-headline font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
+            <h1 className="text-4xl xs:text-5xl font-headline font-bold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1]">
               Brewing Moments,<br />
               <span className="text-[#f59e0b]">One Cup at a Time</span>
             </h1>
-            <p className="max-w-[800px] mx-auto text-lg md:text-xl font-body text-white/80 leading-relaxed">
+            <p className="max-w-[800px] mx-auto text-base md:text-lg lg:text-xl font-body text-white/80 leading-relaxed px-4">
               Experience the art of coffee in the heart of the city. We source the finest beans to bring you a daily ritual worth savoring.
             </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" className="rounded-2xl h-14 px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow">
-                <Link href="/menu" className="flex items-center gap-2">
+            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4 px-4">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#d97706] hover:bg-[#b45309] text-white border-none btn-glow w-full sm:w-auto">
+                <Link href="/menu" className="flex items-center justify-center gap-2">
                   View Our Menu <span className="text-xl">🍴</span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-2xl h-14 px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold border-none shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-                <Link href="/signup/customer" className="flex items-center gap-2">
-                  Become a Member <span className="bg-black text-[#f59e0b] rounded-full p-0.5"><Sparkles className="h-3 w-3 fill-current" /></span>
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold border-none shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto transition-all duration-300 hover:scale-105">
+                <Link href={user ? "/dashboard" : "/signup/customer"} className="flex items-center justify-center gap-2">
+                  {user ? "Go to Dashboard" : "Become a Member"} <span className="bg-black text-[#f59e0b] rounded-full p-0.5"><Sparkles className="h-3 w-3 fill-current" /></span>
                 </Link>
               </Button>
-              <Button asChild size="lg" className="rounded-2xl h-14 px-8 glass-btn text-white border-white/20">
-                <Link href="/offers" className="flex items-center gap-2">
+              <Button asChild size="lg" className="rounded-full h-14 px-6 md:px-8 glass-btn text-white border-white/20 w-full sm:w-auto">
+                <Link href="/offers" className="flex items-center justify-center gap-2">
                   View Offers <span className="text-xl">📅</span>
                 </Link>
               </Button>
@@ -138,25 +120,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <HighlightsSection />
 
-        {/* Quote Section */}
-        <section className="bg-[#211811] text-white py-20 lg:py-24">
-          <div className="container mx-auto px-4 md:px-6 text-center">
-            <p className="text-5xl font-headline text-accent mb-6">❞</p>
-            <h2 className="text-3xl font-headline font-bold sm:text-4xl mb-2">
-              A yawn is a silent scream
-            </h2>
-            <p className="text-3xl font-headline text-accent sm:text-4xl mb-8">
-              for coffee.
-            </p>
-            <div className="mt-8 text-sm text-white/70 tracking-widest">
-              <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
-              <span className="mx-4">Since 2023</span>
-              <span className="inline-block w-8 h-px bg-white/50 align-middle"></span>
-            </div>
-          </div>
-        </section>
+
+
 
         <section
           ref={clubSectionRef}
@@ -307,17 +273,17 @@ export default function LandingPage() {
                 <Link href="/dashboard/creator" className="flex items-center gap-2">Start Building Now <ArrowRight className="h-5 w-5" /></Link>
               </Button>
             </div>
-            <div className="hidden md:flex justify-center items-center relative h-[450px]">
-              <div className="absolute w-72 h-72 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
-                <Coffee className="w-36 h-36 text-white drop-shadow-2xl" />
+            <div className="flex justify-center items-center relative h-[300px] md:h-[450px] mt-8 md:mt-0">
+              <div className="absolute w-48 h-48 md:w-72 md:h-72 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
+                <Coffee className="w-24 h-24 md:w-36 md:h-36 text-white drop-shadow-2xl" />
               </div>
-              <div className="absolute top-24 right-4 bg-white text-[#d97706] px-5 py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.5s] flex items-center gap-2">
+              <div className="absolute top-10 right-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.5s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Vanilla
               </div>
-              <div className="absolute bottom-36 -right-2 bg-white text-[#d97706] px-5 py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-1.2s] flex items-center gap-2">
+              <div className="absolute bottom-20 -right-2 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-1.2s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Oat Milk
               </div>
-              <div className="absolute bottom-20 left-4 bg-white text-[#d97706] px-5 py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.8s] flex items-center gap-2">
+              <div className="absolute bottom-10 left-0 bg-white text-[#d97706] px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-2xl font-bold animate-float [animation-delay:-0.8s] flex items-center gap-2 text-sm md:text-base">
                 <span className="text-lg">+</span> Extra Shot
               </div>
             </div>
@@ -353,9 +319,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <HighlightsSection />
+
 
         <OffersHighlight />
+
+        <NewsBanner />
+
+        <HighlightsSection />
 
       </main>
       <Footer />
